@@ -31,6 +31,7 @@ import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/blocs/timer/timer_bloc.dart';
 import 'package:Bloomee/screens/widgets/global_event_listener.dart';
+import 'package:Bloomee/screens/widgets/jarx_intro/jarx_launch.dart';
 import 'package:Bloomee/screens/widgets/shortcut_indicator_overlay.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/bootstrap.dart';
@@ -154,11 +155,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GestureBinding.instance.resamplingEnabled = true;
   MediaKit.ensureInitialized();
+  unawaited(setHighRefreshRate());
+  // The JARX intro plays while the app initialises; see JarxLaunch.
+  runApp(JarxLaunch(init: _initApp, app: (_) => const MyApp()));
+}
+
+/// Everything MyApp needs before its first frame.
+Future<void> _initApp() async {
   await bootstrapApp();
-  setHighRefreshRate();
   await setupPlayerCubit();
   DiscordService.initialize();
-  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {

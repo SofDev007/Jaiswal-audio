@@ -181,6 +181,13 @@ flutter:
     - family: Fjalla
       fonts:
         - asset: assets/fonts/Fjalla/FjallaOne-Regular.ttf
+    # JARX intro wordmark and tagline (SIL OFL 1.1, see assets/fonts/Poppins/OFL.txt)
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
+          weight: 700
     - family: FontAwesome-Brands
       fonts:
         - asset: assets/fonts/fontawesome-free-6.4.0-desktop/otfs/Font Awesome 6 Brands-Regular-400.otf

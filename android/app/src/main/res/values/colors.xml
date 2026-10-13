@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- JARX ink: the launch window and the first frame of the intro animation
+         share this colour so the hand-off from the system splash is seamless. -->
+    <color name="jarx_ink">#0E0E10</color>
+</resources>
