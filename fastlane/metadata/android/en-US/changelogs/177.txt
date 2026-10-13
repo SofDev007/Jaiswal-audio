@@ -4,7 +4,6 @@
 
 <h3>✨ What's New</h3>
 <ul>
-	<li><strong>New Home Page for Bloomee</strong>: <a href="https://hemantkarya.github.io/BloomeeTunes">https://hemantkarya.github.io/BloomeeTunes</a></li>
 	<li><strong>Windows Media Controls</strong>: Get a better desktop experience with native Windows media controls.</li>
 	<li><strong>Downloads Reworked</strong>: The download manager has been completely rewritten — it's faster, more reliable, and now supports downloads on desktop platforms.</li>
 	<li><strong>Backup &amp; Restore</strong>: The backup system was rebuilt to use a more stable JSON format. Your data is now safer than ever.</li>

@@ -79,8 +79,6 @@ class About extends StatelessWidget {
                   children: [
                     const Spacer(),
                     _buildInfoCard(context, l10n),
-                    const SizedBox(height: 50),
-                    _buildSupportSection(l10n),
                     const Spacer(),
                     // Footer moved to bottom of screen
                     const SizedBox(height: 12),
@@ -177,7 +175,7 @@ class About extends StatelessWidget {
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        '@iamhemantindia',
+                        'Based on BloomeeTunes (GPL-2.0)',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: kPrimaryTextColor,
@@ -198,131 +196,10 @@ class About extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 35),
-              // Use Wrap to prevent overflow on small screens; center wrapped items
-              Wrap(
-                alignment: WrapAlignment.center,
-                runAlignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                runSpacing: 12.0, // Spacing when items wrap to the next line
-                spacing: 12.0, // Horizontal spacing
-                children: [
-                  // Maintainer opens GitHub account
-                  _InfoPill(
-                      icon: Icons.shield_outlined,
-                      text: 'Maintainer',
-                      tooltip: l10n.aboutFollowGitHub,
-                      onTap: () {
-                        launchUrl(Uri.parse('https://github.com/HemantKArya'),
-                            mode: LaunchMode.externalApplication);
-                      }),
-                  // Short label 'Email' opens mail composer
-                  _InfoPill(
-                      icon: FontAwesome.x_twitter_brand,
-                      text: 'Contact',
-                      tooltip: l10n.aboutSendInquiry,
-                      onTap: () {
-                        launchUrl(
-                          Uri.parse('https://x.com/iamhemantindia'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }),
-                  // Short label 'Linkedin' opens Linkedin profile
-                  _InfoPill(
-                      icon: FontAwesome.linkedin_brand,
-                      text: 'Linkedin',
-                      tooltip: l10n.aboutCreativeHighlights,
-                      onTap: () {
-                        launchUrl(
-                            Uri.parse('https://linkedin.com/in/iamhemantindia'),
-                            mode: LaunchMode.externalApplication);
-                      }),
-                ],
-              )
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSupportSection(AppLocalizations l10n) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-          child: Text(
-            l10n.aboutTipQuote,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: kSecondaryTextColor, fontSize: 14, fontFamily: 'Gilroy'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            gradient: kButtonGradient,
-            // slightly larger radius for a more prominent pill
-            borderRadius: BorderRadius.circular(34.0),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFDE6262).withValues(alpha: 0.5),
-                blurRadius: 25,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              // increase the ink response radius to match the larger pill
-              borderRadius: BorderRadius.circular(32.0),
-              onTap: () {
-                launchUrl(
-                  Uri.parse("https://hemantkarya.github.io/BloomeeTunes/"),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
-              child: Container(
-                // increased padding for a larger touch target
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 44, vertical: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32.0),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.favorite,
-                        color: kPrimaryTextColor, size: 20),
-                    const SizedBox(width: 10),
-                    Text(
-                      l10n.aboutTipButton,
-                      style: const TextStyle(
-                        color: kPrimaryTextColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Gilroy',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          l10n.aboutTipDesc,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-              color: kSecondaryTextColor, fontSize: 14, fontFamily: 'Gilroy'),
-        ),
-      ],
     );
   }
 
@@ -337,7 +214,7 @@ class About extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               onTap: () {
                 launchUrl(
-                    Uri.parse("https://hemantkarya.github.io/BloomeeTunes/"),
+                    Uri.parse("https://github.com/SofDev007/Jaiswal-audio"),
                     mode: LaunchMode.externalApplication);
               },
               child: Row(
@@ -372,47 +249,6 @@ class About extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final String? tooltip;
-  final VoidCallback? onTap;
-  const _InfoPill(
-      {required this.icon, required this.text, this.onTap, this.tooltip});
-  @override
-  Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisSize: MainAxisSize.min, // Important for Wrap widget
-      children: [
-        Icon(icon, color: kSecondaryTextColor, size: 18),
-        const SizedBox(width: 8),
-        Text(text,
-            style: const TextStyle(
-                color: kSecondaryTextColor,
-                fontSize: 13,
-                fontFamily: 'Gilroy')),
-      ],
-    );
-
-    Widget result = InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
-        child: child,
-      ),
-    );
-
-    if (tooltip != null && tooltip!.isNotEmpty) {
-      result = Tooltip(message: tooltip!, child: result);
-    }
-
-    if (onTap == null) return child;
-
-    return result;
   }
 }
 
