@@ -15,6 +15,7 @@ import 'package:Bloomee/services/storage_backup_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 /// Service for importing and exporting playlists and tracks.
 ///
@@ -499,7 +500,7 @@ class ImportExportService {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(color: Default_Theme.accentColor2),
+                      const JarxLoadingIndicator(color: Default_Theme.accentColor2),
                       const SizedBox(height: 16),
                       Text(l10n.storageRestoring, style: const TextStyle(color: Colors.white, decoration: TextDecoration.none, fontSize: 14), textAlign: TextAlign.center),
                     ],
@@ -594,7 +595,7 @@ class ImportExportService {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(color: Default_Theme.accentColor2),
+                      const JarxLoadingIndicator(color: Default_Theme.accentColor2),
                       const SizedBox(height: 16),
                       Text(l10n.storageRestoring, style: const TextStyle(color: Colors.white, decoration: TextDecoration.none, fontSize: 14), textAlign: TextAlign.center),
                     ],

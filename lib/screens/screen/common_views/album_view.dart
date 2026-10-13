@@ -23,6 +23,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class AlbumView extends StatefulWidget {
   final AlbumSummary album;
@@ -344,7 +345,7 @@ class _AlbumViewState extends State<AlbumView> {
                 const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                      child: CircularProgressIndicator(
+                      child: JarxLoadingIndicator(
                           color: Default_Theme.accentColor2)),
                 ),
 
@@ -353,7 +354,7 @@ class _AlbumViewState extends State<AlbumView> {
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(
-                        child: CircularProgressIndicator(
+                        child: JarxLoadingIndicator(
                             color: Default_Theme.accentColor2)),
                   ),
                 ),

@@ -20,6 +20,7 @@ import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 part 'playlist_info_dialog.dart';
 
@@ -146,7 +147,7 @@ class _PlaylistViewState extends State<PlaylistView> {
               state.status == CurrentPlaylistLoadStatus.initial ||
               state.status == CurrentPlaylistLoadStatus.loading) {
             return const Center(
-                child: CircularProgressIndicator(
+                child: JarxLoadingIndicator(
                     color: Default_Theme.accentColor2));
           }
 
@@ -367,7 +368,7 @@ class _PlaylistViewState extends State<PlaylistView> {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Center(
-                            child: CircularProgressIndicator(
+                            child: JarxLoadingIndicator(
                                 color: Default_Theme.accentColor2)),
                       ),
                     ),
@@ -435,7 +436,7 @@ class _PlaylistViewState extends State<PlaylistView> {
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                  child: CircularProgressIndicator(
+                  child: JarxLoadingIndicator(
                       color: Default_Theme.accentColor2)),
             ),
           ),

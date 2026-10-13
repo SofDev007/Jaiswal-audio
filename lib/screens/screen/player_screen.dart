@@ -30,6 +30,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../blocs/media_player/bloomee_player_cubit.dart';
 import '../../blocs/mini_player/mini_player_cubit.dart';
 import 'player_views/fullscreen_lyrics_view.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class AudioPlayerView extends StatefulWidget {
   const AudioPlayerView({super.key});
@@ -727,7 +728,7 @@ class _PlayPauseButton extends StatelessWidget {
         Color buttonColor = Default_Theme.accentColor2;
 
         if (state.isLoading || state.isResolving) {
-          child = const CircularProgressIndicator(
+          child = const JarxLoadingIndicator(
               strokeWidth: 3, color: Default_Theme.primaryColor1);
           buttonColor = state.isPlaying
               ? Default_Theme.accentColor1

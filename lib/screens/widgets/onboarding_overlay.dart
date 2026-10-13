@@ -9,6 +9,7 @@ import 'package:Bloomee/services/onboarding_service.dart';
 import 'package:Bloomee/utils/country_info.dart';
 import 'package:flutter/material.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class OnboardingOverlay extends StatefulWidget {
   final VoidCallback onComplete;
@@ -278,7 +279,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
                                 const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(
+                                  child: JarxLoadingIndicator(
                                     strokeWidth: 2,
                                     color: Default_Theme.accentColor2,
                                   ),

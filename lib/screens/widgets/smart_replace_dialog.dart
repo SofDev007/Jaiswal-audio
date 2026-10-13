@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 Future<void> showSmartReplaceDialog(BuildContext context, Track track) {
   return showDialog<void>(
@@ -61,7 +62,7 @@ class _SmartReplaceDialogState extends State<_SmartReplaceDialog> {
                 child: SizedBox(
                   width: 28,
                   height: 28,
-                  child: CircularProgressIndicator(
+                  child: JarxLoadingIndicator(
                     strokeWidth: 2.5,
                     color: Default_Theme.accentColor2,
                   ),
@@ -124,7 +125,7 @@ class _SmartReplaceDialogState extends State<_SmartReplaceDialog> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(
+                              child: JarxLoadingIndicator(
                                 strokeWidth: 2,
                                 color: Default_Theme.accentColor2,
                               ),

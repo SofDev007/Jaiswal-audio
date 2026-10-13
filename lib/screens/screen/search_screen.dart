@@ -28,6 +28,7 @@ import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:Bloomee/src/rust/api/plugin/commands.dart';
 import 'package:Bloomee/src/rust/api/plugin/plugin_info.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart' as plugin_models;
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class SearchScreen extends StatefulWidget {
   final String searchQuery;
@@ -450,7 +451,7 @@ class _FloatingSearchBarSliver extends StatelessWidget {
                   key: const ValueKey('search-loading'),
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(
+                  child: JarxLoadingIndicator(
                       strokeWidth: 2.2,
                       color:
                           Default_Theme.primaryColor1.withValues(alpha: 0.5)),
@@ -783,7 +784,7 @@ class _SuggestionsSliver extends StatelessWidget {
             child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
                 child: Center(
-                    child: CircularProgressIndicator(
+                    child: JarxLoadingIndicator(
                         color: Default_Theme.accentColor2))),
           );
         }
@@ -816,7 +817,7 @@ class _SuggestionsSliver extends StatelessWidget {
                 child: SizedBox(
                   width: 28,
                   height: 28,
-                  child: CircularProgressIndicator(
+                  child: JarxLoadingIndicator(
                     strokeWidth: 2,
                     color: Default_Theme.accentColor2,
                   ),
@@ -855,15 +856,12 @@ class _SuggestionsSliver extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             if (isPluginLoading) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    minHeight: 2,
+              Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: JarxLoadingIndicator(
                     color: Default_Theme.accentColor2.withValues(alpha: 0.7),
-                    backgroundColor:
-                        Default_Theme.primaryColor1.withValues(alpha: 0.06),
                   ),
                 ),
               ),
@@ -1181,7 +1179,7 @@ class _ContentSliver extends StatelessWidget {
               return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                      child: CircularProgressIndicator(
+                      child: JarxLoadingIndicator(
                           color: Default_Theme.accentColor2)));
             }
             if ((state.searchStatus == SearchStatus.loading ||
@@ -1271,7 +1269,7 @@ class _SliverSearchResults extends StatelessWidget {
                     const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
+                        child: JarxLoadingIndicator(
                             strokeWidth: 2.2,
                             color: Default_Theme.accentColor2)),
                     const SizedBox(width: 10),
@@ -1335,7 +1333,7 @@ class _SliverSearchResults extends StatelessWidget {
               child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 32),
                   child: Center(
-                      child: CircularProgressIndicator(
+                      child: JarxLoadingIndicator(
                           color: Default_Theme.accentColor2))))
         else
           const SliverPadding(padding: EdgeInsets.only(bottom: 30)),

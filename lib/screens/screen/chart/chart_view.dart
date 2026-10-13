@@ -25,6 +25,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 /// Displays the details (items) of a specific chart.
 ///
@@ -352,7 +353,7 @@ class _ChartScreenBodyState extends State<_ChartScreenBody> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(
+                                child: JarxLoadingIndicator(
                                   strokeWidth: 2,
                                   color: Default_Theme.primaryColor1,
                                 ),
@@ -374,7 +375,7 @@ class _ChartScreenBodyState extends State<_ChartScreenBody> {
           builder: (context, state) {
             if (state.chartDetailStatus == ChartStatus.loading) {
               return const Center(
-                child: CircularProgressIndicator(
+                child: JarxLoadingIndicator(
                     color: Default_Theme.accentColor2),
               );
             }
@@ -911,7 +912,7 @@ class _HeroActionContent extends StatelessWidget {
         leading = const SizedBox(
           width: 18,
           height: 18,
-          child: CircularProgressIndicator(
+          child: JarxLoadingIndicator(
             strokeWidth: 2.2,
             color: Default_Theme.accentColor2,
           ),
@@ -1026,7 +1027,7 @@ class _HeroIconVisual extends StatelessWidget {
     return switch (status) {
       ChartResolveActionStatus.resolving => const Padding(
           padding: EdgeInsets.all(12),
-          child: CircularProgressIndicator(
+          child: JarxLoadingIndicator(
             strokeWidth: 2.1,
             color: Colors.white,
           ),

@@ -4,6 +4,7 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/utils/url_launcher.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class CheckUpdateView extends StatelessWidget {
   const CheckUpdateView({super.key});
@@ -160,7 +161,7 @@ class CheckUpdateView extends StatelessWidget {
                     child: SizedBox(
                         height: 50,
                         width: 50,
-                        child: CircularProgressIndicator(
+                        child: JarxLoadingIndicator(
                           color: Default_Theme.accentColor2,
                         )),
                   ),

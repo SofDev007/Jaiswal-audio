@@ -6,6 +6,7 @@ import 'package:Bloomee/screens/screen/chart/chart_view.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 /// A rich list tile for chart items with rank, trend indicator, artwork,
 /// metadata, stats, and action buttons.
@@ -351,7 +352,7 @@ class _ChartActionVisual extends StatelessWidget {
           height: 36,
           child: Padding(
             padding: const EdgeInsets.all(9),
-            child: CircularProgressIndicator(
+            child: JarxLoadingIndicator(
               strokeWidth: 2.0,
               color: foregroundColor,
             ),

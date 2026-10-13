@@ -20,6 +20,7 @@ import 'package:icons_plus/icons_plus.dart';
 import 'package:Bloomee/screens/screen/home_views/plugin_repository_view.dart';
 import 'package:Bloomee/plugins/blocs/repository/plugin_repository_cubit.dart';
 import 'package:Bloomee/plugins/utils/plugin_constants.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class PluginManagerScreen extends StatefulWidget {
   const PluginManagerScreen({super.key});
@@ -86,7 +87,7 @@ class _PluginManagerScreenState extends State<PluginManagerScreen> {
       builder: (context, state) {
         if (!state.isInitialized) {
           return const Center(
-              child: CircularProgressIndicator(
+              child: JarxLoadingIndicator(
                   color: Default_Theme.accentColor2, strokeWidth: 3));
         }
 
@@ -219,7 +220,7 @@ class _PluginManagerScreenState extends State<PluginManagerScreen> {
                 child: SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
+                    child: JarxLoadingIndicator(
                         strokeWidth: 2.5, color: Default_Theme.accentColor2)),
               );
             }
@@ -705,7 +706,7 @@ class _CustomSwitchState extends State<_CustomSwitch> {
                       child: SizedBox(
                           width: 10,
                           height: 10,
-                          child: CircularProgressIndicator(
+                          child: JarxLoadingIndicator(
                               strokeWidth: 2,
                               color: _localValue
                                   ? Default_Theme.themeColor
@@ -930,7 +931,7 @@ class _PluginDetailSheet extends StatelessWidget {
                             ? SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
+                                child: JarxLoadingIndicator(
                                     strokeWidth: 2.5,
                                     color: isLoaded
                                         ? Colors.red
@@ -1126,7 +1127,7 @@ class _ApiKeysDialogContentState extends State<_ApiKeysDialogContent> {
           return const SizedBox(
               height: 200,
               child: Center(
-                  child: CircularProgressIndicator(
+                  child: JarxLoadingIndicator(
                       color: Default_Theme.accentColor2)));
         }
 
@@ -1266,7 +1267,7 @@ class _ApiKeysDialogContentState extends State<_ApiKeysDialogContent> {
                       ? const SizedBox(
                           width: 22,
                           height: 22,
-                          child: CircularProgressIndicator(
+                          child: JarxLoadingIndicator(
                               strokeWidth: 2.5, color: Colors.white))
                       : Text(l10n.pluginManagerSave,
                           style: const TextStyle(
@@ -1301,7 +1302,7 @@ class _InlineOperationIndicator extends StatelessWidget {
           const SizedBox(
               width: 14,
               height: 14,
-              child: CircularProgressIndicator(
+              child: JarxLoadingIndicator(
                   strokeWidth: 2, color: Default_Theme.accentColor2)),
           const SizedBox(width: 8),
           Text(label,

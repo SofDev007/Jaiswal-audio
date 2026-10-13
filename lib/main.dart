@@ -65,6 +65,7 @@ import 'package:Bloomee/services/onboarding_service.dart';
 import 'package:Bloomee/services/plugin_bootstrap_service.dart';
 import 'package:Bloomee/plugins/services/plugin_repository_service.dart';
 import 'package:Bloomee/services/shared_url_resolver_service.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 void processIncomingIntent(SharedMedia sharedMedia) {
   if (sharedMedia.content != null && isUrl(sharedMedia.content!)) {
@@ -459,7 +460,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               child: SizedBox(
                 width: 50,
                 height: 50,
-                child: CircularProgressIndicator(
+                child: JarxLoadingIndicator(
                   color: Default_Theme.accentColor2,
                 ),
               ),

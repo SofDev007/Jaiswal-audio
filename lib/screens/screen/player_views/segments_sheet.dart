@@ -8,6 +8,7 @@ import 'package:Bloomee/src/rust/api/plugin/models.dart';
 import 'package:Bloomee/src/rust/api/plugin/types.dart';
 import 'package:flutter/material.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 /// Shows a bottom sheet listing track segments/chapters.
 ///
@@ -159,7 +160,7 @@ class _SegmentsSheetBodyState extends State<_SegmentsSheetBody> {
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(
+                      child: JarxLoadingIndicator(
                           color: Default_Theme.accentColor2))
                   : _segments == null || _segments!.isEmpty
                       ? Center(

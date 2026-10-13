@@ -19,6 +19,7 @@ import 'package:Bloomee/src/rust/api/plugin/types.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 String sanitizeLyricsQueryText(String raw) {
   var value = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -212,7 +213,7 @@ class LyricsSearchDelegate extends SearchDelegate {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(
+            child: JarxLoadingIndicator(
                 color: Default_Theme.accentColor2, strokeWidth: 3),
           );
         }
@@ -388,7 +389,7 @@ class _LyricsResultCardState extends State<_LyricsResultCard> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(
+                              child: JarxLoadingIndicator(
                                   strokeWidth: 2.5,
                                   color: Default_Theme.accentColor2))
                           : Icon(
@@ -667,7 +668,7 @@ class _LyricsPreviewModalState extends State<_LyricsPreviewModal> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(
+                    child: JarxLoadingIndicator(
                         color: Default_Theme.accentColor2))
                 : _fetchedLyrics == null || _fetchedLyrics!.lyricsPlain.isEmpty
                     ? Center(

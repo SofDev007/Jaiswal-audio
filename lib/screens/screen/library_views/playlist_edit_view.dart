@@ -8,6 +8,7 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class PlaylistEditView extends StatefulWidget {
   const PlaylistEditView({super.key});
@@ -43,7 +44,7 @@ class _PlaylistEditViewState extends State<PlaylistEditView> {
         if (isLoading) {
           return const Scaffold(
             backgroundColor: Default_Theme.themeColor,
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: JarxLoadingIndicator()),
           );
         }
 

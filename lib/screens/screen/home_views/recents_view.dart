@@ -10,6 +10,7 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class HistoryView extends StatelessWidget {
   const HistoryView({super.key});
@@ -50,7 +51,7 @@ class HistoryView extends StatelessWidget {
           builder: (context, state) {
             return (state is HistoryInitial)
                 ? const Center(
-                    child: CircularProgressIndicator(),
+                    child: JarxLoadingIndicator(),
                   )
                 : ListView.builder(
                     itemCount: state.tracks.length,

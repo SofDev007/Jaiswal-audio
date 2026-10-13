@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class SongInfoScreen extends StatefulWidget {
   final Track song;
@@ -741,7 +742,7 @@ class _ActionButton extends StatelessWidget {
                   SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
+                    child: JarxLoadingIndicator(
                       strokeWidth: 2,
                       color: isPrimary
                           ? Default_Theme.accentColor2

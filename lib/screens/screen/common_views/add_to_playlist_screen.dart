@@ -14,6 +14,7 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class AddToPlaylistScreen extends StatefulWidget {
   const AddToPlaylistScreen({super.key});
@@ -236,7 +237,7 @@ class _AddToPlaylistScreenState extends State<AddToPlaylistScreen> {
                     builder: (context, libraryState) {
                       if (libraryState is LibraryItemsLoading) {
                         return const Center(
-                          child: CircularProgressIndicator(
+                          child: JarxLoadingIndicator(
                             color: Default_Theme.accentColor2,
                           ),
                         );
@@ -612,7 +613,7 @@ class _PlaylistTile extends StatelessWidget {
                         height: 32,
                         child: Padding(
                           padding: const EdgeInsets.all(6),
-                          child: CircularProgressIndicator(
+                          child: JarxLoadingIndicator(
                             strokeWidth: 2.4,
                             color: Default_Theme.accentColor1,
                             backgroundColor: Default_Theme.primaryColor1

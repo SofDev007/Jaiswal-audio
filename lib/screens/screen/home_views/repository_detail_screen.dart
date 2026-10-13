@@ -17,6 +17,7 @@ import 'package:Bloomee/plugins/blocs/plugin/plugin_event.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
 import 'package:Bloomee/plugins/utils/plugin_constants.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 enum _RemoteInstallPhase {
   idle,
@@ -546,7 +547,7 @@ class _AestheticButton extends StatelessWidget {
                   width: 16,
                   height: 16,
                   child:
-                      CircularProgressIndicator(strokeWidth: 2.5, color: color),
+                      JarxLoadingIndicator(strokeWidth: 2.5, color: color),
                 )
               : Text(
                   text,

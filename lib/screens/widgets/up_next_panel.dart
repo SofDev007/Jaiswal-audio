@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'song_tile.dart';
 import 'more_bottom_sheet.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class _UpNextStyles {
   static final headerTextStyle = Default_Theme.secondoryTextStyleMedium.merge(
@@ -479,7 +480,7 @@ class _DesktopSongListState extends State<_DesktopSongList> {
       builder: (context, queueSnapshot) {
         if (!queueSnapshot.hasData) {
           return const Center(
-              child: CircularProgressIndicator(
+              child: JarxLoadingIndicator(
                   color: Default_Theme.primaryColor2));
         }
         final queue = queueSnapshot.data!;

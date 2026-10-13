@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class ArtistView extends StatefulWidget {
   final ArtistSummary artist;
@@ -328,7 +329,7 @@ class _ArtistViewState extends State<ArtistView> {
         if (state.artistDetailStatus != DetailStatus.loaded &&
             state.artistDetailStatus != DetailStatus.loadingMore) {
           return const Center(
-            child: CircularProgressIndicator(color: Default_Theme.accentColor2),
+            child: JarxLoadingIndicator(color: Default_Theme.accentColor2),
           );
         }
 
@@ -437,7 +438,7 @@ class _ArtistViewState extends State<ArtistView> {
                     (context, index) {
                       if (index == albums.length) {
                         return const Center(
-                            child: CircularProgressIndicator(
+                            child: JarxLoadingIndicator(
                                 color: Default_Theme.accentColor2));
                       }
                       return AnimatedListItem(

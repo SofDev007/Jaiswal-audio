@@ -30,6 +30,7 @@ import 'chart/carousal_widget.dart';
 import '../widgets/horizontal_card_view.dart';
 import '../widgets/tab_list_widget.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -191,7 +192,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   child: SizedBox(
                                     height: 60,
                                     width: 60,
-                                    child: CircularProgressIndicator(
+                                    child: JarxLoadingIndicator(
                                       color: Default_Theme.accentColor2,
                                     ),
                                   ),
@@ -354,7 +355,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 return const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 40),
                                   child: Center(
-                                    child: CircularProgressIndicator(
+                                    child: JarxLoadingIndicator(
                                       color: Default_Theme.accentColor2,
                                     ),
                                   ),

@@ -12,6 +12,7 @@ import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class BackupSettings extends StatelessWidget {
   const BackupSettings({super.key});
@@ -491,7 +492,7 @@ Future<void> _onRestoreTap(BuildContext context) async {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(),
+                const JarxLoadingIndicator(),
                 const SizedBox(height: 16),
                 Text(
                   l10n.storageRestoring,

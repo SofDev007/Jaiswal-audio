@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class OnlPlaylistView extends StatefulWidget {
   final PlaylistSummary playlist;
@@ -329,7 +330,7 @@ class _OnlPlaylistViewState extends State<OnlPlaylistView> {
                   child: Padding(
                     padding: EdgeInsets.only(top: 100, bottom: 120),
                     child: Center(
-                        child: CircularProgressIndicator(
+                        child: JarxLoadingIndicator(
                             color: Default_Theme.accentColor2)),
                   ),
                 ),
@@ -338,7 +339,7 @@ class _OnlPlaylistViewState extends State<OnlPlaylistView> {
                   child: Padding(
                     padding: EdgeInsets.only(top: 20, bottom: 120),
                     child: Center(
-                        child: CircularProgressIndicator(
+                        child: JarxLoadingIndicator(
                             color: Default_Theme.accentColor2)),
                   ),
                 ),

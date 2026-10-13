@@ -15,6 +15,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class MiniPlayerWidget extends StatelessWidget {
   const MiniPlayerWidget({Key? key}) : super(key: key);
@@ -467,7 +468,7 @@ class _PlayPauseButton extends StatelessWidget {
         padding: EdgeInsets.all(12),
         child: SizedBox.square(
           dimension: 22,
-          child: CircularProgressIndicator(
+          child: JarxLoadingIndicator(
             strokeWidth: 2.5,
             color: Colors.white,
           ),

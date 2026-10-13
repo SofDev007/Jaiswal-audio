@@ -1,5 +1,6 @@
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class SnackbarService {
   static final GlobalKey<ScaffoldMessengerState> messengerKey =
@@ -38,7 +39,7 @@ class SnackbarService {
                     child: SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(
+                      child: JarxLoadingIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
                             Default_Theme.primaryColor1),
                       ),

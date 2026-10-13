@@ -25,6 +25,7 @@ import 'package:icons_plus/icons_plus.dart';
 import 'package:Bloomee/blocs/library/search_cubit/library_search_cubit.dart';
 import 'package:Bloomee/core/models/library_search_result.dart';
 import 'package:Bloomee/screens/widgets/animated_list_item.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -108,7 +109,7 @@ class _LibraryScreenViewState extends State<_LibraryScreenView> {
         child: BlocBuilder<LibraryItemsCubit, LibraryItemsState>(
           builder: (context, itemsState) {
             if (itemsState is LibraryItemsLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: JarxLoadingIndicator());
             }
 
             if (itemsState is LibraryItemsError) {
@@ -169,7 +170,7 @@ class _LibraryScreenViewState extends State<_LibraryScreenView> {
                             child: SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
+                              child: JarxLoadingIndicator(
                                 strokeWidth: 2,
                                 color: Default_Theme.accentColor1
                                     .withValues(alpha: 0.6),

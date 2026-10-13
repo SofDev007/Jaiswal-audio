@@ -15,6 +15,7 @@ import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/csv_playlist_parser.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 // ── Screen ──────────────────────────────────────────────────────────────────
 
@@ -419,7 +420,7 @@ class _LoadingView extends StatelessWidget {
               _CollectionHeader(info: collectionInfo!),
               const SizedBox(height: 40),
             ],
-            CircularProgressIndicator(
+            JarxLoadingIndicator(
               color: Default_Theme.accentColor2,
               backgroundColor:
                   Default_Theme.primaryColor1.withValues(alpha: 0.1),
@@ -932,7 +933,7 @@ class _ResolvingTrackTile extends StatelessWidget {
       TrackResolutionStatus.resolving => const SizedBox(
           width: 20,
           height: 20,
-          child: CircularProgressIndicator(
+          child: JarxLoadingIndicator(
               strokeWidth: 2, color: Default_Theme.accentColor2),
         ),
       TrackResolutionStatus.resolved =>

@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:path/path.dart' as p;
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class LocalMusicScreen extends StatefulWidget {
   const LocalMusicScreen({super.key});
@@ -170,7 +171,7 @@ class _LocalMusicScreenState extends State<LocalMusicScreen> {
   Widget _buildLoadingSliver() {
     return const SliverFillRemaining(
       child: Center(
-        child: CircularProgressIndicator(color: Default_Theme.accentColor2),
+        child: JarxLoadingIndicator(color: Default_Theme.accentColor2),
       ),
     );
   }
@@ -231,7 +232,7 @@ class _LocalMusicScreenState extends State<LocalMusicScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Default_Theme.accentColor2),
+            const JarxLoadingIndicator(color: Default_Theme.accentColor2),
             const SizedBox(height: 20),
             Text(AppLocalizations.of(context)!.localMusicScanning,
                 style: const TextStyle(

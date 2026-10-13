@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:path/path.dart' as p;
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class LocalMusicSettings extends StatefulWidget {
   const LocalMusicSettings({super.key});
@@ -190,7 +191,7 @@ class _LocalMusicSettingsState extends State<LocalMusicSettings> {
                           const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
+                            child: JarxLoadingIndicator(
                               strokeWidth: 2,
                               color: Default_Theme.accentColor2,
                             ),

@@ -12,6 +12,7 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 /// Displays a horizontal scrollable card view for a home [Section].
 class HorizontalCardView extends StatefulWidget {
@@ -135,7 +136,7 @@ class _HorizontalCardViewState extends State<HorizontalCardView> {
                         return const SizedBox(
                           width: 96,
                           child: Center(
-                            child: CircularProgressIndicator(
+                            child: JarxLoadingIndicator(
                               color: Default_Theme.accentColor2,
                             ),
                           ),

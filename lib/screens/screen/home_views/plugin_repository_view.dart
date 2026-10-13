@@ -9,6 +9,7 @@ import 'package:Bloomee/plugins/models/plugin_repository.dart';
 import 'package:Bloomee/screens/widgets/sign_board_widget.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/screens/screen/home_views/repository_detail_screen.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class PluginRepositoryView extends StatefulWidget {
   const PluginRepositoryView({super.key});
@@ -190,7 +191,7 @@ class _PluginRepositoryViewState extends State<PluginRepositoryView> {
                 builder: (context, state) {
                   if (state is PluginRepositoryLoading) {
                     return const Center(
-                      child: CircularProgressIndicator(
+                      child: JarxLoadingIndicator(
                           color: Default_Theme.accentColor2, strokeWidth: 3),
                     );
                   } else if (state is PluginRepositoryLoaded) {

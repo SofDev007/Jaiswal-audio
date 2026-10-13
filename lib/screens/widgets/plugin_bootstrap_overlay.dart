@@ -13,6 +13,7 @@ import 'package:Bloomee/services/plugin_bootstrap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 enum _Phase { running, success, failed, noInternet }
 
@@ -212,7 +213,7 @@ class _SpinnerBody extends StatelessWidget {
                     : const SizedBox(
                         width: 36,
                         height: 36,
-                        child: CircularProgressIndicator(
+                        child: JarxLoadingIndicator(
                           strokeWidth: 2.5,
                           color: Default_Theme.accentColor2,
                         ),

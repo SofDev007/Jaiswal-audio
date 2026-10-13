@@ -18,6 +18,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class FullscreenLyricsView extends StatefulWidget {
   const FullscreenLyricsView({super.key});
@@ -147,10 +148,10 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
                     duration: const Duration(milliseconds: 400),
                     child: switch (state) {
                       LyricsInitial() => const Center(
-                          child: CircularProgressIndicator(
+                          child: JarxLoadingIndicator(
                               color: Default_Theme.accentColor2)),
                       LyricsLoading() => const Center(
-                          child: CircularProgressIndicator(
+                          child: JarxLoadingIndicator(
                               color: Default_Theme.accentColor2)),
                       LyricsLoaded() => state.lyrics.parsedLyrics != null
                           ? FullscreenSyncedLyrics(
