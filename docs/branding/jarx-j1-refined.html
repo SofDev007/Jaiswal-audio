@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARX J1 refined</title>
+<!-- Local branding proposal. No external requests: system fonts only.
+     Master SVGs for the app live in docs/branding/jarx/. -->
+<style>
+:root{--bg:#F7F7F5;--ink:#1A1A1A;--muted:#4A4A4A;--card:#FFFFFF;--line:#E4E2DC}
+@media (prefers-color-scheme: dark){:root{--bg:#141414;--ink:#EDEDED;--muted:#B5B5B5;--card:#1E1E1E;--line:#2E2E2E}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1120px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:30px;margin:0 0 4px;letter-spacing:.04em}
+h2{font-size:19px;margin:0 0 12px}
+.lede{color:var(--muted);margin:0 0 28px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;margin-bottom:24px}
+.row{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end}
+.cap{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:var(--muted);text-align:center}
+.note{color:var(--muted);font-size:14px;margin:14px 0 0}
+.mask{width:84px;height:84px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0E0E10}
+.mask svg{width:112px;height:112px;flex:none}
+.m-circle{border-radius:50%}.m-squircle{border-radius:32%}.m-rounded{border-radius:18%}.m-drop{border-radius:50% 50% 50% 14%}
+.wall{display:flex;gap:16px;padding:18px;border-radius:14px}
+.wall.light{background:#E9E4F5}.wall.dark{background:#1D1B22}
+.themed{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.wall.light .themed{background:#D8CFF0;color:#3B2F63}.wall.dark .themed{background:#3B3350;color:#D8CFF0}
+.statusbar{display:flex;align-items:center;gap:10px;background:#000;color:#fff;padding:8px 14px;border-radius:10px;font:13px system-ui}
+.phone{width:200px;height:420px;border-radius:30px;background:#0E0E10;border:6px solid #2A2A2A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#F5F5F5}
+.phone .wm{font:800 26px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.14em}
+.lock{display:flex;align-items:center;gap:16px;padding:18px 22px;border-radius:14px}
+.lock.light{background:#FFFFFF;color:#111;border:1px solid #DDD}
+.lock.dark{background:#0E0E10;color:#F5F5F5}
+.wm{font:800 34px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.12em}
+.full{font-size:11px;letter-spacing:.08em;opacity:.75;margin-top:6px}
+.stack{flex-direction:column;text-align:center}
+.swatch{display:flex;align-items:center;gap:10px;font-size:13px}
+.swatch i{width:40px;height:40px;border-radius:10px;border:1px solid rgba(0,0,0,.15)}
+code{font:13px ui-monospace,Consolas,monospace}
+</style>
+</head>
+<body>
+<main>
+<h1>JARX · J1 Pulse J, refined</h1>
+<p class="lede">The chosen direction, tightened for real use: centred on the grid, a slightly heavier stroke, a taller pulse so it reads small, and every variant Android and the app need.</p>
+
+<section class="card">
+<h2>App icon at real sizes</h2>
+<div class="row">
+<div class="cap"><svg viewBox="0 0 120 120" width="192" height="192" role="img" aria-label="JARX icon, large"><use href="#icon"/></svg>192 px (store / about)</div>
+<div class="cap"><svg viewBox="0 0 120 120" width="96" height="96" role="img" aria-label="JARX icon, 96 px"><use href="#icon"/></svg>96 px (launcher, xhdpi)</div>
+<div class="cap"><svg viewBox="0 0 120 120" width="48" height="48" role="img" aria-label="JARX icon, 48 px"><use href="#icon"/></svg>48 px</div>
+<div class="cap"><svg viewBox="0 0 120 120" width="32" height="32" role="img" aria-label="JARX icon, 32 px"><use href="#icon"/></svg>32 px</div>
+<div class="cap"><svg viewBox="0 0 120 120" width="24" height="24" role="img" aria-label="JARX icon, 24 px"><use href="#icon"/></svg>24 px</div>
+</div>
+</section>
+
+<section class="card">
+<h2>Construction</h2>
+<div class="row">
+<div class="cap"><svg viewBox="0 0 120 120" width="240" height="240" role="img" aria-label="Icon on a grid with the centre lines"><use href="#icon"/><g stroke="#FFFFFF" stroke-opacity=".18" stroke-width=".5"><path d="M0 60 H120 M60 0 V120"/><path d="M10 0 V120 M20 0 V120 M30 0 V120 M40 0 V120 M50 0 V120 M70 0 V120 M80 0 V120 M90 0 V120 M100 0 V120 M110 0 V120 M0 10 H120 M0 20 H120 M0 30 H120 M0 40 H120 M0 50 H120 M0 70 H120 M0 80 H120 M0 90 H120 M0 100 H120 M0 110 H120"/></g></svg>Centred on a 120 grid</div>
+<div class="cap"><svg viewBox="0 0 108 108" width="240" height="240" role="img" aria-label="Adaptive icon canvas with the 66 unit safe zone"><rect width="108" height="108" fill="#0E0E10"/><use href="#fg"/><circle cx="54" cy="54" r="33" fill="none" stroke="#7DD3FC" stroke-dasharray="2 2" stroke-width=".6"/><circle cx="54" cy="54" r="36" fill="none" stroke="#FFFFFF" stroke-opacity=".25" stroke-width=".6"/></svg>Android adaptive canvas: mark inside the 66 safe zone (dashed)</div>
+</div>
+<p class="note">Stroke 10 on a 120 grid (8.3%), round caps and joins. The pulse spike is 32 tall so it survives 24 px.</p>
+</section>
+
+<section class="card">
+<h2>Launcher masks (different phone brands crop differently)</h2>
+<div class="row">
+<div class="cap"><div class="mask m-circle"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#fg"/></svg></div>circle (Pixel)</div>
+<div class="cap"><div class="mask m-squircle"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#fg"/></svg></div>squircle (Samsung)</div>
+<div class="cap"><div class="mask m-rounded"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#fg"/></svg></div>rounded square</div>
+<div class="cap"><div class="mask m-drop"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#fg"/></svg></div>teardrop</div>
+</div>
+</section>
+
+<section class="card">
+<h2>Themed icon (Android 13+) and notification icon</h2>
+<div class="row">
+<div class="wall light"><div class="themed"><svg viewBox="0 0 108 108" width="96" height="96" aria-hidden="true"><use href="#mono"/></svg></div></div>
+<div class="wall dark"><div class="themed"><svg viewBox="0 0 108 108" width="96" height="96" aria-hidden="true"><use href="#mono"/></svg></div></div>
+<div class="cap"><div class="statusbar"><svg viewBox="0 0 120 120" width="20" height="20" aria-hidden="true"><use href="#notif"/></svg>JARX · Now playing</div>status bar, 24 px white glyph</div>
+</div>
+<p class="note">The themed icon takes the wallpaper's colours automatically. The notification glyph is a heavier, white-only version because Android shows it at 24 dp.</p>
+</section>
+
+<section class="card">
+<h2>Splash screen</h2>
+<div class="row">
+<div class="phone"><svg viewBox="0 0 120 120" width="96" height="96" role="img" aria-label="JARX mark"><use href="#mark"/></svg><div class="wm">JARX</div></div>
+<p class="note" style="max-width:420px">The mark on the icon's ink colour, no tile. Android 12+ shows the icon centred on a solid background; the wordmark appears on the app's own first screen.</p>
+</div>
+</section>
+
+<section class="card">
+<h2>Logo with name</h2>
+<div class="row">
+<div class="lock light"><svg viewBox="0 0 120 120" width="64" height="64" aria-hidden="true"><use href="#icon"/></svg><div><div class="wm">JARX</div><div class="full">JAISWAL AUDIO RESPONSE EXPERIENCE</div></div></div>
+<div class="lock dark"><svg viewBox="0 0 120 120" width="64" height="64" aria-hidden="true"><use href="#mark"/></svg><div><div class="wm">JARX</div><div class="full">JAISWAL AUDIO RESPONSE EXPERIENCE</div></div></div>
+<div class="lock dark stack"><svg viewBox="0 0 120 120" width="72" height="72" aria-hidden="true"><use href="#mark"/></svg><div class="wm">JARX</div></div>
+</div>
+</section>
+
+<section class="card">
+<h2>Colours</h2>
+<div class="row">
+<div class="swatch"><i style="background:#0E0E10"></i><div><b>Ink</b> <code>#0E0E10</code><br><span style="color:var(--muted)">icon background, splash, dark surfaces</span></div></div>
+<div class="swatch"><i style="background:#FF4D2E"></i><div><b>Pulse</b> <code>#FF4D2E</code><br><span style="color:var(--muted)">the mark, primary accent (contrast on ink 5.8:1)</span></div></div>
+<div class="swatch"><i style="background:#F5F5F5"></i><div><b>Paper</b> <code>#F5F5F5</code><br><span style="color:var(--muted)">text on ink, light surfaces</span></div></div>
+</div>
+<p class="note">Whether the app's in-app accent colour (now Bloomee pink) also changes to Pulse is a separate choice; see the rename plan.</p>
+</section>
+</main>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="mark" viewBox="0 0 120 120"><path d="M32 38 L46 38 L53 22 L62 54 L68 38 L88 38 L88 78 A20 20 0 0 1 48 78" fill="none" stroke="#FF4D2E" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="icon" viewBox="0 0 120 120"><rect width="120" height="120" rx="28" fill="#0E0E10"/><use href="#mark"/></symbol>
+<symbol id="fg" viewBox="0 0 108 108"><g transform="translate(21 21) scale(0.55)"><path d="M32 38 L46 38 L53 22 L62 54 L68 38 L88 38 L88 78 A20 20 0 0 1 48 78" fill="none" stroke="#FF4D2E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g></symbol>
+<symbol id="mono" viewBox="0 0 108 108"><g transform="translate(21 21) scale(0.55)"><path d="M32 38 L46 38 L53 22 L62 54 L68 38 L88 38 L88 78 A20 20 0 0 1 48 78" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g></symbol>
+<symbol id="notif" viewBox="0 0 120 120"><path d="M22 36 L40 36 L49 14 L61 58 L69 36 L94 36 L94 80 A24 24 0 0 1 46 80" fill="none" stroke="#FFFFFF" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs>
+</svg>
+</body>
+</html>

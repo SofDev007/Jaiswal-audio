@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="512" height="512" role="img" aria-label="JARX">
+  <!-- JARX app icon, J1 "Pulse J". Background #0E0E10, mark #FF4D2E. -->
+  <rect width="120" height="120" rx="28" fill="#0E0E10"/>
+  <path d="M32 38 L46 38 L53 22 L62 54 L68 38 L88 38 L88 78 A20 20 0 0 1 48 78" fill="none" stroke="#FF4D2E" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

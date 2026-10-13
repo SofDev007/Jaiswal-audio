@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="432" height="432">
+  <!-- Android adaptive icon foreground (108dp canvas). The mark sits inside the
+       central 66dp safe zone so no launcher mask crops it. Transparent background. -->
+  <g transform="translate(21 21) scale(0.55)">
+    <path d="M32 38 L46 38 L53 22 L62 54 L68 38 L88 38 L88 78 A20 20 0 0 1 48 78" fill="none" stroke="#FF4D2E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
