@@ -1,0 +1,63 @@
+name: "CI"
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - 'fastlane/**'
+      - '.github/FUNDING.yml'
+      - 'ghpage/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # ==========================================
+  # JOB 1: FLUTTER CHECKS
+  # ==========================================
+  flutter-check:
+    name: Flutter Analyze & Test
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Static Code Analysis
+        run: flutter analyze --no-fatal-infos
+
+
+  # ==========================================
+  # JOB 2: RUST CHECKS (flutter_rust_bridge)
+  # ==========================================
+  rust-check:
+    name: Rust Clippy & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust Dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "rust" 
+
+      - name: Run Cargo check
+        run: cargo check --manifest-path rust/Cargo.toml

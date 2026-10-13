@@ -1,0 +1,665 @@
+import 'dart:async';
+import 'dart:developer';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:Bloomee/services/db/dao/settings_dao.dart';
+import 'package:Bloomee/services/db/dao/plugin_storage_dao.dart';
+import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/plugins/blocs/plugin/plugin_event.dart';
+import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
+import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
+import 'package:Bloomee/plugins/services/plugin_repository_service.dart';
+import 'package:Bloomee/services/plugin/plugin_event_bus.dart';
+import 'package:Bloomee/services/plugin/plugin_load_state_service.dart';
+import 'package:Bloomee/services/plugin/plugin_service.dart';
+import 'package:Bloomee/services/plugin_bootstrap_service.dart';
+import 'package:Bloomee/src/rust/api/plugin/events.dart';
+import 'package:Bloomee/src/rust/api/plugin/plugin_info.dart';
+import 'package:Bloomee/src/rust/api/plugin/types.dart';
+
+/// Manages plugin lifecycle: load, unload, install, refresh.
+///
+/// Reacts to [PluginManagerEvent]s from the Rust plugin system
+/// via [PluginEventBus] and updates [PluginState] accordingly.
+///
+/// This BLoC is the single source of truth for which plugins
+/// are available and loaded. Other BLoCs (ContentBloc, ChartBloc)
+/// read from [PluginState] to know which plugin to target.
+class PluginBloc extends Bloc<PluginEvent, PluginState> {
+  final PluginService _pluginService;
+  final PluginEventBus _eventBus;
+  final PluginLoadStateService _loadStateService;
+  final PluginRepositoryService _repositoryService;
+  final SettingsDAO _settingsDao;
+
+  StreamSubscription<PluginManagerEvent>? _eventSubscription;
+  Set<String> _preferredAutoLoadIds = <String>{};
+  final Set<String> _autoLoadAttemptIds = <String>{};
+
+  static const Duration _autoLoadStartDelay = Duration(milliseconds: 180);
+
+  PluginState _setPluginOperation(
+    PluginState current,
+    String pluginId,
+    PluginOperation operation,
+  ) {
+    final updated = Map<String, PluginOperation>.from(current.pluginOperations)
+      ..[pluginId] = operation;
+    return current.copyWith(
+      isLoading: true,
+      pluginOperations: updated,
+      clearSuccessMessage: true,
+    );
+  }
+
+  PluginState _clearPluginOperation(
+    PluginState current,
+    String pluginId,
+  ) {
+    final updated = Map<String, PluginOperation>.from(current.pluginOperations)
+      ..remove(pluginId);
+    return current.copyWith(
+      isLoading: updated.isNotEmpty,
+      pluginOperations: updated,
+    );
+  }
+
+  Future<void> _persistAutoLoadSafe(Set<String> pluginIds) async {
+    try {
+      _preferredAutoLoadIds = {...pluginIds};
+      await _loadStateService.writeAutoLoadPluginIds(_preferredAutoLoadIds);
+    } catch (e, stack) {
+      log(
+        'Failed to persist auto-load plugin IDs',
+        error: e,
+        stackTrace: stack,
+        name: 'PluginBloc',
+      );
+    }
+  }
+
+  PluginBloc({
+    required PluginService pluginService,
+    required PluginEventBus eventBus,
+    PluginLoadStateService? loadStateService,
+    PluginRepositoryService? repositoryService,
+    SettingsDAO? settingsDao,
+  })  : _pluginService = pluginService,
+        _eventBus = eventBus,
+        _loadStateService = loadStateService ??
+            PluginLoadStateService(SettingsDAO(DBProvider.db)),
+        _repositoryService = repositoryService ??
+            PluginRepositoryService(settingsDao: SettingsDAO(DBProvider.db)),
+        _settingsDao = settingsDao ?? SettingsDAO(DBProvider.db),
+        super(const PluginState.initial()) {
+    // Register event handlers.
+    on<InitializePluginSystem>(_onInitialize);
+    on<LoadPlugin>(_onLoadPlugin);
+    on<LoadPluginFromInfo>(_onLoadPluginFromInfo);
+    on<UnloadPlugin>(_onUnloadPlugin);
+    on<InstallPlugin>(_onInstallPlugin);
+    on<DeletePlugin>(_onDeletePlugin);
+    on<RefreshPlugins>(_onRefreshPlugins);
+    on<PluginSystemEvent>(_onSystemEvent);
+    on<AutoLoadPlugins>(_onAutoLoadPlugins);
+
+    // Subscribe to Rust plugin events.
+    _eventSubscription = _eventBus.events.listen((event) {
+      if (!isClosed) {
+        add(PluginSystemEvent(event));
+      }
+    });
+  }
+
+  // ── Initialization ─────────────────────────────────────────────────────────
+
+  Future<void> _onInitialize(
+    InitializePluginSystem event,
+    Emitter<PluginState> emit,
+  ) async {
+    try {
+      emit(state.copyWith(
+        isLoading: true,
+        clearError: true,
+        clearSuccessMessage: true,
+      ));
+
+      if (!_pluginService.isInitialized) {
+        emit(state.copyWith(
+          availablePlugins: const [],
+          loadedPluginIds: const {},
+          isInitialized: true,
+          isLoading: false,
+          pluginOperations: const {},
+          error: 'Plugin system unavailable',
+        ));
+        return;
+      }
+
+      // Fetch available plugins and current loaded state.
+      final available = await _pluginService.getAvailablePlugins();
+      final loaded = _pluginService.getLoadedPlugins();
+
+      emit(state.copyWith(
+        availablePlugins: available,
+        loadedPluginIds: loaded.toSet(),
+        isInitialized: true,
+        isLoading: false,
+        pluginOperations: const {},
+      ));
+
+      _preferredAutoLoadIds = await _loadStateService.readAutoLoadPluginIds();
+      final availableById = <String, PluginInfo>{
+        for (final plugin in available) plugin.manifest.id: plugin,
+      };
+
+      final missingAutoLoad = _preferredAutoLoadIds
+          .where((id) => !loaded.contains(id))
+          .map((id) {
+            final info = availableById[id];
+            if (info == null) return null;
+            return (pluginId: info.manifest.id, pluginType: info.pluginType);
+          })
+          .whereType<({String pluginId, PluginType pluginType})>()
+          .toList(growable: false);
+
+      if (missingAutoLoad.isNotEmpty) {
+        unawaited(Future<void>.delayed(_autoLoadStartDelay, () {
+          if (!isClosed) {
+            add(AutoLoadPlugins(plugins: missingAutoLoad));
+          }
+        }));
+      }
+
+      unawaited(PluginBootstrapService.autoSelectPluginDefaults(
+        _pluginService,
+        SettingsDAO(DBProvider.db),
+      ));
+
+      // Trigger background plugin sync AFTER auto-load has had a chance to run.
+      // We delay long enough for AutoLoadPlugins to complete so that
+      // syncRepositoriesAndAutoUpdate sees the correct set of loaded plugins
+      // and can properly unload them before applying any updates.
+      // The 30-minute cooldown inside syncOnAppOpenIfDue prevents spamming.
+      unawaited(Future<void>.delayed(const Duration(seconds: 5), () {
+        if (!isClosed) {
+          unawaited(_syncPluginRepositoriesIfDue());
+        }
+      }));
+
+      log('PluginBloc initialized: ${available.length} available, ${loaded.length} loaded',
+          name: 'PluginBloc');
+    } catch (e, stack) {
+      log('PluginBloc initialization failed',
+          error: e, stackTrace: stack, name: 'PluginBloc');
+      emit(state.copyWith(
+        isLoading: false,
+        error: 'Failed to initialize plugin system: $e',
+      ));
+    }
+  }
+
+  // ── Load Plugin ────────────────────────────────────────────────────────────
+
+  Future<void> _onLoadPlugin(
+    LoadPlugin event,
+    Emitter<PluginState> emit,
+  ) async {
+    emit(state.copyWith(
+      clearError: true,
+      clearSuccessMessage: true,
+      pluginOperations: {
+        ...state.pluginOperations,
+        event.pluginId: PluginOperation.loading,
+      },
+      isLoading: true,
+    ));
+
+    try {
+      await _pluginService.loadPlugin(
+        pluginId: event.pluginId,
+        pluginType: event.pluginType,
+      );
+      // State update happens via PluginSystemEvent (pluginLoaded).
+    } on PluginException catch (e) {
+      emit(state.copyWith(
+        error: e.message,
+        pluginOperations: (Map<String, PluginOperation>.from(
+          state.pluginOperations,
+        )..remove(event.pluginId)),
+        isLoading: state.pluginOperations.length > 1,
+      ));
+    }
+  }
+
+  Future<void> _onLoadPluginFromInfo(
+    LoadPluginFromInfo event,
+    Emitter<PluginState> emit,
+  ) async {
+    final info = event.pluginInfo;
+    add(LoadPlugin(
+      pluginId: info.manifest.id,
+      pluginType: info.pluginType,
+    ));
+  }
+
+  // ── Unload Plugin ──────────────────────────────────────────────────────────
+
+  Future<void> _onUnloadPlugin(
+    UnloadPlugin event,
+    Emitter<PluginState> emit,
+  ) async {
+    emit(state.copyWith(
+      clearError: true,
+      clearSuccessMessage: true,
+      pluginOperations: {
+        ...state.pluginOperations,
+        event.pluginId: PluginOperation.unloading,
+      },
+      isLoading: true,
+    ));
+
+    try {
+      await _pluginService.unloadPlugin(
+        pluginId: event.pluginId,
+        pluginType: event.pluginType,
+      );
+      // State update happens via PluginSystemEvent (pluginUnloaded).
+    } on PluginException catch (e) {
+      emit(state.copyWith(
+        error: e.message,
+        pluginOperations: (Map<String, PluginOperation>.from(
+          state.pluginOperations,
+        )..remove(event.pluginId)),
+        isLoading: state.pluginOperations.length > 1,
+      ));
+    }
+  }
+
+  // ── Install Plugin ─────────────────────────────────────────────────────────
+
+  Future<void> _onInstallPlugin(
+    InstallPlugin event,
+    Emitter<PluginState> emit,
+  ) async {
+    emit(state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccessMessage: true,
+    ));
+
+    try {
+      // If the plugin is currently loaded, we must unload it first.
+      // On Windows (and some Android setups), the native library file is
+      // locked while loaded, so the Rust installer returns `pluginLoaded`
+      // and refuses to overwrite. We mirror what the auto-updater already does:
+      // unload → install → reload.
+      //
+      // We read the pluginId from the packed manifest by attempting a first
+      // install and reacting to `pluginLoaded`, keeping this code path simple
+      // and avoiding duplicating manifest-reading logic.
+      PluginInstallResult result = await _pluginService.installPlugin(
+        packedFilePath: event.packedFilePath,
+        shouldLoad: event.shouldLoad,
+      );
+
+      if (result.status == PluginInstallStatus.pluginLoaded) {
+        // Plugin is loaded — unload it, reinstall, then reload.
+        final pluginId = result.pluginId;
+        log('Plugin $pluginId is loaded; unloading before update',
+            name: 'PluginBloc');
+
+        // Find plugin type from current available list (needed for unload call).
+        final info = state.availablePlugins
+            .where((p) => p.manifest.id == pluginId)
+            .firstOrNull;
+
+        if (info != null) {
+          try {
+            await _pluginService.unloadPlugin(
+              pluginId: pluginId,
+              pluginType: info.pluginType,
+            );
+            log('Unloaded $pluginId for update', name: 'PluginBloc');
+          } catch (unloadErr) {
+            log('Failed to unload $pluginId before update: $unloadErr',
+                name: 'PluginBloc');
+          }
+
+          // Retry the install now that the plugin is unloaded.
+          result = await _pluginService.installPlugin(
+            packedFilePath: event.packedFilePath,
+            shouldLoad: event.shouldLoad,
+          );
+
+          log('Install result after unload: ${result.pluginId} — ${result.status}',
+              name: 'PluginBloc');
+        } else {
+          // Plugin info not in state — cannot safely unload; surface error.
+          emit(state.copyWith(
+            isLoading: false,
+            error:
+                'Cannot update "$pluginId": plugin info not found. Try restarting the app.',
+          ));
+          return;
+        }
+      } else {
+        log('Install result: ${result.pluginId} — ${result.status}',
+            name: 'PluginBloc');
+      }
+
+      final isSuccess = result.status == PluginInstallStatus.installed ||
+          result.status == PluginInstallStatus.updated ||
+          result.status == PluginInstallStatus.alreadyInstalled ||
+          result.status == PluginInstallStatus.downgraded;
+
+      final message = switch (result.status) {
+        PluginInstallStatus.updated =>
+          'Plugin "${result.pluginId}" upgraded to a newer version.',
+        PluginInstallStatus.alreadyInstalled =>
+          'Plugin "${result.pluginId}" is already on the latest version.',
+        PluginInstallStatus.downgraded =>
+          'Plugin "${result.pluginId}" installed with an older version.',
+        PluginInstallStatus.pluginLoaded =>
+          'Could not update "${result.pluginId}": plugin is still in use. Try restarting the app.',
+        PluginInstallStatus.failed =>
+          'Failed to install plugin "${result.pluginId}".',
+        PluginInstallStatus.installed =>
+          'Plugin "${result.pluginId}" installed successfully.',
+      };
+
+      if (result.status == PluginInstallStatus.pluginLoaded ||
+          result.status == PluginInstallStatus.failed) {
+        emit(state.copyWith(isLoading: false, error: message));
+        return;
+      }
+
+      if (event.shouldLoad && isSuccess) {
+        await _persistAutoLoadSafe(
+            {..._preferredAutoLoadIds, result.pluginId});
+      }
+
+      emit(state.copyWith(successMessage: message));
+
+      // Refresh available plugins after install.
+      add(const RefreshPlugins());
+    } on PluginException catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        error: e.message,
+      ));
+    }
+  }
+
+  // ── Refresh Available Plugins ──────────────────────────────────────────────
+
+  // ── Delete Plugin ──────────────────────────────────────────────────────────
+
+  Future<void> _onDeletePlugin(
+    DeletePlugin event,
+    Emitter<PluginState> emit,
+  ) async {
+    emit(state.copyWith(
+      clearError: true,
+      clearSuccessMessage: true,
+      pluginOperations: {
+        ...state.pluginOperations,
+        event.pluginId: PluginOperation.deleting,
+      },
+      isLoading: true,
+    ));
+
+    try {
+      await _pluginService.deletePlugin(
+        pluginId: event.pluginId,
+        pluginType: event.pluginType,
+      );
+      await _persistAutoLoadSafe(
+          {..._preferredAutoLoadIds}..remove(event.pluginId));
+      // deletePlugin() fires pluginListRefreshed (not pluginDeleted), so
+      // we perform storage cleanup directly here instead of waiting for an
+      // event that never arrives.
+      if (event.cleanStorage) {
+        unawaited(_cleanupPluginStorage(event.pluginId));
+      }
+      // State update happens via pluginListRefreshed event from Rust.
+    } on PluginException catch (e) {
+      emit(state.copyWith(
+        error: e.message,
+        pluginOperations: (Map<String, PluginOperation>.from(
+          state.pluginOperations,
+        )..remove(event.pluginId)),
+        isLoading: state.pluginOperations.length > 1,
+      ));
+    } catch (e) {
+      log('Delete failed for ${event.pluginId}: $e', name: 'PluginBloc');
+      emit(state.copyWith(
+        error: 'Failed to delete plugin: $e',
+        pluginOperations: (Map<String, PluginOperation>.from(
+          state.pluginOperations,
+        )..remove(event.pluginId)),
+        isLoading: state.pluginOperations.length > 1,
+      ));
+    }
+  }
+
+  // ── Refresh Available Plugins ──────────────────────────────────────────────
+
+  Future<void> _onRefreshPlugins(
+    RefreshPlugins event,
+    Emitter<PluginState> emit,
+  ) async {
+    try {
+      await _pluginService.refreshPlugins();
+      final available = await _pluginService.getAvailablePlugins();
+      final loaded = _pluginService.getLoadedPlugins();
+
+      emit(state.copyWith(
+        availablePlugins: available,
+        loadedPluginIds: loaded.toSet(),
+        isLoading: false,
+        pluginOperations: const {},
+      ));
+    } catch (e) {
+      log('Failed to refresh plugins', error: e, name: 'PluginBloc');
+    }
+  }
+
+  // ── Auto Load ──────────────────────────────────────────────────────────────
+
+  Future<void> _onAutoLoadPlugins(
+    AutoLoadPlugins event,
+    Emitter<PluginState> emit,
+  ) async {
+    for (final plugin in event.plugins) {
+      await Future<void>.delayed(Duration.zero);
+      _autoLoadAttemptIds.add(plugin.pluginId);
+      try {
+        await _pluginService
+            .loadPlugin(
+              pluginId: plugin.pluginId,
+              pluginType: plugin.pluginType,
+            )
+            .timeout(const Duration(seconds: 20));
+      } on TimeoutException {
+        log('Auto-load timed out for ${plugin.pluginId}', name: 'PluginBloc');
+      } catch (e) {
+        log('Auto-load failed for ${plugin.pluginId}: $e', name: 'PluginBloc');
+      } finally {
+        _autoLoadAttemptIds.remove(plugin.pluginId);
+      }
+    }
+  }
+
+  // ── System Events (from Rust) ──────────────────────────────────────────────
+
+  Future<void> _onSystemEvent(
+    PluginSystemEvent event,
+    Emitter<PluginState> emit,
+  ) async {
+    final e = event.event;
+    if (e is! PluginManagerEvent) return;
+
+    e.when(
+      pluginLoading: (pluginId) {
+        if (state.operationFor(pluginId) == PluginOperation.deleting) {
+          emit(state.copyWith(isLoading: true));
+          return;
+        }
+        emit(_setPluginOperation(state, pluginId, PluginOperation.loading));
+      },
+      pluginLoaded: (pluginId, pluginType) {
+        final newLoaded = {...state.loadedPluginIds, pluginId};
+        emit(_clearPluginOperation(state, pluginId).copyWith(
+          loadedPluginIds: newLoaded,
+          clearError: true,
+        ));
+        if (!_autoLoadAttemptIds.contains(pluginId)) {
+          unawaited(_persistAutoLoadSafe({..._preferredAutoLoadIds, pluginId}));
+        }
+      },
+      pluginLoadFailed: (pluginId, error) {
+        _autoLoadAttemptIds.remove(pluginId);
+        emit(_clearPluginOperation(state, pluginId).copyWith(
+          error: 'Failed to load $pluginId: $error',
+        ));
+      },
+      pluginUnloading: (pluginId) {
+        if (state.operationFor(pluginId) == PluginOperation.deleting) {
+          emit(state.copyWith(isLoading: true));
+          return;
+        }
+        emit(_setPluginOperation(state, pluginId, PluginOperation.unloading));
+      },
+      pluginUnloaded: (pluginId) {
+        final newLoaded = {...state.loadedPluginIds}..remove(pluginId);
+        final deleting =
+            state.operationFor(pluginId) == PluginOperation.deleting;
+        emit((deleting ? state : _clearPluginOperation(state, pluginId))
+            .copyWith(
+          loadedPluginIds: newLoaded,
+          isLoading:
+              deleting || state.pluginOperations.length > (deleting ? 0 : 1),
+          clearError: true,
+        ));
+        if (!deleting) {
+          unawaited(_persistAutoLoadSafe(
+              {..._preferredAutoLoadIds}..remove(pluginId)));
+        }
+      },
+      pluginUnloadFailed: (pluginId, error) {
+        emit(_clearPluginOperation(state, pluginId).copyWith(
+          error: 'Failed to unload $pluginId: $error',
+        ));
+      },
+      pluginInstalling: (pluginId) {
+        emit(_setPluginOperation(state, pluginId, PluginOperation.installing));
+      },
+      pluginInstalled: (pluginId) {
+        emit(_clearPluginOperation(state, pluginId));
+      },
+      pluginInstallFailed: (pluginId, error) {
+        emit(_clearPluginOperation(state, pluginId).copyWith(
+          error: 'Install failed for $pluginId: $error',
+        ));
+      },
+      pluginDeleting: (pluginId) {
+        emit(_setPluginOperation(state, pluginId, PluginOperation.deleting));
+      },
+      pluginDeleted: (pluginId) {
+        final newLoaded = {...state.loadedPluginIds}..remove(pluginId);
+        emit(_clearPluginOperation(state, pluginId).copyWith(
+          loadedPluginIds: newLoaded,
+          successMessage: 'Plugin "$pluginId" deleted successfully.',
+        ));
+        unawaited(
+            _persistAutoLoadSafe({..._preferredAutoLoadIds}..remove(pluginId)));
+        // Refresh to update available list.
+        add(const RefreshPlugins());
+      },
+      pluginDeleteFailed: (pluginId, error) {
+        emit(_clearPluginOperation(state, pluginId).copyWith(
+          error: 'Delete failed for $pluginId: $error',
+        ));
+      },
+      pluginListRefreshed: (plugins) {
+        // Use the provided list directly — do NOT call RefreshPlugins()
+        // which would trigger refreshAvailablePlugins() → emits
+        // pluginListRefreshed again → infinite loop.
+        final loaded = _pluginService.isInitialized
+            ? _pluginService.getLoadedPlugins()
+            : <String>[];
+        final previousDeletingIds = state.pluginOperations.entries
+            .where((entry) => entry.value == PluginOperation.deleting)
+            .map((entry) => entry.key)
+            .toSet();
+        final availableIds =
+            plugins.map((plugin) => plugin.manifest.id).toSet();
+        final deletedIds = previousDeletingIds.difference(availableIds);
+        final updatedOperations = Map<String, PluginOperation>.from(
+          state.pluginOperations,
+        )..removeWhere(
+            (pluginId, operation) =>
+                operation == PluginOperation.deleting &&
+                !availableIds.contains(pluginId),
+          );
+
+        emit(state.copyWith(
+          availablePlugins: plugins,
+          loadedPluginIds: loaded.toSet(),
+          isLoading: updatedOperations.isNotEmpty,
+          pluginOperations: updatedOperations,
+          successMessage: deletedIds.isNotEmpty
+              ? 'Plugin "${deletedIds.first}" deleted successfully.'
+              : null,
+          clearSuccessMessage: deletedIds.isEmpty,
+        ));
+      },
+      storageSet: (_, __, ___) {},
+      storageDeleted: (_, __) {},
+      storageCleared: (_) {},
+      managerInitialized: () {
+        emit(state.copyWith(isInitialized: true));
+      },
+      error: (message) {
+        emit(state.copyWith(error: message, clearSuccessMessage: true));
+      },
+    );
+  }
+
+  // ── Background Plugin Sync ─────────────────────────────────────────────────
+
+  Future<void> _syncPluginRepositoriesIfDue() async {
+    try {
+      await PluginBootstrapService.syncOnAppOpenIfDue(
+        pluginService: _pluginService,
+        repositoryService: _repositoryService,
+        settingsDao: _settingsDao,
+      );
+      // Refresh UI after sync to reflect any updates.
+      if (!isClosed) {
+        add(const RefreshPlugins());
+      }
+    } catch (e, stack) {
+      log('Background plugin sync failed',
+          error: e, stackTrace: stack, name: 'PluginBloc');
+    }
+  }
+
+  Future<void> _cleanupPluginStorage(String pluginId) async {
+    try {
+      final dao = PluginStorageDao(DBProvider.db);
+      await dao.clearPlugin(pluginId);
+      log('Cleaned storage for deleted plugin: $pluginId', name: 'PluginBloc');
+    } catch (e) {
+      log('Failed to clean storage for plugin $pluginId: $e',
+          name: 'PluginBloc');
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _eventSubscription?.cancel();
+    return super.close();
+  }
+}

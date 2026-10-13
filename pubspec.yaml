@@ -1,0 +1,193 @@
+name: Bloomee
+description: An Open source Free Music Player.
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 3.0.4+0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+# isar version for community fork of isar (temporary)
+# isar_version: &isar_version 3.3.0-dev.3 
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
+  device_info_plus: ^12.1.0
+  equatable: ^2.0.7
+  icons_plus: ^5.0.0
+  cached_network_image: ^3.4.1
+  flutter_bloc: ^9.1.1
+  bloc: ^9.0.0
+  dart_des: ^1.0.2
+  http: ^1.5.0
+  archive: ^4.0.7
+  convert: ^3.1.1
+  html: ^0.15.6
+  google_nav_bar: ^5.0.6
+  carousel_slider: ^5.1.1
+  palette_generator: ^0.3.3+2
+  rxdart: ^0.28.0
+  go_router: ^16.2.4
+  easy_debounce: ^2.0.3
+
+  isar_community: 
+    version: ^3.3.0-dev.3
+  isar_community_flutter_libs: # contains Isar Core
+    version: ^3.3.0-dev.3
+
+  path_provider: ^2.1.0
+  path: ^1.9.0
+  modal_bottom_sheet: ^3.0.0
+  html_unescape: ^2.0.0
+  marquee: ^2.2.3
+  string_similarity: ^2.0.0
+  package_info_plus: ^9.0.0
+  url_launcher: ^6.3.2
+  badges: ^3.1.2
+  flutter_displaymode: ^0.6.0
+  country_codes: ^3.3.0
+  connectivity_plus: ^7.0.0
+  share_plus: ^12.0.0
+  file_picker: ^10.3.3
+  fuzzywuzzy: ^1.2.0
+  numberpicker: ^2.1.2
+  permission_handler: ^12.0.1
+  share_handler: ^0.0.25
+  sliding_up_panel: ^2.0.0+1
+  responsive_framework: ^1.5.1
+  scrollable_positioned_list: ^0.3.8
+  crypto: ^3.0.5
+  dart_discord_rpc: ^0.0.2
+  mime: ^2.0.0
+  photo_manager: ^3.9.0
+
+
+  # audio service dependencies
+  audio_service: ^0.18.18
+  audio_session: ^0.2.3
+  media_kit: ^1.2.6 
+  media_kit_libs_audio: ^1.0.7 
+  audio_service_mpris: ^0.2.0
+  audio_service_win: ^0.0.2
+  rust_lib_Bloomee:
+    path: rust_builder
+  flutter_rust_bridge: 2.12.0
+  freezed_annotation: ^3.1.0
+  async: ^2.12.0
+
+  
+
+dependency_overrides:
+  ffi: ^1.1.2  # Override to make dart_discord_rpc work
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.3
+
+  isar_community_generator: 
+    version: ^3.3.0-dev.3
+    
+  build_runner: ^2.7.1
+  flutter_launcher_icons: ^0.14.4
+  integration_test:
+    sdk: flutter
+  freezed: ^3.2.3
+  
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  adaptive_icon_background: "assets/icons/bloomee_light_gradient.png"
+  adaptive_icon_foreground: "assets/icons/BloomeeTunes4ZoomedOut2.png"
+  image_path: "assets/icons/BloomeeLogoFG.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+
+  macos:
+    generate: true
+    image_path: "assets/icons/BloomeeLogo4.png"
+  windows:
+    generate: true
+    image_path: "assets/icons/BloomeeLogo4.png"
+    
+
+# The following section is specific to Flutter packages.
+flutter:
+  generate: true
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/icons/bloomee_new_logo_c.png
+    - assets/icons/lazy_loading.png
+    - assets/icons/BloomeeLogoFG.png
+    
+  fonts:
+    - family: Unageo
+      fonts:
+        - asset: assets/fonts/Unageo/Unageo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Unageo/Unageo-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Unageo/Unageo-Semibold.ttf
+          weight: 600
+        - asset: assets/fonts/Unageo/Unageo-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Unageo/Unageo-Extrabold.ttf
+          weight: 800
+        - asset: assets/fonts/Unageo/Unageo-Black.ttf
+          weight: 900
+    
+        
+    - family: Gilroy
+      fonts:
+        - asset: assets/fonts/Gilroy/Gilroy-Regular.ttf
+        - asset: assets/fonts/Gilroy/Gilroy-Medium.ttf
+          weight: 700
+        - asset: assets/fonts/Gilroy/Gilroy-Bold.ttf
+          weight: 900
+    - family: CodePro
+      fonts:
+        - asset: assets/fonts/CodePro/Code Pro LC.otf
+          weight: 400
+        - asset: assets/fonts/CodePro/Code Pro Bold LC.otf
+          weight: 700
+
+    - family: ReThink-Sans
+      fonts:
+        - asset: assets/fonts/ReThinkSans/RethinkSans-Regular.otf
+          weight: 400
+        - asset: assets/fonts/ReThinkSans/RethinkSans-Medium.otf
+          weight: 500
+        - asset: assets/fonts/ReThinkSans/RethinkSans-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/ReThinkSans/RethinkSans-Bold.otf
+          weight: 700
+        - asset: assets/fonts/ReThinkSans/RethinkSans-ExtraBold.otf
+          weight: 800
+          
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/Noto/NotoSans-VariableFont_wdth,wght.ttf
+
+
+    - family: Fjalla
+      fonts:
+        - asset: assets/fonts/Fjalla/FjallaOne-Regular.ttf
+    - family: FontAwesome-Brands
+      fonts:
+        - asset: assets/fonts/fontawesome-free-6.4.0-desktop/otfs/Font Awesome 6 Brands-Regular-400.otf
+    - family: FontAwesome-Regular
+      fonts:
+        - asset: assets/fonts/fontawesome-free-6.4.0-desktop/otfs/Font Awesome 6 Free-Regular-400.otf
+    - family: FontAwesome-Solids
+      fonts:
+        - asset: assets/fonts/fontawesome-free-6.4.0-desktop/otfs/Font Awesome 6 Free-Solid-900.otf
+
