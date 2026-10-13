@@ -1662,6 +1662,107 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint => '큰 플레이리스트는 몇 분 정도 걸릴 수 있습니다.';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return '다시 시도 중 ($attempt/$max)…';
+  }
+
+  @override
+  String get importStopAndReview => '중지하고 검토';
+
+  @override
+  String get importEditLink => '링크 수정';
+
+  @override
+  String get importErrorNotFound =>
+      '이 플레이리스트를 찾을 수 없습니다. 비공개이거나 삭제되었거나 해당 지역에서 이용할 수 없을 수 있습니다.';
+
+  @override
+  String get importErrorEmptyCollection =>
+      '곡을 찾을 수 없습니다. 플레이리스트가 비어 있거나 비공개일 수 있습니다.';
+
+  @override
+  String get importErrorAuthFailed =>
+      '서비스가 이 플레이리스트에 대한 접근을 거부했습니다. 비공개이거나 플러그인 업데이트가 필요할 수 있습니다.';
+
+  @override
+  String get importErrorRateLimited => '서비스에 요청이 너무 많습니다. 1분 후 다시 시도하세요.';
+
+  @override
+  String get importErrorNetwork => '서비스에 연결할 수 없습니다. 연결을 확인하고 다시 시도하세요.';
+
+  @override
+  String get importErrorTimeout =>
+      '서비스 응답이 너무 오래 걸렸습니다. 다시 시도하거나 더 작은 플레이리스트를 가져오세요.';
+
+  @override
+  String get importErrorPluginBusy =>
+      '플러그인이 아직 이전 요청을 처리하고 있습니다. 1분 후 다시 시도하세요.';
+
+  @override
+  String get importErrorPluginUnavailable =>
+      '가져오기 플러그인이 로드되지 않았습니다. 플러그인에서 로드한 후 다시 시도하세요.';
+
+  @override
+  String get importCsvFiles => 'CSV 플레이리스트 가져오기 (Spotify / Exportify)';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      '이 파일에는 곡 제목 열이 없습니다. 플레이리스트를 CSV로 내보낸 후(예: Exportify) 다시 시도하세요.';
+
+  @override
+  String get importCsvNoTracks => '이 CSV 파일에서 곡을 찾을 수 없습니다.';
+
+  @override
+  String get importErrorNoResolvers =>
+      '로드된 음악 소스 플러그인이 없습니다. 플러그인에서 하나를 로드한 후 다시 시도를 누르세요.';
+
+  @override
+  String get importErrorMatchingFailed =>
+      '매칭이 예기치 않게 중단되었습니다. 곡은 그대로 유지됩니다. 다시 시도를 눌러 계속하세요.';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '$percent% 일치';
+  }
+
+  @override
+  String get importCheckMatch => '이 매칭을 확인하세요';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '$count개 행 건너뜀';
+  }
+
+  @override
+  String get importSkippedRowsTitle => '건너뛴 행';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return '$line행: $original행과 중복';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return '$line행: 곡 제목 없음';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return '$line행: 따옴표가 닫히지 않아 파일의 나머지를 읽을 수 없습니다';
+  }
+
+  @override
+  String get importChooseAnotherFile => '다른 파일 선택';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return '실패한 검색 $count개 다시 시도';
+  }
+
+  @override
   String get playlistPinToTop => '맨 위에 고정';
 
   @override

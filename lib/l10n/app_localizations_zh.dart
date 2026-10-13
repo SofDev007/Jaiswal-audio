@@ -1655,6 +1655,99 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint => '大型播放列表可能需要几分钟。';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return '正在重试（$attempt/$max）…';
+  }
+
+  @override
+  String get importStopAndReview => '停止并查看';
+
+  @override
+  String get importEditLink => '编辑链接';
+
+  @override
+  String get importErrorNotFound => '找不到此播放列表。它可能是私密的、已被删除，或在你所在的地区不可用。';
+
+  @override
+  String get importErrorEmptyCollection => '未找到歌曲。播放列表可能为空或为私密。';
+
+  @override
+  String get importErrorAuthFailed => '服务拒绝访问此播放列表。它可能是私密的，或插件需要更新。';
+
+  @override
+  String get importErrorRateLimited => '对服务的请求过多。请等待一分钟后重试。';
+
+  @override
+  String get importErrorNetwork => '无法连接到服务。请检查网络连接后重试。';
+
+  @override
+  String get importErrorTimeout => '服务响应时间过长。请重试，或导入较小的播放列表。';
+
+  @override
+  String get importErrorPluginBusy => '插件仍在完成上一个请求。请一分钟后重试。';
+
+  @override
+  String get importErrorPluginUnavailable => '导入插件未加载。请在插件中加载后重试。';
+
+  @override
+  String get importCsvFiles => '导入 CSV 播放列表（Spotify / Exportify）';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      '此文件没有歌曲名称列。请将播放列表导出为 CSV（例如使用 Exportify）后重试。';
+
+  @override
+  String get importCsvNoTracks => '此 CSV 文件中未找到歌曲。';
+
+  @override
+  String get importErrorNoResolvers => '未加载任何音乐来源插件。请在插件中加载一个，然后点击重试。';
+
+  @override
+  String get importErrorMatchingFailed => '匹配意外停止。你的歌曲已保留：点击重试以继续。';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '匹配度 $percent%';
+  }
+
+  @override
+  String get importCheckMatch => '请检查此匹配';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '已跳过 $count 行';
+  }
+
+  @override
+  String get importSkippedRowsTitle => '已跳过的行';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return '第 $line 行：与第 $original 行重复';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return '第 $line 行：没有歌曲名称';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return '第 $line 行：引号未闭合，无法读取文件的其余部分';
+  }
+
+  @override
+  String get importChooseAnotherFile => '选择其他文件';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return '重试 $count 个失败的查找';
+  }
+
+  @override
   String get playlistPinToTop => '置顶';
 
   @override

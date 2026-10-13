@@ -3192,6 +3192,162 @@ abstract class AppLocalizations {
   /// **'Failed to save playlist: {error}'**
   String importErrorFailedToSave(String error);
 
+  /// No description provided for @importLargePlaylistHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Large playlists can take a few minutes.'**
+  String get importLargePlaylistHint;
+
+  /// No description provided for @importRetryingAttempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying ({attempt} of {max})…'**
+  String importRetryingAttempt(int attempt, int max);
+
+  /// No description provided for @importStopAndReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and review'**
+  String get importStopAndReview;
+
+  /// No description provided for @importEditLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit link'**
+  String get importEditLink;
+
+  /// No description provided for @importErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This playlist couldn\'t be found. It may be private, deleted or unavailable in your region.'**
+  String get importErrorNotFound;
+
+  /// No description provided for @importErrorEmptyCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks were found. The playlist may be empty or private.'**
+  String get importErrorEmptyCollection;
+
+  /// No description provided for @importErrorAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The service refused access to this playlist. It may be private, or the plugin may need an update.'**
+  String get importErrorAuthFailed;
+
+  /// No description provided for @importErrorRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests to the service. Wait a minute, then try again.'**
+  String get importErrorRateLimited;
+
+  /// No description provided for @importErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the service. Check your connection and try again.'**
+  String get importErrorNetwork;
+
+  /// No description provided for @importErrorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The service took too long to respond. Try again, or import a smaller playlist.'**
+  String get importErrorTimeout;
+
+  /// No description provided for @importErrorPluginBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The plugin is still finishing the previous request. Try again in a minute.'**
+  String get importErrorPluginBusy;
+
+  /// No description provided for @importErrorPluginUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The import plugin isn\'t loaded. Load it in Plugins, then try again.'**
+  String get importErrorPluginUnavailable;
+
+  /// No description provided for @importCsvFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Import CSV Playlist (Spotify / Exportify)'**
+  String get importCsvFiles;
+
+  /// No description provided for @importCsvNoTitleColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has no track name column. Export the playlist as CSV (for example with Exportify) and try again.'**
+  String get importCsvNoTitleColumn;
+
+  /// No description provided for @importCsvNoTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks found in this CSV file.'**
+  String get importCsvNoTracks;
+
+  /// No description provided for @importErrorNoResolvers.
+  ///
+  /// In en, this message translates to:
+  /// **'No music source plugins are loaded. Load one in Plugins, then tap Try Again.'**
+  String get importErrorNoResolvers;
+
+  /// No description provided for @importErrorMatchingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching stopped unexpectedly. Your tracks are kept: tap Try Again to continue.'**
+  String get importErrorMatchingFailed;
+
+  /// No description provided for @importMatchConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% match'**
+  String importMatchConfidence(int percent);
+
+  /// No description provided for @importCheckMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Check this match'**
+  String get importCheckMatch;
+
+  /// No description provided for @importRowsSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} rows skipped'**
+  String importRowsSkipped(int count);
+
+  /// No description provided for @importSkippedRowsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped rows'**
+  String get importSkippedRowsTitle;
+
+  /// No description provided for @importSkipDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {line}: duplicate of row {original}'**
+  String importSkipDuplicate(int line, int original);
+
+  /// No description provided for @importSkipMissingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {line}: no track name'**
+  String importSkipMissingTitle(int line);
+
+  /// No description provided for @importSkipUnterminated.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {line}: unclosed quote, so the rest of the file couldn\'t be read'**
+  String importSkipUnterminated(int line);
+
+  /// No description provided for @importChooseAnotherFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose another file'**
+  String get importChooseAnotherFile;
+
+  /// No description provided for @importRetryFailedLookups.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry {count} failed lookups'**
+  String importRetryFailedLookups(int count);
+
   /// No description provided for @playlistPinToTop.
   ///
   /// In en, this message translates to:

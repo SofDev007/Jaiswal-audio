@@ -1659,6 +1659,105 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint => '大きなプレイリストは数分かかる場合があります。';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return '再試行中（$attempt/$max）…';
+  }
+
+  @override
+  String get importStopAndReview => '停止して確認';
+
+  @override
+  String get importEditLink => 'リンクを編集';
+
+  @override
+  String get importErrorNotFound =>
+      'このプレイリストが見つかりません。非公開、削除済み、またはお住まいの地域では利用できない可能性があります。';
+
+  @override
+  String get importErrorEmptyCollection => '曲が見つかりません。プレイリストが空か非公開の可能性があります。';
+
+  @override
+  String get importErrorAuthFailed =>
+      'サービスがこのプレイリストへのアクセスを拒否しました。非公開か、プラグインの更新が必要な可能性があります。';
+
+  @override
+  String get importErrorRateLimited => 'サービスへのリクエストが多すぎます。1分待ってから再試行してください。';
+
+  @override
+  String get importErrorNetwork => 'サービスに接続できません。接続を確認して再試行してください。';
+
+  @override
+  String get importErrorTimeout =>
+      'サービスの応答に時間がかかりすぎました。再試行するか、小さいプレイリストをインポートしてください。';
+
+  @override
+  String get importErrorPluginBusy => 'プラグインが前のリクエストをまだ処理中です。1分後に再試行してください。';
+
+  @override
+  String get importErrorPluginUnavailable =>
+      'インポートプラグインが読み込まれていません。プラグインで読み込んでから再試行してください。';
+
+  @override
+  String get importCsvFiles => 'CSVプレイリストをインポート（Spotify / Exportify）';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      'このファイルには曲名の列がありません。プレイリストをCSVでエクスポート（例：Exportify）してから再試行してください。';
+
+  @override
+  String get importCsvNoTracks => 'このCSVファイルに曲が見つかりません。';
+
+  @override
+  String get importErrorNoResolvers =>
+      '音楽ソースのプラグインが読み込まれていません。プラグインで読み込んでから「再試行」をタップしてください。';
+
+  @override
+  String get importErrorMatchingFailed =>
+      '照合が予期せず停止しました。曲は保持されています。「再試行」をタップして続行してください。';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '一致度 $percent%';
+  }
+
+  @override
+  String get importCheckMatch => 'この一致を確認してください';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '$count 行をスキップしました';
+  }
+
+  @override
+  String get importSkippedRowsTitle => 'スキップした行';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return '$line 行目：$original 行目と重複';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return '$line 行目：曲名がありません';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return '$line 行目：引用符が閉じていないため、ファイルの残りを読み取れませんでした';
+  }
+
+  @override
+  String get importChooseAnotherFile => '別のファイルを選択';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return '失敗した $count 件の検索を再試行';
+  }
+
+  @override
   String get playlistPinToTop => 'トップに固定';
 
   @override

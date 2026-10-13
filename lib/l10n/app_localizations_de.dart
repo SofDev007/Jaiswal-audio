@@ -1771,6 +1771,111 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint =>
+      'Große Playlists können einige Minuten dauern.';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return 'Neuer Versuch ($attempt von $max)…';
+  }
+
+  @override
+  String get importStopAndReview => 'Stoppen und prüfen';
+
+  @override
+  String get importEditLink => 'Link bearbeiten';
+
+  @override
+  String get importErrorNotFound =>
+      'Diese Playlist wurde nicht gefunden. Sie ist möglicherweise privat, gelöscht oder in deiner Region nicht verfügbar.';
+
+  @override
+  String get importErrorEmptyCollection =>
+      'Keine Titel gefunden. Die Playlist ist möglicherweise leer oder privat.';
+
+  @override
+  String get importErrorAuthFailed =>
+      'Der Dienst hat den Zugriff auf diese Playlist verweigert. Sie ist möglicherweise privat, oder das Plugin braucht ein Update.';
+
+  @override
+  String get importErrorRateLimited =>
+      'Zu viele Anfragen an den Dienst. Warte eine Minute und versuche es dann erneut.';
+
+  @override
+  String get importErrorNetwork =>
+      'Der Dienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get importErrorTimeout =>
+      'Der Dienst hat zu lange gebraucht. Versuche es erneut oder importiere eine kleinere Playlist.';
+
+  @override
+  String get importErrorPluginBusy =>
+      'Das Plugin beendet noch die vorherige Anfrage. Versuche es in einer Minute erneut.';
+
+  @override
+  String get importErrorPluginUnavailable =>
+      'Das Import-Plugin ist nicht geladen. Lade es unter Plugins und versuche es dann erneut.';
+
+  @override
+  String get importCsvFiles => 'CSV-Playlist importieren (Spotify / Exportify)';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      'Diese Datei hat keine Spalte für Titelnamen. Exportiere die Playlist als CSV (zum Beispiel mit Exportify) und versuche es erneut.';
+
+  @override
+  String get importCsvNoTracks =>
+      'In dieser CSV-Datei wurden keine Titel gefunden.';
+
+  @override
+  String get importErrorNoResolvers =>
+      'Es sind keine Musikquellen-Plugins geladen. Lade eines unter Plugins und tippe dann auf Erneut versuchen.';
+
+  @override
+  String get importErrorMatchingFailed =>
+      'Der Abgleich wurde unerwartet beendet. Deine Titel bleiben erhalten: Tippe auf Erneut versuchen, um fortzufahren.';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '$percent % Übereinstimmung';
+  }
+
+  @override
+  String get importCheckMatch => 'Diese Zuordnung prüfen';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '$count Zeilen übersprungen';
+  }
+
+  @override
+  String get importSkippedRowsTitle => 'Übersprungene Zeilen';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return 'Zeile $line: Duplikat von Zeile $original';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return 'Zeile $line: kein Titelname';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return 'Zeile $line: Anführungszeichen nicht geschlossen, der Rest der Datei konnte nicht gelesen werden';
+  }
+
+  @override
+  String get importChooseAnotherFile => 'Andere Datei wählen';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return '$count fehlgeschlagene Suchen wiederholen';
+  }
+
+  @override
   String get playlistPinToTop => 'Oben anheften';
 
   @override

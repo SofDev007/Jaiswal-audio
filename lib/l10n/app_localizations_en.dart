@@ -1757,6 +1757,110 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint =>
+      'Large playlists can take a few minutes.';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return 'Retrying ($attempt of $max)…';
+  }
+
+  @override
+  String get importStopAndReview => 'Stop and review';
+
+  @override
+  String get importEditLink => 'Edit link';
+
+  @override
+  String get importErrorNotFound =>
+      'This playlist couldn\'t be found. It may be private, deleted or unavailable in your region.';
+
+  @override
+  String get importErrorEmptyCollection =>
+      'No tracks were found. The playlist may be empty or private.';
+
+  @override
+  String get importErrorAuthFailed =>
+      'The service refused access to this playlist. It may be private, or the plugin may need an update.';
+
+  @override
+  String get importErrorRateLimited =>
+      'Too many requests to the service. Wait a minute, then try again.';
+
+  @override
+  String get importErrorNetwork =>
+      'Couldn\'t reach the service. Check your connection and try again.';
+
+  @override
+  String get importErrorTimeout =>
+      'The service took too long to respond. Try again, or import a smaller playlist.';
+
+  @override
+  String get importErrorPluginBusy =>
+      'The plugin is still finishing the previous request. Try again in a minute.';
+
+  @override
+  String get importErrorPluginUnavailable =>
+      'The import plugin isn\'t loaded. Load it in Plugins, then try again.';
+
+  @override
+  String get importCsvFiles => 'Import CSV Playlist (Spotify / Exportify)';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      'This file has no track name column. Export the playlist as CSV (for example with Exportify) and try again.';
+
+  @override
+  String get importCsvNoTracks => 'No tracks found in this CSV file.';
+
+  @override
+  String get importErrorNoResolvers =>
+      'No music source plugins are loaded. Load one in Plugins, then tap Try Again.';
+
+  @override
+  String get importErrorMatchingFailed =>
+      'Matching stopped unexpectedly. Your tracks are kept: tap Try Again to continue.';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '$percent% match';
+  }
+
+  @override
+  String get importCheckMatch => 'Check this match';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '$count rows skipped';
+  }
+
+  @override
+  String get importSkippedRowsTitle => 'Skipped rows';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return 'Row $line: duplicate of row $original';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return 'Row $line: no track name';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return 'Row $line: unclosed quote, so the rest of the file couldn\'t be read';
+  }
+
+  @override
+  String get importChooseAnotherFile => 'Choose another file';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return 'Retry $count failed lookups';
+  }
+
+  @override
   String get playlistPinToTop => 'Pin to Top';
 
   @override

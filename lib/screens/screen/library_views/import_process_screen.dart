@@ -13,6 +13,7 @@ import 'package:Bloomee/plugins/blocs/import/content_import_state.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
+import 'package:Bloomee/services/csv_playlist_parser.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart';
 
 // ── Screen ──────────────────────────────────────────────────────────────────
@@ -66,9 +67,9 @@ class _ImportProcessScreenState extends State<ImportProcessScreen> {
                         .importTracksSaved(state.resolvedCount),
                   );
                 }
-                if (state.phase == ImportPhase.error && state.error != null) {
+                if (state.phase == ImportPhase.error) {
                   SnackbarService.showMessage(
-                    _localizedImportError(context, state.error!),
+                    _importErrorMessage(context, state),
                   );
                 }
               },
@@ -138,17 +139,25 @@ class _ImportProcessScreenState extends State<ImportProcessScreen> {
           key: const ValueKey('checking'),
           message: AppLocalizations.of(context)!.importCheckingUrl,
           collectionInfo: state.collectionInfo,
+          startedAt: state.phaseStartedAt,
+          attempt: state.attempt,
+          onCancel: cubit.cancel,
         );
       case ImportPhase.fetchingTracks:
         return _LoadingView(
           key: const ValueKey('fetching_tracks'),
           message: AppLocalizations.of(context)!.importFetchingTracks,
+          hint: AppLocalizations.of(context)!.importLargePlaylistHint,
           collectionInfo: state.collectionInfo,
+          startedAt: state.phaseStartedAt,
+          attempt: state.attempt,
+          onCancel: cubit.cancel,
         );
       case ImportPhase.resolving:
         return _ResolvingView(
           key: const ValueKey('resolving'),
           state: state,
+          onStop: cubit.cancel,
         );
       case ImportPhase.review:
         return _ReviewView(
@@ -171,14 +180,60 @@ class _ImportProcessScreenState extends State<ImportProcessScreen> {
           onImportMore: () => cubit.reset(),
         );
       case ImportPhase.error:
+        final fromFile = (state.pluginId ?? '').isEmpty;
         return _ErrorView(
           key: const ValueKey('error'),
-          error: state.error == null
-              ? AppLocalizations.of(context)!.importUnknownError
-              : _localizedImportError(context, state.error!),
-          onRetry: () => cubit.reset(),
+          error: _importErrorMessage(context, state),
+          onRetry: cubit.retry,
+          // A failed save keeps its matches; starting over would drop them.
+          onStartOver: state.errorKind == ImportErrorKind.saveFailed
+              ? null
+              : fromFile
+                  ? () {
+                      cubit.reset();
+                      context.pop();
+                    }
+                  : cubit.reset,
+          startOverLabel: fromFile
+              ? AppLocalizations.of(context)!.importChooseAnotherFile
+              : AppLocalizations.of(context)!.importEditLink,
         );
     }
+  }
+}
+
+String _importErrorMessage(BuildContext context, ContentImportState state) {
+  final l10n = AppLocalizations.of(context)!;
+  switch (state.errorKind) {
+    case ImportErrorKind.unsupportedUrl:
+      return l10n.importErrorCannotHandleUrl;
+    case ImportErrorKind.notFound:
+      return l10n.importErrorNotFound;
+    case ImportErrorKind.emptyCollection:
+      return l10n.importErrorEmptyCollection;
+    case ImportErrorKind.authFailed:
+      return l10n.importErrorAuthFailed;
+    case ImportErrorKind.rateLimited:
+      return l10n.importErrorRateLimited;
+    case ImportErrorKind.network:
+      return l10n.importErrorNetwork;
+    case ImportErrorKind.timeout:
+      return l10n.importErrorTimeout;
+    case ImportErrorKind.pluginBusy:
+      return l10n.importErrorPluginBusy;
+    case ImportErrorKind.pluginUnavailable:
+      return l10n.importErrorPluginUnavailable;
+    case ImportErrorKind.noResolvers:
+      return l10n.importErrorNoResolvers;
+    case ImportErrorKind.matchingFailed:
+      return l10n.importErrorMatchingFailed;
+    case ImportErrorKind.unexpectedResponse:
+    case ImportErrorKind.saveFailed:
+    case ImportErrorKind.unknown:
+    case null:
+      return state.error == null
+          ? l10n.importUnknownError
+          : _localizedImportError(context, state.error!);
   }
 }
 
@@ -336,9 +391,21 @@ class _UrlInputView extends StatelessWidget {
 
 class _LoadingView extends StatelessWidget {
   final String message;
+  final String? hint;
   final ImportCollectionSummary? collectionInfo;
+  final DateTime? startedAt;
+  final int attempt;
+  final VoidCallback? onCancel;
 
-  const _LoadingView({super.key, required this.message, this.collectionInfo});
+  const _LoadingView({
+    super.key,
+    required this.message,
+    this.hint,
+    this.collectionInfo,
+    this.startedAt,
+    this.attempt = 1,
+    this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -368,9 +435,68 @@ class _LoadingView extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
+            if (attempt > 1) ...[
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!
+                    .importRetryingAttempt(attempt, kImportMaxAttempts),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Default_Theme.accentColor2, fontSize: 13),
+              ),
+            ],
+            if (startedAt != null) ...[
+              const SizedBox(height: 8),
+              _ElapsedText(since: startedAt!),
+            ],
+            if (hint != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                hint!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Default_Theme.primaryColor2.withValues(alpha: 0.6),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            if (onCancel != null) ...[
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: onCancel,
+                child: Text(
+                  AppLocalizations.of(context)!.buttonCancel,
+                  style: const TextStyle(color: Default_Theme.primaryColor2),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Minutes and seconds since [since], ticking once a second.
+class _ElapsedText extends StatelessWidget {
+  final DateTime since;
+  const _ElapsedText({required this.since});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<void>(
+      stream: Stream<void>.periodic(const Duration(seconds: 1)),
+      builder: (context, _) {
+        final s = DateTime.now().difference(since).inSeconds;
+        return Text(
+          '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}',
+          style: TextStyle(
+            color: Default_Theme.primaryColor2.withValues(alpha: 0.6),
+            fontSize: 13,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        );
+      },
     );
   }
 }
@@ -469,7 +595,8 @@ class _CollectionHeader extends StatelessWidget {
 
 class _ResolvingView extends StatelessWidget {
   final ContentImportState state;
-  const _ResolvingView({super.key, required this.state});
+  final VoidCallback onStop;
+  const _ResolvingView({super.key, required this.state, required this.onStop});
 
   @override
   Widget build(BuildContext context) {
@@ -505,6 +632,13 @@ class _ResolvingView extends StatelessWidget {
                   color: Default_Theme.accentColor2,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
+                ),
+              ),
+              TextButton(
+                onPressed: onStop,
+                child: Text(
+                  AppLocalizations.of(context)!.importStopAndReview,
+                  style: const TextStyle(color: Default_Theme.primaryColor2),
                 ),
               ),
             ],
@@ -585,8 +719,12 @@ class _ReviewViewState extends State<_ReviewView> {
                 children: [
                   _StatChip(
                       icon: Icons.check_circle,
-                      label: '${s.resolvedCount}',
+                      label: '${s.countWhere(ImportMatchState.matched) + s.countWhere(ImportMatchState.userSelected)}',
                       color: Colors.green),
+                  _StatChip(
+                      icon: Icons.help,
+                      label: '${s.countWhere(ImportMatchState.uncertain)}',
+                      color: Colors.amber),
                   _StatChip(
                       icon: Icons.cancel,
                       label: '${s.failedCount}',
@@ -597,6 +735,33 @@ class _ReviewViewState extends State<_ReviewView> {
                       color: Default_Theme.primaryColor2),
                 ],
               ),
+              if (s.tracks.any((t) => t.status == TrackResolutionStatus.error))
+                TextButton.icon(
+                  onPressed: () =>
+                      context.read<ContentImportCubit>().retryFailedLookups(),
+                  icon: const Icon(Icons.refresh,
+                      size: 16, color: Colors.orangeAccent),
+                  label: Text(
+                    AppLocalizations.of(context)!.importRetryFailedLookups(s
+                        .tracks
+                        .where((t) => t.status == TrackResolutionStatus.error)
+                        .length),
+                    style: const TextStyle(
+                        color: Colors.orangeAccent, fontSize: 13),
+                  ),
+                ),
+              if (s.skippedRows.isNotEmpty)
+                TextButton.icon(
+                  onPressed: () => _showSkippedRows(context, s.skippedRows),
+                  icon: const Icon(Icons.info_outline,
+                      size: 16, color: Default_Theme.primaryColor2),
+                  label: Text(
+                    AppLocalizations.of(context)!
+                        .importRowsSkipped(s.skippedRows.length),
+                    style: const TextStyle(
+                        color: Default_Theme.primaryColor2, fontSize: 13),
+                  ),
+                ),
             ],
           ),
         ),
@@ -679,6 +844,45 @@ class _ReviewViewState extends State<_ReviewView> {
   }
 }
 
+void _showSkippedRows(BuildContext context, List<CsvSkippedRow> rows) {
+  final l10n = AppLocalizations.of(context)!;
+  String describe(CsvSkippedRow r) => switch (r.reason) {
+        CsvSkipReason.duplicate =>
+          l10n.importSkipDuplicate(r.line, r.duplicateOfLine ?? 0),
+        CsvSkipReason.missingTitle => l10n.importSkipMissingTitle(r.line),
+        CsvSkipReason.unterminatedQuote => l10n.importSkipUnterminated(r.line),
+      };
+  showDialog<void>(
+    context: context,
+    builder: (dialogCtx) => AlertDialog(
+      backgroundColor: Default_Theme.themeColor,
+      title: Text(l10n.importSkippedRowsTitle,
+          style: const TextStyle(color: Default_Theme.primaryColor1)),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final r in rows)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(describe(r),
+                    style: const TextStyle(
+                        color: Default_Theme.primaryColor2, fontSize: 13)),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogCtx),
+          child: Text(l10n.buttonOk),
+        ),
+      ],
+    ),
+  );
+}
+
 // ── Stat chip ────────────────────────────────────────────────────────────────
 
 class _StatChip extends StatelessWidget {
@@ -735,6 +939,8 @@ class _ResolvingTrackTile extends StatelessWidget {
         const Icon(Icons.check_circle, size: 22, color: Colors.green),
       TrackResolutionStatus.failed =>
         const Icon(Icons.cancel, size: 22, color: Colors.redAccent),
+      TrackResolutionStatus.error =>
+        const Icon(Icons.error_outline, size: 22, color: Colors.orangeAccent),
     };
 
     return Padding(
@@ -819,17 +1025,21 @@ class _ReviewTrackTile extends StatelessWidget {
     final effective = entry.effectiveTrack;
     final cubit = context.read<ContentImportCubit>();
 
-    final Color statusColor = entry.isSkipped
-        ? Default_Theme.primaryColor2
-        : effective != null
-            ? Colors.green
-            : Colors.redAccent;
-
-    final IconData statusIcon = entry.isSkipped
-        ? Icons.remove_circle
-        : effective != null
-            ? Icons.check_circle
-            : Icons.cancel;
+    final match = entry.matchState;
+    final (IconData statusIcon, Color statusColor) = switch (match) {
+      ImportMatchState.skipped => (
+          Icons.remove_circle,
+          Default_Theme.primaryColor2
+        ),
+      ImportMatchState.matched ||
+      ImportMatchState.userSelected =>
+        (Icons.check_circle, Colors.green),
+      ImportMatchState.uncertain => (Icons.help, Colors.amber),
+      ImportMatchState.unmatched ||
+      ImportMatchState.pending =>
+        (Icons.cancel, Colors.redAccent),
+    };
+    final confidence = entry.confidence;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -920,6 +1130,25 @@ class _ReviewTrackTile extends StatelessWidget {
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                        if (effective != null && confidence != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              match == ImportMatchState.uncertain
+                                  ? '${AppLocalizations.of(context)!.importMatchConfidence((confidence * 100).round())} · ${AppLocalizations.of(context)!.importCheckMatch}'
+                                  : AppLocalizations.of(context)!
+                                      .importMatchConfidence(
+                                          (confidence * 100).round()),
+                              style: TextStyle(
+                                color: match == ImportMatchState.uncertain
+                                    ? Colors.amber
+                                    : Default_Theme.primaryColor2
+                                        .withValues(alpha: 0.7),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           )
                         else if (entry.isSkipped)
@@ -1016,6 +1245,9 @@ class _CandidateList extends StatelessWidget {
           ...List.generate(entry.candidates.length, (ci) {
             return _CandidateTile(
               track: entry.candidates[ci],
+              confidence: ci < entry.confidences.length
+                  ? entry.confidences[ci]
+                  : null,
               isSelected: effectiveSelected == ci,
               onTap: () => cubit.pickCandidate(index, ci),
             );
@@ -1033,10 +1265,15 @@ class _CandidateList extends StatelessWidget {
 
 class _CandidateTile extends StatelessWidget {
   final Track track;
+  final double? confidence;
   final bool isSelected;
   final VoidCallback onTap;
-  const _CandidateTile(
-      {required this.track, required this.isSelected, required this.onTap});
+  const _CandidateTile({
+    required this.track,
+    this.confidence,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1094,6 +1331,19 @@ class _CandidateTile extends StatelessWidget {
                 ],
               ),
             ),
+            if (confidence != null) ...[
+              const SizedBox(width: 8),
+              Text(
+                AppLocalizations.of(context)!
+                    .importMatchConfidence((confidence! * 100).round()),
+                style: TextStyle(
+                  color: confidence! >= kConfidentMatch
+                      ? Default_Theme.primaryColor2.withValues(alpha: 0.7)
+                      : Colors.amber,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1295,7 +1545,15 @@ class _DoneView extends StatelessWidget {
 class _ErrorView extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
-  const _ErrorView({super.key, required this.error, required this.onRetry});
+  final VoidCallback? onStartOver;
+  final String startOverLabel;
+  const _ErrorView({
+    super.key,
+    required this.error,
+    required this.onRetry,
+    this.onStartOver,
+    required this.startOverLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1341,6 +1599,16 @@ class _ErrorView extends StatelessWidget {
                 elevation: 0,
               ),
             ),
+            if (onStartOver != null) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: onStartOver,
+                child: Text(
+                  startOverLabel,
+                  style: const TextStyle(color: Default_Theme.primaryColor2),
+                ),
+              ),
+            ],
           ],
         ),
       ),

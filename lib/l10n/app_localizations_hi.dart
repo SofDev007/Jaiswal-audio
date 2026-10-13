@@ -1766,6 +1766,111 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint =>
+      'बड़ी प्लेलिस्ट में कुछ मिनट लग सकते हैं।';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return 'फिर से कोशिश ($attempt / $max)…';
+  }
+
+  @override
+  String get importStopAndReview => 'रोकें और देखें';
+
+  @override
+  String get importEditLink => 'लिंक बदलें';
+
+  @override
+  String get importErrorNotFound =>
+      'यह प्लेलिस्ट नहीं मिली। हो सकता है यह निजी हो, हटा दी गई हो या आपके क्षेत्र में उपलब्ध न हो।';
+
+  @override
+  String get importErrorEmptyCollection =>
+      'कोई गाना नहीं मिला। प्लेलिस्ट खाली या निजी हो सकती है।';
+
+  @override
+  String get importErrorAuthFailed =>
+      'सेवा ने इस प्लेलिस्ट तक पहुँच से मना कर दिया। हो सकता है यह निजी हो, या प्लगइन को अपडेट की ज़रूरत हो।';
+
+  @override
+  String get importErrorRateLimited =>
+      'सेवा को बहुत ज़्यादा अनुरोध भेजे गए। एक मिनट रुककर फिर कोशिश करें।';
+
+  @override
+  String get importErrorNetwork =>
+      'सेवा तक नहीं पहुँच सके। अपना कनेक्शन जाँचें और फिर कोशिश करें।';
+
+  @override
+  String get importErrorTimeout =>
+      'सेवा ने जवाब देने में बहुत देर की। फिर कोशिश करें, या छोटी प्लेलिस्ट इंपोर्ट करें।';
+
+  @override
+  String get importErrorPluginBusy =>
+      'प्लगइन अभी पिछला अनुरोध पूरा कर रहा है। एक मिनट बाद फिर कोशिश करें।';
+
+  @override
+  String get importErrorPluginUnavailable =>
+      'इंपोर्ट प्लगइन लोड नहीं है। उसे प्लगइन्स में लोड करें, फिर कोशिश करें।';
+
+  @override
+  String get importCsvFiles =>
+      'CSV प्लेलिस्ट इंपोर्ट करें (Spotify / Exportify)';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      'इस फ़ाइल में गाने के नाम का कॉलम नहीं है। प्लेलिस्ट को CSV के रूप में एक्सपोर्ट करें (जैसे Exportify से) और फिर कोशिश करें।';
+
+  @override
+  String get importCsvNoTracks => 'इस CSV फ़ाइल में कोई गाना नहीं मिला।';
+
+  @override
+  String get importErrorNoResolvers =>
+      'कोई म्यूज़िक सोर्स प्लगइन लोड नहीं है। प्लगइन्स में एक लोड करें, फिर दोबारा कोशिश करें पर टैप करें।';
+
+  @override
+  String get importErrorMatchingFailed =>
+      'मिलान अचानक रुक गया। आपके गाने सुरक्षित हैं: जारी रखने के लिए दोबारा कोशिश करें पर टैप करें।';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '$percent% मिलान';
+  }
+
+  @override
+  String get importCheckMatch => 'इस मिलान को जाँचें';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '$count पंक्तियाँ छोड़ी गईं';
+  }
+
+  @override
+  String get importSkippedRowsTitle => 'छोड़ी गई पंक्तियाँ';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return 'पंक्ति $line: पंक्ति $original की डुप्लिकेट';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return 'पंक्ति $line: गाने का नाम नहीं';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return 'पंक्ति $line: उद्धरण चिह्न बंद नहीं है, इसलिए बाकी फ़ाइल पढ़ी नहीं जा सकी';
+  }
+
+  @override
+  String get importChooseAnotherFile => 'दूसरी फ़ाइल चुनें';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return '$count असफल खोजें फिर से करें';
+  }
+
+  @override
   String get playlistPinToTop => 'सबसे ऊपर पिन करें';
 
   @override

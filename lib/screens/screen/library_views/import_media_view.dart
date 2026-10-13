@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
 import 'package:Bloomee/core/constants/route_paths.dart';
+import 'package:Bloomee/services/csv_playlist_parser.dart';
+import 'package:path/path.dart' as p;
 import 'package:Bloomee/plugins/blocs/import/content_import_cubit.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
@@ -85,6 +88,12 @@ class _ImportMediaFromPlatformsViewState
                     btnName: AppLocalizations.of(context)!.importM3UFiles,
                     btnIcon: MingCute.playlist_2_line,
                     onClickFunc: () => _importM3UFile(context),
+                  ),
+                  const SizedBox(height: 10),
+                  _ImportFromBtn(
+                    btnName: AppLocalizations.of(context)!.importCsvFiles,
+                    btnIcon: MingCute.table_2_line,
+                    onClickFunc: () => _importCsvFile(context),
                   ),
                 ],
               );
@@ -283,7 +292,58 @@ class _ImportMediaFromPlatformsViewState
 
     if (!context.mounted) return;
     // Start resolution immediately; navigate so the process screen is visible.
-    context.read<ContentImportCubit>().loadFromM3U(tracks, summary);
+    context.read<ContentImportCubit>().loadFromFile(tracks, summary);
+    context.goNamed(
+      RoutePaths.importProcess,
+      queryParameters: {'pluginId': ''},
+    );
+  }
+
+  // ─── Import CSV playlist (Spotify / Exportify export) ─────────────────────
+
+  Future<void> _importCsvFile(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['csv'],
+    );
+    if (result == null || result.files.isEmpty) return;
+    final filePath = result.files.first.path;
+    if (filePath == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+
+    final CsvPlaylist parsed;
+    try {
+      final bytes = await File(filePath).readAsBytes();
+      parsed = parseCsvPlaylist(utf8.decode(bytes, allowMalformed: true));
+    } on CsvPlaylistFormatException catch (e) {
+      log('Unusable CSV: $e', name: 'ImportCSV');
+      SnackbarService.showMessage(l10n.importCsvNoTitleColumn);
+      return;
+    } catch (e) {
+      log('Failed to read CSV: $e', name: 'ImportCSV');
+      SnackbarService.showMessage(l10n.snackbarInvalidFileFormat);
+      return;
+    }
+    if (parsed.tracks.isEmpty) {
+      SnackbarService.showMessage(l10n.importCsvNoTracks);
+      return;
+    }
+
+    // Exportify names the file after the playlist ("My_Mix.csv").
+    final fromFile = p
+        .basenameWithoutExtension(filePath)
+        .replaceAll('_', ' ')
+        .trim();
+    final summary = ImportCollectionSummary(
+      title: parsed.playlistName ?? (fromFile.isEmpty ? 'CSV import' : fromFile),
+      kind: ImportCollectionType.playlist,
+      trackCount: parsed.tracks.length,
+    );
+
+    if (!context.mounted) return;
+    context
+        .read<ContentImportCubit>()
+        .loadFromFile(parsed.tracks, summary, skippedRows: parsed.skipped);
     context.goNamed(
       RoutePaths.importProcess,
       queryParameters: {'pluginId': ''},

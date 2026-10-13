@@ -1762,6 +1762,111 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get importLargePlaylistHint =>
+      'Las listas grandes pueden tardar unos minutos.';
+
+  @override
+  String importRetryingAttempt(int attempt, int max) {
+    return 'Reintentando ($attempt de $max)…';
+  }
+
+  @override
+  String get importStopAndReview => 'Detener y revisar';
+
+  @override
+  String get importEditLink => 'Editar enlace';
+
+  @override
+  String get importErrorNotFound =>
+      'No se encontró esta lista. Puede ser privada, haber sido eliminada o no estar disponible en tu región.';
+
+  @override
+  String get importErrorEmptyCollection =>
+      'No se encontraron canciones. La lista puede estar vacía o ser privada.';
+
+  @override
+  String get importErrorAuthFailed =>
+      'El servicio denegó el acceso a esta lista. Puede ser privada o el plugin puede necesitar una actualización.';
+
+  @override
+  String get importErrorRateLimited =>
+      'Demasiadas solicitudes al servicio. Espera un minuto y vuelve a intentarlo.';
+
+  @override
+  String get importErrorNetwork =>
+      'No se pudo conectar con el servicio. Revisa tu conexión y vuelve a intentarlo.';
+
+  @override
+  String get importErrorTimeout =>
+      'El servicio tardó demasiado en responder. Vuelve a intentarlo o importa una lista más pequeña.';
+
+  @override
+  String get importErrorPluginBusy =>
+      'El plugin todavía está terminando la solicitud anterior. Vuelve a intentarlo en un minuto.';
+
+  @override
+  String get importErrorPluginUnavailable =>
+      'El plugin de importación no está cargado. Cárgalo en Plugins y vuelve a intentarlo.';
+
+  @override
+  String get importCsvFiles => 'Importar lista CSV (Spotify / Exportify)';
+
+  @override
+  String get importCsvNoTitleColumn =>
+      'Este archivo no tiene una columna con el nombre de la canción. Exporta la lista como CSV (por ejemplo con Exportify) y vuelve a intentarlo.';
+
+  @override
+  String get importCsvNoTracks =>
+      'No se encontraron canciones en este archivo CSV.';
+
+  @override
+  String get importErrorNoResolvers =>
+      'No hay plugins de fuentes de música cargados. Carga uno en Plugins y pulsa Reintentar.';
+
+  @override
+  String get importErrorMatchingFailed =>
+      'La búsqueda de coincidencias se detuvo inesperadamente. Tus canciones se conservan: pulsa Reintentar para continuar.';
+
+  @override
+  String importMatchConfidence(int percent) {
+    return '$percent % de coincidencia';
+  }
+
+  @override
+  String get importCheckMatch => 'Revisa esta coincidencia';
+
+  @override
+  String importRowsSkipped(int count) {
+    return '$count filas omitidas';
+  }
+
+  @override
+  String get importSkippedRowsTitle => 'Filas omitidas';
+
+  @override
+  String importSkipDuplicate(int line, int original) {
+    return 'Fila $line: duplicado de la fila $original';
+  }
+
+  @override
+  String importSkipMissingTitle(int line) {
+    return 'Fila $line: sin nombre de canción';
+  }
+
+  @override
+  String importSkipUnterminated(int line) {
+    return 'Fila $line: comillas sin cerrar, no se pudo leer el resto del archivo';
+  }
+
+  @override
+  String get importChooseAnotherFile => 'Elegir otro archivo';
+
+  @override
+  String importRetryFailedLookups(int count) {
+    return 'Reintentar $count búsquedas fallidas';
+  }
+
+  @override
   String get playlistPinToTop => 'Fijar arriba';
 
   @override
