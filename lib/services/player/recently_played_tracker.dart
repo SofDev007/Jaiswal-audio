@@ -6,6 +6,7 @@ import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/services/db/dao/history_dao.dart';
 import 'package:Bloomee/services/db/dao/track_dao.dart';
+import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
 
 /// Tracks continuous playback of the current track and pushes it to
 /// the playback history DB only when the item has been played continuously
@@ -107,6 +108,7 @@ class RecentlyPlayedTracker {
         final trackDao = TrackDAO(DBProvider.db);
         final historyDao = HistoryDAO(DBProvider.db, trackDao);
         await historyDao.recordPlay(track);
+        await TrackSignalDAO(DBProvider.db).recordPlay(track);
         log('Tracked play for ${track.id}', name: 'RecentlyPlayedTracker');
       } catch (e) {
         log('Failed to record play: $e', name: 'RecentlyPlayedTracker');

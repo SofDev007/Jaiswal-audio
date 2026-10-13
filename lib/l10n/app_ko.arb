@@ -638,6 +638,11 @@
   "importSkipUnterminated": "{line}행: 따옴표가 닫히지 않아 파일의 나머지를 읽을 수 없습니다",
   "importChooseAnotherFile": "다른 파일 선택",
   "importRetryFailedLookups": "실패한 검색 {count}개 다시 시도",
+  "recReasonBecausePlaying": "{title}을(를) 들어서",
+  "recReasonMoreFrom": "{artist}의 다른 곡",
+  "recReasonSimilarTo": "{artist}와(과) 비슷한 곡",
+  "recReasonYouOftenPlay": "자주 듣는 {artist}",
+  "recReasonFoundOnSources": "{count}개 소스에서 찾음",
 
   "playlistPinToTop": "맨 위에 고정",
   "playlistUnpin": "고정 해제",

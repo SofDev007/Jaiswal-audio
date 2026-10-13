@@ -638,6 +638,11 @@
   "importSkipUnterminated": "{line} 行目：引用符が閉じていないため、ファイルの残りを読み取れませんでした",
   "importChooseAnotherFile": "別のファイルを選択",
   "importRetryFailedLookups": "失敗した {count} 件の検索を再試行",
+  "recReasonBecausePlaying": "{title} を再生したため",
+  "recReasonMoreFrom": "{artist} の他の曲",
+  "recReasonSimilarTo": "{artist} に似た曲",
+  "recReasonYouOftenPlay": "よく聴く {artist}",
+  "recReasonFoundOnSources": "{count} 件のソースで見つかりました",
 
   "playlistPinToTop": "トップに固定",
   "playlistUnpin": "固定を解除",

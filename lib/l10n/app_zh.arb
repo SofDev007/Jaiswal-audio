@@ -638,6 +638,11 @@
   "importSkipUnterminated": "第 {line} 行：引号未闭合，无法读取文件的其余部分",
   "importChooseAnotherFile": "选择其他文件",
   "importRetryFailedLookups": "重试 {count} 个失败的查找",
+  "recReasonBecausePlaying": "因为你播放了 {title}",
+  "recReasonMoreFrom": "更多来自 {artist}",
+  "recReasonSimilarTo": "与 {artist} 相似",
+  "recReasonYouOftenPlay": "你常听 {artist}",
+  "recReasonFoundOnSources": "在 {count} 个来源中找到",
 
   "playlistPinToTop": "置顶",
   "playlistUnpin": "取消置顶",

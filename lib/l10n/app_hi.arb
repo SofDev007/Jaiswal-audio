@@ -638,6 +638,11 @@
   "importSkipUnterminated": "पंक्ति {line}: उद्धरण चिह्न बंद नहीं है, इसलिए बाकी फ़ाइल पढ़ी नहीं जा सकी",
   "importChooseAnotherFile": "दूसरी फ़ाइल चुनें",
   "importRetryFailedLookups": "{count} असफल खोजें फिर से करें",
+  "recReasonBecausePlaying": "क्योंकि आपने {title} सुना",
+  "recReasonMoreFrom": "{artist} के और गाने",
+  "recReasonSimilarTo": "{artist} जैसा",
+  "recReasonYouOftenPlay": "आप अक्सर {artist} सुनते हैं",
+  "recReasonFoundOnSources": "{count} स्रोतों में मिला",
 
   "playlistPinToTop": "सबसे ऊपर पिन करें",
   "playlistUnpin": "अनपिन करें",

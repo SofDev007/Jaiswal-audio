@@ -12429,6 +12429,1418 @@ extension AppSettingsBoolDBQueryProperty
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
+extension GetTrackSignalDBCollection on Isar {
+  IsarCollection<TrackSignalDB> get trackSignalDBs => this.collection();
+}
+
+const TrackSignalDBSchema = CollectionSchema(
+  name: r'TrackSignalDB',
+  id: -4750148928108182738,
+  properties: {
+    r'artistKey': PropertySchema(
+      id: 0,
+      name: r'artistKey',
+      type: IsarType.string,
+    ),
+    r'artistName': PropertySchema(
+      id: 1,
+      name: r'artistName',
+      type: IsarType.string,
+    ),
+    r'completions': PropertySchema(
+      id: 2,
+      name: r'completions',
+      type: IsarType.long,
+    ),
+    r'earlySkips': PropertySchema(
+      id: 3,
+      name: r'earlySkips',
+      type: IsarType.long,
+    ),
+    r'lastPlayedAt': PropertySchema(
+      id: 4,
+      name: r'lastPlayedAt',
+      type: IsarType.dateTime,
+    ),
+    r'mediaId': PropertySchema(
+      id: 5,
+      name: r'mediaId',
+      type: IsarType.string,
+    ),
+    r'plays': PropertySchema(
+      id: 6,
+      name: r'plays',
+      type: IsarType.long,
+    )
+  },
+  estimateSize: _trackSignalDBEstimateSize,
+  serialize: _trackSignalDBSerialize,
+  deserialize: _trackSignalDBDeserialize,
+  deserializeProp: _trackSignalDBDeserializeProp,
+  idName: r'id',
+  indexes: {
+    r'mediaId': IndexSchema(
+      id: -8001372983137409759,
+      name: r'mediaId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'mediaId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'artistKey': IndexSchema(
+      id: 444949295075650720,
+      name: r'artistKey',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'artistKey',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
+  links: {},
+  embeddedSchemas: {},
+  getId: _trackSignalDBGetId,
+  getLinks: _trackSignalDBGetLinks,
+  attach: _trackSignalDBAttach,
+  version: '3.3.0-dev.3',
+);
+
+int _trackSignalDBEstimateSize(
+  TrackSignalDB object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.artistKey.length * 3;
+  bytesCount += 3 + object.artistName.length * 3;
+  bytesCount += 3 + object.mediaId.length * 3;
+  return bytesCount;
+}
+
+void _trackSignalDBSerialize(
+  TrackSignalDB object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.artistKey);
+  writer.writeString(offsets[1], object.artistName);
+  writer.writeLong(offsets[2], object.completions);
+  writer.writeLong(offsets[3], object.earlySkips);
+  writer.writeDateTime(offsets[4], object.lastPlayedAt);
+  writer.writeString(offsets[5], object.mediaId);
+  writer.writeLong(offsets[6], object.plays);
+}
+
+TrackSignalDB _trackSignalDBDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = TrackSignalDB(
+    artistKey: reader.readString(offsets[0]),
+    artistName: reader.readString(offsets[1]),
+    completions: reader.readLongOrNull(offsets[2]) ?? 0,
+    earlySkips: reader.readLongOrNull(offsets[3]) ?? 0,
+    lastPlayedAt: reader.readDateTimeOrNull(offsets[4]),
+    mediaId: reader.readString(offsets[5]),
+    plays: reader.readLongOrNull(offsets[6]) ?? 0,
+  );
+  object.id = id;
+  return object;
+}
+
+P _trackSignalDBDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readLongOrNull(offset) ?? 0) as P;
+    case 3:
+      return (reader.readLongOrNull(offset) ?? 0) as P;
+    case 4:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readLongOrNull(offset) ?? 0) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _trackSignalDBGetId(TrackSignalDB object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _trackSignalDBGetLinks(TrackSignalDB object) {
+  return [];
+}
+
+void _trackSignalDBAttach(
+    IsarCollection<dynamic> col, Id id, TrackSignalDB object) {
+  object.id = id;
+}
+
+extension TrackSignalDBByIndex on IsarCollection<TrackSignalDB> {
+  Future<TrackSignalDB?> getByMediaId(String mediaId) {
+    return getByIndex(r'mediaId', [mediaId]);
+  }
+
+  TrackSignalDB? getByMediaIdSync(String mediaId) {
+    return getByIndexSync(r'mediaId', [mediaId]);
+  }
+
+  Future<bool> deleteByMediaId(String mediaId) {
+    return deleteByIndex(r'mediaId', [mediaId]);
+  }
+
+  bool deleteByMediaIdSync(String mediaId) {
+    return deleteByIndexSync(r'mediaId', [mediaId]);
+  }
+
+  Future<List<TrackSignalDB?>> getAllByMediaId(List<String> mediaIdValues) {
+    final values = mediaIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'mediaId', values);
+  }
+
+  List<TrackSignalDB?> getAllByMediaIdSync(List<String> mediaIdValues) {
+    final values = mediaIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'mediaId', values);
+  }
+
+  Future<int> deleteAllByMediaId(List<String> mediaIdValues) {
+    final values = mediaIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'mediaId', values);
+  }
+
+  int deleteAllByMediaIdSync(List<String> mediaIdValues) {
+    final values = mediaIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'mediaId', values);
+  }
+
+  Future<Id> putByMediaId(TrackSignalDB object) {
+    return putByIndex(r'mediaId', object);
+  }
+
+  Id putByMediaIdSync(TrackSignalDB object, {bool saveLinks = true}) {
+    return putByIndexSync(r'mediaId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByMediaId(List<TrackSignalDB> objects) {
+    return putAllByIndex(r'mediaId', objects);
+  }
+
+  List<Id> putAllByMediaIdSync(List<TrackSignalDB> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'mediaId', objects, saveLinks: saveLinks);
+  }
+}
+
+extension TrackSignalDBQueryWhereSort
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QWhere> {
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhere> anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension TrackSignalDBQueryWhere
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QWhereClause> {
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause> idEqualTo(
+      Id id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause> idNotEqualTo(
+      Id id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause> idGreaterThan(
+      Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause> idLessThan(
+      Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause> idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause> mediaIdEqualTo(
+      String mediaId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'mediaId',
+        value: [mediaId],
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause>
+      mediaIdNotEqualTo(String mediaId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mediaId',
+              lower: [],
+              upper: [mediaId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mediaId',
+              lower: [mediaId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mediaId',
+              lower: [mediaId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mediaId',
+              lower: [],
+              upper: [mediaId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause>
+      artistKeyEqualTo(String artistKey) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'artistKey',
+        value: [artistKey],
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterWhereClause>
+      artistKeyNotEqualTo(String artistKey) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'artistKey',
+              lower: [],
+              upper: [artistKey],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'artistKey',
+              lower: [artistKey],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'artistKey',
+              lower: [artistKey],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'artistKey',
+              lower: [],
+              upper: [artistKey],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+}
+
+extension TrackSignalDBQueryFilter
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QFilterCondition> {
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'artistKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'artistKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'artistKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'artistKey',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'artistKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'artistKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'artistKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'artistKey',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'artistKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistKeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'artistKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'artistName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'artistName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'artistName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'artistName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'artistName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'artistName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'artistName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'artistName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'artistName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      artistNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'artistName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      completionsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'completions',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      completionsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'completions',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      completionsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'completions',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      completionsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'completions',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      earlySkipsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'earlySkips',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      earlySkipsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'earlySkips',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      earlySkipsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'earlySkips',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      earlySkipsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'earlySkips',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition> idEqualTo(
+      Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      idGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition> idLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition> idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      lastPlayedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastPlayedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      lastPlayedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastPlayedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      lastPlayedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastPlayedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      lastPlayedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastPlayedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      lastPlayedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastPlayedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      lastPlayedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastPlayedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mediaId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mediaId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mediaId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mediaId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mediaId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mediaId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mediaId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mediaId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mediaId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      mediaIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mediaId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      playsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'plays',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      playsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'plays',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      playsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'plays',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterFilterCondition>
+      playsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'plays',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension TrackSignalDBQueryObject
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QFilterCondition> {}
+
+extension TrackSignalDBQueryLinks
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QFilterCondition> {}
+
+extension TrackSignalDBQuerySortBy
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QSortBy> {
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByArtistKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      sortByArtistKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistKey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByArtistName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      sortByArtistNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByCompletions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completions', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      sortByCompletionsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completions', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByEarlySkips() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'earlySkips', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      sortByEarlySkipsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'earlySkips', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      sortByLastPlayedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPlayedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      sortByLastPlayedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPlayedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByMediaId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByMediaIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByPlays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'plays', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> sortByPlaysDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'plays', Sort.desc);
+    });
+  }
+}
+
+extension TrackSignalDBQuerySortThenBy
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QSortThenBy> {
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByArtistKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      thenByArtistKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistKey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByArtistName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      thenByArtistNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'artistName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByCompletions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completions', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      thenByCompletionsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completions', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByEarlySkips() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'earlySkips', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      thenByEarlySkipsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'earlySkips', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      thenByLastPlayedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPlayedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy>
+      thenByLastPlayedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastPlayedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByMediaId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByMediaIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByPlays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'plays', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QAfterSortBy> thenByPlaysDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'plays', Sort.desc);
+    });
+  }
+}
+
+extension TrackSignalDBQueryWhereDistinct
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct> {
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct> distinctByArtistKey(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'artistKey', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct> distinctByArtistName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'artistName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct>
+      distinctByCompletions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'completions');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct> distinctByEarlySkips() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'earlySkips');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct>
+      distinctByLastPlayedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastPlayedAt');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct> distinctByMediaId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mediaId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, TrackSignalDB, QDistinct> distinctByPlays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'plays');
+    });
+  }
+}
+
+extension TrackSignalDBQueryProperty
+    on QueryBuilder<TrackSignalDB, TrackSignalDB, QQueryProperty> {
+  QueryBuilder<TrackSignalDB, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, String, QQueryOperations> artistKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'artistKey');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, String, QQueryOperations> artistNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'artistName');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, int, QQueryOperations> completionsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'completions');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, int, QQueryOperations> earlySkipsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'earlySkips');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, DateTime?, QQueryOperations>
+      lastPlayedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastPlayedAt');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, String, QQueryOperations> mediaIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mediaId');
+    });
+  }
+
+  QueryBuilder<TrackSignalDB, int, QQueryOperations> playsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'plays');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
 extension GetPlaybackHistoryDBCollection on Isar {
   IsarCollection<PlaybackHistoryDB> get playbackHistoryDBs => this.collection();
 }

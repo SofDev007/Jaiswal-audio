@@ -4,6 +4,7 @@ import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/adapters/track_adapter.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
+import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -644,29 +645,42 @@ class _QueueItem extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: SongCardWidget(
-                  showOptions: false,
-                  onTap: () => playerCubit.bloomeePlayer.skipToQueueItem(index),
-                  song: songModel,
-                  trailing: IconButton(
-                    tooltip: 'More options',
-                    iconSize: 20,
-                    splashRadius: 18,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
-                    ),
-                    color: Default_Theme.primaryColor2.withValues(alpha: 0.65),
-                    icon: const Icon(Icons.more_horiz_rounded),
-                    onPressed: () => showMoreBottomSheet(
-                      context,
-                      songModel,
-                      showAddToQueue: false,
-                      showPlayNext: false,
-                      showSinglePlay: true,
-                    ),
-                  ),
+                child: StreamBuilder<Map<String, RecReason>>(
+                  stream: playerCubit.bloomeePlayer.recommendationReasons,
+                  builder: (context, snap) {
+                    final reason = snap.data?[mediaItem.id];
+                    return SongCardWidget(
+                      showOptions: false,
+                      onTap: () => playerCubit.bloomeePlayer.skipToQueueItem(index),
+                      song: songModel,
+                      // Auto-queued: say why, on the same single line.
+                      subtitleOverride: reason == null
+                          ? null
+                          : [
+                              songModel.artists.map((a) => a.name).join(', '),
+                              recReasonText(AppLocalizations.of(context)!, reason),
+                            ].where((s) => s.isNotEmpty).join(' · '),
+                      trailing: IconButton(
+                        tooltip: 'More options',
+                        iconSize: 20,
+                        splashRadius: 18,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                        color: Default_Theme.primaryColor2.withValues(alpha: 0.65),
+                        icon: const Icon(Icons.more_horiz_rounded),
+                        onPressed: () => showMoreBottomSheet(
+                          context,
+                          songModel,
+                          showAddToQueue: false,
+                          showPlayNext: false,
+                          showSinglePlay: true,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               if (isDesktop)
@@ -693,3 +707,13 @@ class _QueueItem extends StatelessWidget {
         : ReorderableDelayedDragStartListener(index: index, child: content);
   }
 }
+
+/// One line saying why a track was recommended.
+String recReasonText(AppLocalizations l10n, RecReason r) => switch (r.kind) {
+      RecReasonKind.becausePlaying => l10n.recReasonBecausePlaying(r.subject),
+      RecReasonKind.moreFrom => l10n.recReasonMoreFrom(r.subject),
+      RecReasonKind.similarTo => l10n.recReasonSimilarTo(r.subject),
+      RecReasonKind.youOftenPlay => l10n.recReasonYouOftenPlay(r.subject),
+      RecReasonKind.foundOnSources =>
+        l10n.recReasonFoundOnSources(int.tryParse(r.subject) ?? 2),
+    };

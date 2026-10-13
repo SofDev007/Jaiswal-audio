@@ -3348,6 +3348,36 @@ abstract class AppLocalizations {
   /// **'Retry {count} failed lookups'**
   String importRetryFailedLookups(int count);
 
+  /// No description provided for @recReasonBecausePlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Because you played {title}'**
+  String recReasonBecausePlaying(String title);
+
+  /// No description provided for @recReasonMoreFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'More from {artist}'**
+  String recReasonMoreFrom(String artist);
+
+  /// No description provided for @recReasonSimilarTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar to {artist}'**
+  String recReasonSimilarTo(String artist);
+
+  /// No description provided for @recReasonYouOftenPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'You often play {artist}'**
+  String recReasonYouOftenPlay(String artist);
+
+  /// No description provided for @recReasonFoundOnSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Found on {count} sources'**
+  String recReasonFoundOnSources(int count);
+
   /// No description provided for @playlistPinToTop.
   ///
   /// In en, this message translates to:

@@ -638,6 +638,11 @@
   "importSkipUnterminated": "Zeile {line}: Anführungszeichen nicht geschlossen, der Rest der Datei konnte nicht gelesen werden",
   "importChooseAnotherFile": "Andere Datei wählen",
   "importRetryFailedLookups": "{count} fehlgeschlagene Suchen wiederholen",
+  "recReasonBecausePlaying": "Weil du {title} gehört hast",
+  "recReasonMoreFrom": "Mehr von {artist}",
+  "recReasonSimilarTo": "Ähnlich wie {artist}",
+  "recReasonYouOftenPlay": "Du hörst oft {artist}",
+  "recReasonFoundOnSources": "In {count} Quellen gefunden",
 
   "playlistPinToTop": "Oben anheften",
   "playlistUnpin": "Anheften lösen",

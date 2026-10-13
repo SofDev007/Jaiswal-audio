@@ -12,6 +12,9 @@ import 'package:Bloomee/plugins/utils/media_id.dart';
 import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/core/models/track_signal.dart';
+import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
+import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/player/media_resolver_service.dart';
 import 'package:Bloomee/services/player/player_engine.dart';
@@ -107,6 +110,10 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   BehaviorSubject<PlayerError?> get lastError => _errorHandler.lastError;
   BehaviorSubject<List<Track>> get relatedSongs =>
       _relatedSongsManager.relatedSongs;
+
+  /// Why each auto-queued recommendation was chosen, by track ID.
+  BehaviorSubject<Map<String, RecReason>> get recommendationReasons =>
+      _relatedSongsManager.reasons;
 
   @override
   BehaviorSubject<String> get queueTitle => _queueManager.queueTitle;
@@ -742,6 +749,10 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   // ─── Completion / Auto-Next ────────────────────────────────────────────────
 
   void _onTrackCompleted() {
+    final finished = _queueManager.currentTrack;
+    if (finished != null) {
+      _recordSignal((dao) => dao.recordCompletion(finished));
+    }
     if (loopMode.value == LoopMode.one || _isAdvancing) return;
     _isAdvancing = true;
     Future.microtask(() async {
@@ -889,7 +900,18 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   Future<void> skipToNext() async {
     _errorHandler.resetCircuitBreaker();
     _shouldResumeAfterInterruption = false;
+    final skipped = _queueManager.currentTrack;
+    if (skipped != null &&
+        isEarlySkip(engine.position, skipped.durationMs?.toInt())) {
+      _recordSignal((dao) => dao.recordEarlySkip(skipped));
+    }
     await _internalSkipToNext();
+  }
+
+  /// Fire-and-forget: a failed signal write must never affect playback.
+  void _recordSignal(Future<void> Function(TrackSignalDAO dao) write) {
+    unawaited(write(TrackSignalDAO(DBProvider.db)).catchError(
+        (Object e) => log('Signal write failed: $e', name: 'BloomeePlayer')));
   }
 
   Future<void> _internalSkipToNext() async {

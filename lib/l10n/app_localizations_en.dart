@@ -1861,6 +1861,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String recReasonBecausePlaying(String title) {
+    return 'Because you played $title';
+  }
+
+  @override
+  String recReasonMoreFrom(String artist) {
+    return 'More from $artist';
+  }
+
+  @override
+  String recReasonSimilarTo(String artist) {
+    return 'Similar to $artist';
+  }
+
+  @override
+  String recReasonYouOftenPlay(String artist) {
+    return 'You often play $artist';
+  }
+
+  @override
+  String recReasonFoundOnSources(int count) {
+    return 'Found on $count sources';
+  }
+
+  @override
   String get playlistPinToTop => 'Pin to Top';
 
   @override

@@ -33,6 +33,7 @@ class DBProvider {
     PlaylistDBSchema,
     NotificationsDBSchema,
     PlaybackHistoryDBSchema,
+    TrackSignalDBSchema,
     AppSettingsBoolDBSchema,
     AppSettingsStrDBSchema,
     DownloadDBSchema,

@@ -382,6 +382,44 @@ class AppSettingsBoolDB {
       AppSettingsBoolDB.fromMap(json.decode(source) as Map<String, dynamic>);
 }
 
+/// Per-track listening signals for on-device recommendations: one row per
+/// track, updated in place, so it grows with the library, not with plays.
+@collection
+class TrackSignalDB {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  String mediaId;
+
+  /// Normalized primary artist name, for artist-level affinity and skips.
+  @Index()
+  String artistKey;
+
+  /// Primary artist as shown, for explanations.
+  String artistName;
+
+  /// Plays past the history threshold (15 s or 40%).
+  int plays;
+
+  /// Plays that reached the natural end.
+  int completions;
+
+  /// User skips in the first 30 s and before 25% of the track.
+  int earlySkips;
+
+  DateTime? lastPlayedAt;
+
+  TrackSignalDB({
+    required this.mediaId,
+    required this.artistKey,
+    required this.artistName,
+    this.plays = 0,
+    this.completions = 0,
+    this.earlySkips = 0,
+    this.lastPlayedAt,
+  });
+}
+
 @collection
 class PlaybackHistoryDB {
   Id id = Isar.autoIncrement;

@@ -1758,6 +1758,31 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String recReasonBecausePlaying(String title) {
+    return '$title を再生したため';
+  }
+
+  @override
+  String recReasonMoreFrom(String artist) {
+    return '$artist の他の曲';
+  }
+
+  @override
+  String recReasonSimilarTo(String artist) {
+    return '$artist に似た曲';
+  }
+
+  @override
+  String recReasonYouOftenPlay(String artist) {
+    return 'よく聴く $artist';
+  }
+
+  @override
+  String recReasonFoundOnSources(int count) {
+    return '$count 件のソースで見つかりました';
+  }
+
+  @override
   String get playlistPinToTop => 'トップに固定';
 
   @override

@@ -1763,6 +1763,31 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String recReasonBecausePlaying(String title) {
+    return '$title을(를) 들어서';
+  }
+
+  @override
+  String recReasonMoreFrom(String artist) {
+    return '$artist의 다른 곡';
+  }
+
+  @override
+  String recReasonSimilarTo(String artist) {
+    return '$artist와(과) 비슷한 곡';
+  }
+
+  @override
+  String recReasonYouOftenPlay(String artist) {
+    return '자주 듣는 $artist';
+  }
+
+  @override
+  String recReasonFoundOnSources(int count) {
+    return '$count개 소스에서 찾음';
+  }
+
+  @override
   String get playlistPinToTop => '맨 위에 고정';
 
   @override

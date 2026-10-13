@@ -1,31 +1,83 @@
 import 'dart:developer';
-import 'package:Bloomee/core/models/exported.dart';
-import 'package:Bloomee/plugins/utils/media_id.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
-import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/core/models/exported.dart';
+import 'package:Bloomee/core/models/track_signal.dart';
+import 'package:Bloomee/services/db/dao/history_dao.dart';
+import 'package:Bloomee/services/db/dao/playlist_dao.dart';
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
+import 'package:Bloomee/services/db/dao/track_dao.dart';
+import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
+import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/services/meta_resolver/cross_plugin_resolver.dart';
 import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
-import 'package:Bloomee/src/rust/api/plugin/commands.dart';
+import 'package:Bloomee/services/recommendations/candidate_gatherer.dart';
+import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
 import 'package:rxdart/rxdart.dart';
 
+typedef TasteLoader = Future<UserTaste> Function(RecommendationRanker ranker);
+
+/// Tracks queued per refill.
+const int kRecommendationBatch = 5;
+
+/// Autoplay: when the queue is about to run out, queues a small ranked batch
+/// of recommendations for the last track the user chose.
 class RelatedSongsManager {
+  /// The batch most recently queued.
   final BehaviorSubject<List<Track>> relatedSongs =
       BehaviorSubject<List<Track>>.seeded([]);
-  final PluginService _pluginService;
-  final Set<String> _fetchedTrackIds = <String>{};
 
-  String? _referenceTrackId;
-  String? _referenceLocalId;
-  String? _pluginId;
-  String? _nextPageToken;
-  bool _isFetching = false;
-  bool _isExhausted = false;
+  /// Why each auto-queued track was suggested, by track ID.
+  final BehaviorSubject<Map<String, RecReason>> reasons =
+      BehaviorSubject<Map<String, RecReason>>.seeded({});
 
-  // Callbacks
+  final CandidateGatherer _gatherer;
+  final RecommendationRanker _ranker;
+  final TasteLoader _loadTaste;
+  final Future<bool> Function() _autoPlayEnabled;
+
+  Track? _seed;
+  bool _gathered = false;
+  final List<RecCandidate> _pool = [];
+  String? _nextRadioPage;
+  final Set<String> _autoAdded = {};
+  bool _busy = false;
+
   Function(List<Track> items, {bool atLast})? onAddQueueItems;
 
-  RelatedSongsManager(this._pluginService);
+  RelatedSongsManager(
+    PluginService plugins, {
+    CandidateGatherer? gatherer,
+    RecommendationRanker? ranker,
+    TasteLoader? loadTaste,
+    Future<bool> Function()? autoPlayEnabled,
+  })  : _gatherer = gatherer ??
+            CandidateGatherer(
+                plugins, CrossPluginResolver(pluginService: plugins)),
+        _ranker = ranker ??
+            RecommendationRanker(CrossPluginResolver(pluginService: plugins)),
+        _loadTaste = loadTaste ?? _tasteFromDevice,
+        _autoPlayEnabled = autoPlayEnabled ?? _autoPlaySetting;
+
+  static Future<bool> _autoPlaySetting() async =>
+      await SettingsDAO(DBProvider.db).getSettingBool(SettingKeys.autoPlay) !=
+      false;
+
+  static Future<UserTaste> _tasteFromDevice(RecommendationRanker ranker) async {
+    final trackDao = TrackDAO(DBProvider.db);
+    final results = await Future.wait([
+      TrackSignalDAO(DBProvider.db).getAll(),
+      PlaylistDAO(DBProvider.db, trackDao)
+          .loadPlaylist(PlaylistDAO.likedPlaylist)
+          .then((p) => p.tracks),
+      HistoryDAO(DBProvider.db, trackDao).getHistory(limit: 200),
+    ]);
+    return ranker.buildTaste(
+      signals: results[0] as List<TrackSignal>,
+      liked: results[1] as List<Track>,
+      history: results[2] as List<Track>,
+    );
+  }
 
   Future<void> checkForRelatedSongs({
     required Track currentMedia,
@@ -33,163 +85,104 @@ class RelatedSongsManager {
     required int currentPlayingIdx,
     required LoopMode loopMode,
   }) async {
-    log("Checking for related songs: ${queue.isNotEmpty && (queue.length - currentPlayingIdx) < 2}",
-        name: "RelatedSongsManager");
-
-    final autoPlay =
-        await SettingsDAO(DBProvider.db).getSettingBool(SettingKeys.autoPlay);
-    if (autoPlay != null && !autoPlay) return;
-
     final shouldQueueMore = queue.isNotEmpty &&
         (queue.length - currentPlayingIdx) < 2 &&
         loopMode != LoopMode.all;
-    if (!shouldQueueMore) {
-      return;
-    }
+    if (_busy || !shouldQueueMore || !await _autoPlayEnabled()) return;
 
-    final parts = tryParseMediaId(currentMedia.id);
-    if (parts == null) {
-      return;
-    }
+    _busy = true;
+    try {
+      final seed = _seedFor(queue, currentPlayingIdx) ?? currentMedia;
+      if (seed.id != _seed?.id) {
+        _seed = seed;
+        _gathered = false;
+        _pool.clear();
+        _nextRadioPage = null;
+      }
 
-    if (parts.pluginId == kLocalPluginId) {
-      clearRelatedSongs();
-      return;
-    }
+      UserTaste taste;
+      try {
+        taste = await _loadTaste(_ranker);
+      } catch (e) {
+        log('Loading listening signals failed: $e', name: 'RelatedSongs');
+        taste = UserTaste.empty;
+      }
 
-    _syncReferenceState(
-      trackId: currentMedia.id,
-      pluginId: parts.pluginId,
-      localId: parts.localId,
-    );
+      if (!_gathered) {
+        _gathered = true;
+        _addToPool(await _gatherer.gather(seed));
+      }
+      var batch = _rank(seed, queue, taste);
+      // Short of a full batch: up to two more radio pages.
+      for (var i = 0;
+          i < 2 &&
+              batch.length < kRecommendationBatch &&
+              _nextRadioPage != null;
+          i++) {
+        _addToPool(await _gatherer.gather(seed, radioPage: _nextRadioPage));
+        batch = _rank(seed, queue, taste);
+      }
+      if (batch.isEmpty) return;
 
-    if (relatedSongs.value.isEmpty) {
-      await _fetchNextRadioPage();
-    }
-
-    await loadRelatedSongs(
-        queue: queue, currentPlayingIdx: currentPlayingIdx, loopMode: loopMode);
-
-    if (relatedSongs.value.isEmpty) {
-      await _fetchNextRadioPage();
-      await loadRelatedSongs(
-        queue: queue,
-        currentPlayingIdx: currentPlayingIdx,
-        loopMode: loopMode,
-      );
+      final tracks = [for (final r in batch) r.track];
+      final ids = {for (final t in tracks) t.id};
+      _pool.removeWhere((c) => ids.contains(c.track.id));
+      _autoAdded.addAll(ids);
+      reasons.add({
+        ...reasons.value,
+        for (final r in batch) r.track.id: r.reason,
+      });
+      relatedSongs.add(tracks);
+      log('Queued ${tracks.length} recommendations for "${seed.title}"',
+          name: 'RelatedSongs');
+      onAddQueueItems?.call(tracks, atLast: true);
+    } catch (e) {
+      log('Recommendations failed: $e', name: 'RelatedSongs');
+    } finally {
+      _busy = false;
     }
   }
 
-  Future<void> loadRelatedSongs({
-    required List<Track> queue,
-    required int currentPlayingIdx,
-    required LoopMode loopMode,
-  }) async {
-    if (relatedSongs.value.isNotEmpty &&
-        (queue.length - currentPlayingIdx) < 3 &&
-        loopMode != LoopMode.all) {
-      onAddQueueItems?.call(relatedSongs.value, atLast: true);
-      relatedSongs.add([]);
+  /// The last track at or before [index] the user chose (not auto-queued),
+  /// so a run of recommendations doesn't drift away from it.
+  Track? _seedFor(List<Track> queue, int index) {
+    for (var i = index.clamp(0, queue.length - 1); i >= 0; i--) {
+      if (!_autoAdded.contains(queue[i].id)) return queue[i];
     }
+    return null;
+  }
+
+  void _addToPool(GatherResult r) {
+    _pool.addAll(r.candidates);
+    _nextRadioPage = r.nextRadioPage;
+  }
+
+  List<Recommendation> _rank(Track seed, List<Track> queue, UserTaste taste) {
+    final last = queue.isEmpty || queue.last.artists.isEmpty
+        ? null
+        : artistKeyOf(queue.last.artists.first.name);
+    return _ranker.rank(
+      seed: seed,
+      candidates: _pool,
+      taste: taste,
+      excludeSongKeys: {for (final t in queue) _ranker.songKey(t)},
+      previousArtistKey: last,
+      take: kRecommendationBatch,
+    );
   }
 
   void clearRelatedSongs() {
     relatedSongs.add([]);
-    _fetchedTrackIds.clear();
-    _referenceTrackId = null;
-    _referenceLocalId = null;
-    _pluginId = null;
-    _nextPageToken = null;
-    _isFetching = false;
-    _isExhausted = false;
-  }
-
-  void _syncReferenceState({
-    required String trackId,
-    required String pluginId,
-    required String localId,
-  }) {
-    if (_referenceTrackId == trackId && _pluginId == pluginId) {
-      return;
-    }
-
-    relatedSongs.add([]);
-    _fetchedTrackIds.clear();
-    _referenceTrackId = trackId;
-    _referenceLocalId = localId;
-    _pluginId = pluginId;
-    _nextPageToken = null;
-    _isFetching = false;
-    _isExhausted = false;
-  }
-
-  Future<void> _fetchNextRadioPage() async {
-    if (_isFetching ||
-        _isExhausted ||
-        _pluginId == null ||
-        _referenceLocalId == null) {
-      return;
-    }
-
-    _isFetching = true;
-    try {
-      final response = await _pluginService.execute(
-        pluginId: _pluginId!,
-        request: PluginRequest.contentResolver(
-          ContentResolverCommand.getRadioTracks(
-            id: _referenceLocalId!,
-            pageToken: _nextPageToken,
-          ),
-        ),
-      );
-
-      response.when(
-        moreTracks: (pagedTracks) {
-          final uniqueTracks = pagedTracks.items.where((track) {
-            return _fetchedTrackIds.add(track.id);
-          }).toList(growable: false);
-
-          if (uniqueTracks.isNotEmpty) {
-            relatedSongs.add([...relatedSongs.value, ...uniqueTracks]);
-            log(
-              'Buffered ${uniqueTracks.length} related songs',
-              name: 'RelatedSongsManager',
-            );
-          }
-
-          _nextPageToken = pagedTracks.nextPageToken;
-          _isExhausted =
-              pagedTracks.nextPageToken == null && uniqueTracks.isEmpty;
-        },
-        trackDetails: (_) {},
-        albumDetails: (_) {},
-        artistDetails: (_) {},
-        playlistDetails: (_) {},
-        streams: (_) {},
-        search: (_) {},
-        moreAlbums: (_) {},
-        homeSections: (_) {},
-        loadMoreItems: (_) {},
-        charts: (_) {},
-        chartDetails: (_) {},
-        segments: (_) {},
-        lyricsResult: (_) {},
-        lyricsSearchResults: (_) {},
-        lyricsById: (_, __) {},
-        suggestions: (_) {},
-        canHandle: (_) {},
-        collectionInfo: (_) {},
-        importTracks: (_) {},
-        ack: () {},
-      );
-    } catch (e) {
-      log('Failed to get related songs: $e', name: 'RelatedSongsManager');
-    } finally {
-      _isFetching = false;
-    }
+    reasons.add({});
+    _autoAdded.clear();
+    _seed = null;
+    _gathered = false;
+    _pool.clear();
+    _nextRadioPage = null;
   }
 
   void dispose() {
     relatedSongs.close();
+    reasons.close();
   }
 }

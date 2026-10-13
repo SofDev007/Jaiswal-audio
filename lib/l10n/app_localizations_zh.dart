@@ -1748,6 +1748,31 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String recReasonBecausePlaying(String title) {
+    return '因为你播放了 $title';
+  }
+
+  @override
+  String recReasonMoreFrom(String artist) {
+    return '更多来自 $artist';
+  }
+
+  @override
+  String recReasonSimilarTo(String artist) {
+    return '与 $artist 相似';
+  }
+
+  @override
+  String recReasonYouOftenPlay(String artist) {
+    return '你常听 $artist';
+  }
+
+  @override
+  String recReasonFoundOnSources(int count) {
+    return '在 $count 个来源中找到';
+  }
+
+  @override
   String get playlistPinToTop => '置顶';
 
   @override

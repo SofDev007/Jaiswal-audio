@@ -1871,6 +1871,31 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String recReasonBecausePlaying(String title) {
+    return 'क्योंकि आपने $title सुना';
+  }
+
+  @override
+  String recReasonMoreFrom(String artist) {
+    return '$artist के और गाने';
+  }
+
+  @override
+  String recReasonSimilarTo(String artist) {
+    return '$artist जैसा';
+  }
+
+  @override
+  String recReasonYouOftenPlay(String artist) {
+    return 'आप अक्सर $artist सुनते हैं';
+  }
+
+  @override
+  String recReasonFoundOnSources(int count) {
+    return '$count स्रोतों में मिला';
+  }
+
+  @override
   String get playlistPinToTop => 'सबसे ऊपर पिन करें';
 
   @override

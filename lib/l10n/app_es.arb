@@ -638,6 +638,11 @@
   "importSkipUnterminated": "Fila {line}: comillas sin cerrar, no se pudo leer el resto del archivo",
   "importChooseAnotherFile": "Elegir otro archivo",
   "importRetryFailedLookups": "Reintentar {count} búsquedas fallidas",
+  "recReasonBecausePlaying": "Porque escuchaste {title}",
+  "recReasonMoreFrom": "Más de {artist}",
+  "recReasonSimilarTo": "Similar a {artist}",
+  "recReasonYouOftenPlay": "Escuchas a menudo a {artist}",
+  "recReasonFoundOnSources": "Encontrada en {count} fuentes",
 
   "playlistPinToTop": "Fijar arriba",
   "playlistUnpin": "Desfijar",
