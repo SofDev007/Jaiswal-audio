@@ -27,9 +27,10 @@ const int _kMaxCandidatesPerTrack = 5;
 const Duration kImportCheckTimeout = Duration(seconds: 15);
 const Duration kImportInfoTimeout = Duration(seconds: 45);
 
-/// A call the app gave up on keeps running in Rust and holds that plugin's
-/// lock until it finishes. The next call waits this long for it, then fails
-/// as [ImportErrorKind.pluginBusy] instead of queueing silently.
+/// A call the app gives up on (timeout or cancel) is cancelled in Rust and
+/// normally releases the plugin within ~50 ms. If the plugin ignores that
+/// (e.g. it loops without making requests), the next call waits this long
+/// for it, then fails as [ImportErrorKind.pluginBusy].
 const Duration kImportBusyWait = Duration(seconds: 40);
 
 /// Tries per step, counting the first; only transient failures are retried.
@@ -244,9 +245,9 @@ class ContentImportCubit extends Cubit<ContentImportState> {
   }
 
   /// One importer call. Calls to a plugin never overlap: Rust runs one at a
-  /// time per plugin, and a call the app stopped waiting for (timeout or
-  /// cancel) still holds that slot until it finishes. Waiting for it here keeps
-  /// the new call's [timeout] from being spent in that queue.
+  /// time per plugin. A call still in flight here was abandoned (by a timeout
+  /// or a cancel), so it is cancelled in Rust and waited for, which keeps the
+  /// new call's [timeout] from being spent queued behind it.
   Future<PluginResponse> _call(
     String pluginId,
     ContentImporterCommand command,
@@ -254,6 +255,7 @@ class ContentImportCubit extends Cubit<ContentImportState> {
   ) async {
     final previous = _inFlight[pluginId];
     if (previous != null) {
+      _pluginService.cancelRequests(pluginId);
       try {
         await previous.timeout(kImportBusyWait);
       } on TimeoutException {
@@ -270,7 +272,13 @@ class ContentImportCubit extends Cubit<ContentImportState> {
     unawaited(settled.whenComplete(() {
       if (identical(_inFlight[pluginId], settled)) _inFlight.remove(pluginId);
     }));
-    return call.timeout(timeout);
+    try {
+      return await call.timeout(timeout);
+    } on TimeoutException {
+      // Stop it in Rust too, so it releases the plugin for the next call.
+      _pluginService.cancelRequests(pluginId);
+      rethrow;
+    }
   }
 
   // ── Step 4: Resolve Tracks ───────────────────────────────────────────────
@@ -421,9 +429,8 @@ class ContentImportCubit extends Cubit<ContentImportState> {
   // ── Cancel / retry ───────────────────────────────────────────────────────
 
   /// Stops the running import. While matching, the tracks matched so far go
-  /// to review; before that, the screen returns to the link input. A plugin
-  /// call already running in Rust can't be interrupted from Dart: it finishes
-  /// in the background and the next call waits for it (see [_call]).
+  /// to review; before that, the screen returns to the link input and the
+  /// plugin call running in Rust is cancelled (see [PluginService.cancelRequests]).
   void cancel() {
     switch (state.phase) {
       case ImportPhase.resolving:
@@ -440,6 +447,10 @@ class ContentImportCubit extends Cubit<ContentImportState> {
       case ImportPhase.fetchingTracks:
         _run++;
         log('Import cancelled by user.', name: 'ContentImportCubit');
+        final pluginId = state.pluginId;
+        if (pluginId != null && pluginId.isNotEmpty) {
+          _pluginService.cancelRequests(pluginId);
+        }
         emit(ContentImportState(pluginId: state.pluginId, url: state.url));
       default:
         return;

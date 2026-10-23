@@ -55,12 +55,20 @@ class PluginState extends Equatable {
         error = null,
         successMessage = null;
 
-  /// Get loaded content resolver plugins.
-  List<PluginInfo> get loadedContentResolvers => availablePlugins
-      .where((p) =>
-          p.pluginType == PluginType.contentResolver &&
-          loadedPluginIds.contains(p.manifest.id))
-      .toList();
+  /// Get loaded content resolver plugins, JioSaavn first (JARX's main source),
+  /// then in install order.
+  List<PluginInfo> get loadedContentResolvers {
+    final list = availablePlugins
+        .where((p) =>
+            p.pluginType == PluginType.contentResolver &&
+            loadedPluginIds.contains(p.manifest.id))
+        .toList();
+    final i = list.indexWhere((p) => p.manifest.id == _jioSaavnId);
+    if (i > 0) list.insert(0, list.removeAt(i));
+    return list;
+  }
+
+  static const _jioSaavnId = 'content-resolver.bloomfactory.jisaavn';
 
   /// Get loaded chart provider plugins.
   List<PluginInfo> get loadedChartProviders => availablePlugins

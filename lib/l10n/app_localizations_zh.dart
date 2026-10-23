@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get onboardingTitle => '欢迎使用 Bloomee';
+  String get onboardingTitle => '欢迎使用 JARX';
 
   @override
   String get onboardingSubtitle => '让我们开始设置您的语言和地区。';
@@ -942,7 +942,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storageAutoLyricsSubtitle => '播放歌曲时自动保存歌词。';
 
   @override
-  String get storageResetApp => '重置 Bloomee 应用';
+  String get storageResetApp => '重置 JARX 应用';
 
   @override
   String get storageResetAppSubtitle => '删除所有数据并将应用恢复到初始状态。';
@@ -951,7 +951,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storageResetConfirmTitle => '确认重置';
 
   @override
-  String get storageResetConfirmMessage => '确定要重置 Bloomee 吗？这将删除您的所有数据且无法撤销。';
+  String get storageResetConfirmMessage => '确定要重置 JARX 吗？这将删除您的所有数据且无法撤销。';
 
   @override
   String get storageResetButton => '重置';
@@ -964,7 +964,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get storageLocationAndroid =>
-      '备份存储在：\n\n1. 下载目录\n2. Android/data/ls.bloomee.musicplayer/data\n\n请从任一位置复制文件。';
+      '备份存储在：\n\n1. 下载目录\n2. Android/data/com.jaiswal.jarx/data\n\n请从任一位置复制文件。';
 
   @override
   String get storageLocationOther => '备份存储在“下载”目录中。请从那里复制文件。';
@@ -1048,7 +1048,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateCheckForUpdates => '检查更新';
 
   @override
-  String get updateCheckSubtitle => '查看是否有新版本的 Bloomee 可用。';
+  String get updateCheckSubtitle => '查看是否有新版本的 JARX 可用。';
 
   @override
   String get updateAutoNotify => '自动更新通知';
@@ -1060,7 +1060,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateCheckTitle => '检查更新';
 
   @override
-  String get updateUpToDate => 'Bloomee🌸 已经是最新版本！';
+  String get updateUpToDate => 'JARX 已经是最新版本！';
 
   @override
   String get updateViewPreRelease => '查看最新预发布版';
@@ -1071,7 +1071,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get updateNewVersionAvailable => 'Bloomee🌸 新版本现已可用！';
+  String get updateNewVersionAvailable => 'JARX 新版本现已可用！';
 
   @override
   String updateVersion(String ver, String build) {
@@ -1364,7 +1364,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albumViewLoadFailed => '加载专辑失败';
 
   @override
-  String get aboutCraftingSubtitle => '用代码编织交响乐。';
+  String get aboutCraftingSubtitle => 'Jaiswal Audio Response eXperience';
 
   @override
   String get aboutFollowGitHub => '在 GitHub 上关注他';
@@ -1376,13 +1376,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutCreativeHighlights => '更新与创作亮点';
 
   @override
-  String get aboutTipQuote => '喜欢 Bloomee 吗？小小的打赏能让它持续绽放。🌸';
+  String get aboutTipQuote => '喜欢 JARX 吗？小小的打赏能让它持续绽放。🌸';
 
   @override
   String get aboutTipButton => '我要赞赏';
 
   @override
-  String get aboutTipDesc => '我希望 Bloomee 越来越好。';
+  String get aboutTipDesc => '我希望 JARX 越来越好。';
 
   @override
   String get aboutGitHub => 'GitHub';
@@ -1442,13 +1442,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get songInfoMetadataUnavailable => '此来源不支持刷新元数据';
 
   @override
-  String get songInfoSearchTitle => '在 Bloomee 中搜索此歌曲';
+  String get songInfoSearchTitle => '在 JARX 中搜索此歌曲';
 
   @override
-  String get songInfoSearchArtist => '在 Bloomee 中搜索此艺人';
+  String get songInfoSearchArtist => '在 JARX 中搜索此艺人';
 
   @override
-  String get songInfoSearchAlbum => '在 Bloomee 中搜索此专辑';
+  String get songInfoSearchAlbum => '在 JARX 中搜索此专辑';
 
   @override
   String get eqTitle => '均衡器';
@@ -1525,7 +1525,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importNoPluginsLoaded => '未加载内容导入插件。\n请安装导入插件以从外部服务导入歌单。';
 
   @override
-  String get importBloomeeFiles => '导入 Bloomee 文件';
+  String get importBloomeeFiles => '导入 JARX 文件';
 
   @override
   String get importM3UFiles => '导入 M3U 歌单';
@@ -1544,7 +1544,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importNoteMessage =>
-      '您只能导入由 Bloomee 创建的文件。\n如果文件来自其他来源，将无法工作。是否仍要继续？';
+      '您只能导入由 JARX 创建的文件。\n如果文件来自其他来源，将无法工作。是否仍要继续？';
 
   @override
   String get importTitle => '导入';
@@ -1967,7 +1967,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String updateAvailableBody(String ver, String build) {
-    return 'Bloomee🌸 新版本现已可用！\n\n版本：$ver+$build';
+    return 'JARX 新版本现已可用！\n\n版本：$ver+$build';
   }
 
   @override
@@ -1986,7 +1986,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get pluginBootstrapTitle => '正在设置 Bloomee';
+  String get pluginBootstrapTitle => '正在设置 JARX';
 
   @override
   String pluginBootstrapProgress(int percent) {
@@ -2000,9 +2000,114 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pluginBootstrapErrorTitle => '连接过慢';
 
   @override
-  String get pluginBootstrapErrorBody =>
-      '部分插件无法安装。您仍可使用 Bloomee —— 插件将在下次启动时重试。';
+  String get pluginBootstrapErrorBody => '部分插件无法安装。您仍可使用 JARX —— 插件将在下次启动时重试。';
 
   @override
   String get pluginBootstrapContinue => '仍然继续';
+
+  @override
+  String get homeGreetingMorning => '早上好';
+
+  @override
+  String get homeGreetingAfternoon => '下午好';
+
+  @override
+  String get homeGreetingEvening => '晚上好';
+
+  @override
+  String get homeGreetingSubtitle => '从上次停下的地方继续';
+
+  @override
+  String get homeContinueListening => '继续收听';
+
+  @override
+  String get homeForYou => '为你推荐';
+
+  @override
+  String get homeForYouHint => '根据你在此设备上的播放和跳过记录挑选';
+
+  @override
+  String get homeSeeAll => '查看全部';
+
+  @override
+  String get homeJumpBackIn => '继续收听';
+
+  @override
+  String get homeUpNext => '为你推荐的下一首';
+
+  @override
+  String get homePlayAll => '全部播放';
+
+  @override
+  String get homeYourPlaylists => '你的歌单';
+
+  @override
+  String get homeRecentlyPlayed => '最近播放';
+
+  @override
+  String get homeAuto => '自动';
+
+  @override
+  String get homeLayoutSetting => '首页布局';
+
+  @override
+  String get homeLayoutChoose => '选择你的首页';
+
+  @override
+  String get homeLayoutChooseHint => '选择最适合你的布局。';
+
+  @override
+  String get homeLayoutForYou => '为你推荐';
+
+  @override
+  String get homeLayoutForYouDesc => '问候语、继续收听和推荐';
+
+  @override
+  String get homeLayoutMixes => '混音';
+
+  @override
+  String get homeLayoutMixesDesc => '歌单网格、心情和今日混音';
+
+  @override
+  String get homeLayoutPulse => '脉动';
+
+  @override
+  String get homeLayoutPulseDesc => '大号继续收听卡片和接下来列表';
+
+  @override
+  String get homeLayoutUse => '使用此布局';
+
+  @override
+  String get homeLayoutDoneTitle => '首页已准备好';
+
+  @override
+  String homeLayoutChangeLater(String path) {
+    return '你可以稍后在 设置 › $path 中更改。';
+  }
+
+  @override
+  String get homeLayoutGotIt => '知道了';
+
+  @override
+  String get homeTodaysMix => '今日混音';
+
+  @override
+  String homeMixSummary(String titles, int count) {
+    return '$titles 等 $count 首';
+  }
+
+  @override
+  String get homeMoodChill => '放松';
+
+  @override
+  String get homeMoodFocus => '专注';
+
+  @override
+  String get homeMoodRomance => '浪漫';
+
+  @override
+  String get homeMoodWorkout => '健身';
+
+  @override
+  String get homeMoodParty => '派对';
 }

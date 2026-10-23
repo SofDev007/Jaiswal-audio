@@ -16,6 +16,8 @@ pub mod storage;
 pub mod wasm_runtime;
 
 /// flutter_rust_bridge:ignore
+pub(crate) mod cancel;
+/// flutter_rust_bridge:ignore
 pub(crate) mod host_funcs;
 /// flutter_rust_bridge:ignore
 pub mod loader;

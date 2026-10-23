@@ -1,5 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:ui';
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -711,7 +712,7 @@ class _PluginChip extends StatelessWidget {
                     const SizedBox(width: 4),
                   ],
                   Text(
-                    plugin.name,
+                    pluginDisplayName(plugin.manifest.id, plugin.name),
                     style: Default_Theme.secondoryTextStyleMedium.merge(
                       TextStyle(
                         color: isSelected

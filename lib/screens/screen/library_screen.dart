@@ -457,6 +457,11 @@ class _LibraryScreenViewState extends State<_LibraryScreenView> {
   }
 }
 
+/// Opens a library item the way tapping it in the Library does.
+Future<void> openLibraryItem(
+        BuildContext context, PlaylistItemProperties item) =>
+    _ListOfPlaylists._openLibraryItem(context, item);
+
 class _ListOfPlaylists extends StatelessWidget {
   final List<PlaylistItemProperties> playlists;
   final bool isReorderable;

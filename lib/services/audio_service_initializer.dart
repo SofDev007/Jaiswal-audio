@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:Bloomee/services/bloomee_player.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:Bloomee/services/player/output_route.dart';
 import 'package:audio_session/audio_session.dart';
 
 /// Initializes the audio session and player.
@@ -36,6 +39,8 @@ Future<void> setupAudioSession() async {
     // We handle ducking ourselves via interruptionEventStream.
     androidWillPauseWhenDucked: false,
   ));
+  // The in-app EQ is skipped on the phone's own speaker.
+  unawaited(OutputRoute.start(session));
 }
 
 /// Singleton that creates and owns the [BloomeeMusicPlayer] instance.
@@ -80,8 +85,8 @@ class PlayerInitializer {
       builder: () => BloomeeMusicPlayer(),
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.BloomeePlayer.notification.status',
-        androidNotificationChannelName: 'BloomeTunes',
-        androidNotificationIcon: 'mipmap/ic_launcher',
+        androidNotificationChannelName: 'JARX',
+        androidNotificationIcon: 'drawable/ic_stat_jarx',
         androidResumeOnClick: true,
         androidShowNotificationBadge: true,
         // Keep foreground service alive while paused — reduces OEM process kills.

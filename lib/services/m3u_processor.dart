@@ -18,7 +18,7 @@ String convertJsonToM3U(Map<String, dynamic> jsonData) {
     if (meta == null) {
       throw const FormatException("Missing '_meta' section in JSON.");
     }
-    final generatedBy = meta['generated_by']?.toString() ?? "Bloomee";
+    final generatedBy = meta['generated_by']?.toString() ?? "JARX";
     final version = meta['version']?.toString() ?? "Unknown";
     final exportedAt = meta['exportedAt']?.toString() ?? "Unknown";
     final note = meta['note']?.toString() ?? "";

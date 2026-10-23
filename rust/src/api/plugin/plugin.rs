@@ -454,11 +454,28 @@ impl PluginManager {
 
         let handle = self.runtime_handle.clone();
 
+        // Importer requests can be cancelled from Dart (see cancel.rs): take a
+        // ticket now, before waiting for the plugin's lock.
+        let ticket = matches!(request, PluginRequest::ContentImporter(_))
+            .then(|| crate::api::plugin::cancel::ticket(plugin_id));
+        let id = plugin_id.to_string();
+
         tokio::task::spawn_blocking(move || {
             // Lock the individual plugin's tokio Mutex via block_on.
             // This is safe: we're on a blocking thread (spawn_blocking), so
             // block_on will not deadlock the main tokio runtime.
             let mut plugin = handle.block_on(plugin_arc.lock());
+
+            let _running = match ticket {
+                Some(t) if !crate::api::plugin::cancel::begin(&id, t) => {
+                    // Cancelled while it waited: never run it.
+                    return Err(PluginError::WasmExecutionError(
+                        crate::api::plugin::cancel::CANCELLED.to_string(),
+                    ));
+                }
+                Some(_) => Some(crate::api::plugin::cancel::Running(id)),
+                None => None,
+            };
 
             let expected_type = match &request {
                 PluginRequest::ContentResolver(_) => PluginType::ContentResolver,
@@ -510,5 +527,229 @@ impl PluginManager {
         if let Ok(mut sink) = self.event_sink.lock() {
             *sink = None;
         }
+    }
+}
+
+#[cfg(test)]
+mod import_cancel_tests {
+    //! End to end through handle_plugin_request: the plugin lock, the cancel
+    //! ticket and the importer's HTTP host function, with a stand-in importer
+    //! that pages through a playlist over real HTTP like a real one does.
+    use super::*;
+    use crate::api::plugin::adapters::content_importer::bindgen::{self, UtilsHost};
+    use crate::api::plugin::adapters::content_importer::ContentImporterHostImpl;
+    use crate::api::plugin::cancel;
+    use crate::api::plugin::commands::{ContentImporterCommand, PluginRequest, PluginResponse};
+    use std::any::Any;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::time::{Duration, Instant};
+
+    const PAGE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
+
+    /// Fetches `pages` pages, failing on the first HTTP error.
+    struct PagingImporter {
+        host: ContentImporterHostImpl,
+        pages: usize,
+    }
+
+    impl Plugin for PagingImporter {
+        fn get_name(&self) -> &str {
+            "test-importer"
+        }
+        fn get_plugin_type(&self) -> PluginType {
+            PluginType::ContentImporter
+        }
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+        fn as_any_mut(&mut self) -> &mut dyn Any {
+            self
+        }
+        fn handle_request(&mut self, request: PluginRequest) -> PluginResult<PluginResponse> {
+            let PluginRequest::ContentImporter(ContentImporterCommand::GetTracks { url }) = request
+            else {
+                return Ok(PluginResponse::Ack);
+            };
+            for page in 0..self.pages {
+                let options = bindgen::RequestOptions {
+                    method: bindgen::HttpMethod::Get,
+                    headers: None,
+                    body: None,
+                    timeout_seconds: None,
+                };
+                self.host
+                    .http_request(format!("{url}?page={page}"), options)
+                    .map_err(PluginError::WasmExecutionError)?;
+            }
+            Ok(PluginResponse::ImportTracks(vec![]))
+        }
+    }
+
+    /// Accepts connections and never answers.
+    fn stalled_server() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let mut held = Vec::new();
+            for conn in listener.incoming() {
+                held.push(conn);
+            }
+        });
+        format!("http://{addr}/playlist")
+    }
+
+    /// Answers every request with a small page after `delay`.
+    fn paging_server(delay: Duration) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for conn in listener.incoming() {
+                let Ok(mut conn) = conn else { continue };
+                std::thread::spawn(move || {
+                    let mut buf = [0u8; 2048];
+                    let _ = conn.read(&mut buf);
+                    std::thread::sleep(delay);
+                    let _ = conn.write_all(PAGE);
+                });
+            }
+        });
+        format!("http://{addr}/playlist")
+    }
+
+    fn setup(id: &str, pages: usize) -> (tokio::runtime::Runtime, PluginManager) {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let manager = rt.block_on(PluginManager::new(
+            std::env::temp_dir().to_string_lossy().into_owned(),
+        ));
+        let plugin: Box<dyn Plugin> = Box::new(PagingImporter {
+            host: ContentImporterHostImpl::new(id.to_string()),
+            pages,
+        });
+        manager
+            .plugins
+            .write()
+            .unwrap()
+            .insert(id.to_string(), Arc::new(Mutex::new(plugin)));
+        (rt, manager)
+    }
+
+    fn get_tracks(url: &str) -> PluginRequest {
+        PluginRequest::ContentImporter(ContentImporterCommand::GetTracks {
+            url: url.to_string(),
+        })
+    }
+
+    fn cancel_after(id: &'static str, after: Duration) -> std::thread::JoinHandle<()> {
+        std::thread::spawn(move || {
+            std::thread::sleep(after);
+            cancel::request(id);
+        })
+    }
+
+    fn show(r: &PluginResult<PluginResponse>) -> String {
+        match r {
+            Ok(PluginResponse::ImportTracks(_)) => "Ok(ImportTracks)".into(),
+            Ok(PluginResponse::Ack) => "Ok(Ack)".into(),
+            Ok(_) => "Ok(other)".into(),
+            Err(e) => format!("Err({e:?})"),
+        }
+    }
+
+    fn is_cancelled_error(r: &PluginResult<PluginResponse>) -> bool {
+        matches!(r, Err(PluginError::WasmExecutionError(m)) if m == cancel::CANCELLED)
+    }
+
+    #[test]
+    fn cancel_stops_a_request_stuck_on_the_network_and_frees_the_lock() {
+        let id = "e2e-stalled";
+        let (rt, manager) = setup(id, 1);
+        let url = stalled_server();
+
+        let canceller = cancel_after(id, Duration::from_millis(300));
+        let started = Instant::now();
+        let first = rt.block_on(manager.handle_plugin_request(id, get_tracks(&url)));
+        let took = started.elapsed();
+        canceller.join().unwrap();
+        assert!(is_cancelled_error(&first), "{}", show(&first));
+        assert!(took < Duration::from_secs(2), "{took:?}");
+
+        // The lock is free, and the next request is not treated as cancelled.
+        let quick = paging_server(Duration::ZERO);
+        let started = Instant::now();
+        let second = rt.block_on(manager.handle_plugin_request(id, get_tracks(&quick)));
+        assert!(matches!(second, Ok(PluginResponse::ImportTracks(_))), "{}", show(&second));
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn cancel_stops_paging_between_pages() {
+        let id = "e2e-paging";
+        // 1000 pages at 20 ms each would take 20 s.
+        let (rt, manager) = setup(id, 1000);
+        let url = paging_server(Duration::from_millis(20));
+
+        let canceller = cancel_after(id, Duration::from_millis(250));
+        let started = Instant::now();
+        let r = rt.block_on(manager.handle_plugin_request(id, get_tracks(&url)));
+        canceller.join().unwrap();
+        assert!(is_cancelled_error(&r), "{}", show(&r));
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn a_request_cancelled_while_queued_never_runs() {
+        let id = "e2e-queued";
+        let (rt, manager) = setup(id, 1);
+        let url = stalled_server();
+        let manager = Arc::new(manager);
+
+        // The first request holds the lock; the second queues behind it.
+        let (m1, u1) = (manager.clone(), url.clone());
+        let first = rt.spawn(async move { m1.handle_plugin_request(id, get_tracks(&u1)).await });
+        let (m2, u2) = (manager.clone(), url.clone());
+        let second = rt.spawn(async move { m2.handle_plugin_request(id, get_tracks(&u2)).await });
+        // Let both start (the current-thread runtime runs them on block_on).
+        rt.block_on(async { tokio::time::sleep(Duration::from_millis(200)).await });
+
+        cancel::request(id);
+        let started = Instant::now();
+        let (first, second) =
+            rt.block_on(async { (first.await.unwrap(), second.await.unwrap()) });
+        assert!(is_cancelled_error(&first), "{}", show(&first));
+        assert!(is_cancelled_error(&second), "{}", show(&second));
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn repeated_and_late_cancels_do_not_affect_the_next_import() {
+        let id = "e2e-repeat";
+        let (rt, manager) = setup(id, 3);
+        let quick = paging_server(Duration::ZERO);
+
+        // A run that finishes, then two cancels with nothing running (a
+        // timeout racing a completion), then another run.
+        assert!(rt
+            .block_on(manager.handle_plugin_request(id, get_tracks(&quick)))
+            .is_ok());
+        cancel::request(id);
+        cancel::request(id);
+        let next = rt.block_on(manager.handle_plugin_request(id, get_tracks(&quick)));
+        assert!(matches!(next, Ok(PluginResponse::ImportTracks(_))), "{}", show(&next));
+        assert!(!cancel::is_cancelled(id), "no stale running mark");
+    }
+
+    #[test]
+    fn an_error_inside_the_plugin_clears_the_running_mark() {
+        let id = "e2e-error";
+        let (rt, manager) = setup(id, 1);
+        // Nothing listens on port 9: the request fails at once.
+        let r = rt.block_on(manager.handle_plugin_request(id, get_tracks("http://127.0.0.1:9/x")));
+        assert!(r.is_err() && !is_cancelled_error(&r), "{}", show(&r));
+        cancel::request(id);
+        assert!(!cancel::is_cancelled(id), "the failed request is no longer running");
     }
 }

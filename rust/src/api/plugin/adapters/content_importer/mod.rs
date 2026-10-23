@@ -44,54 +44,89 @@ impl Default for ContentImporterHostImpl {
     }
 }
 
+/// Sends one plugin HTTP request (blocking; at most 30 s by the client's cap).
+fn send(url: String, options: bindgen::RequestOptions) -> Result<bindgen::HttpResponse, String> {
+    let method = match options.method {
+        bindgen::HttpMethod::Get => reqwest::Method::GET,
+        bindgen::HttpMethod::Post => reqwest::Method::POST,
+        bindgen::HttpMethod::Put => reqwest::Method::PUT,
+        bindgen::HttpMethod::Delete => reqwest::Method::DELETE,
+        bindgen::HttpMethod::Head => reqwest::Method::HEAD,
+        bindgen::HttpMethod::Patch => reqwest::Method::PATCH,
+        bindgen::HttpMethod::Options => reqwest::Method::OPTIONS,
+    };
+
+    let mut req = HTTP_CLIENT.request(method, &url);
+
+    if let Some(timeout) = options.timeout_seconds {
+        let capped_timeout = timeout.min(30);
+        req = req.timeout(std::time::Duration::from_secs(capped_timeout as u64));
+    }
+
+    if let Some(headers) = options.headers {
+        for (k, v) in headers {
+            req = req.header(k, v);
+        }
+    }
+
+    if let Some(body) = options.body {
+        req = req.body(body);
+    }
+
+    let resp = req.send().map_err(|e| e.to_string())?;
+
+    let status = resp.status().as_u16();
+    let headers: Vec<(String, String)> = resp
+        .headers()
+        .iter()
+        .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
+        .collect();
+    let body_bytes = resp.bytes().map_err(|e| e.to_string())?.to_vec();
+
+    Ok(bindgen::HttpResponse {
+        status,
+        headers,
+        body: body_bytes,
+    })
+}
+
+/// How often a waiting HTTP call checks for a cancel.
+const CANCEL_POLL: std::time::Duration = std::time::Duration::from_millis(50);
+
 impl bindgen::UtilsHost for ContentImporterHostImpl {
+    /// Runs the request on its own thread and waits for it, checking for a
+    /// cancel (cancel.rs) every [`CANCEL_POLL`]. On cancel it returns an error
+    /// at once, so the plugin stops and releases its lock even while the
+    /// request is still waiting on the network; that thread finishes or times
+    /// out in the background and its result is dropped.
     fn http_request(
         &mut self,
         url: String,
         options: bindgen::RequestOptions,
     ) -> Result<bindgen::HttpResponse, String> {
-        let method = match options.method {
-            bindgen::HttpMethod::Get => reqwest::Method::GET,
-            bindgen::HttpMethod::Post => reqwest::Method::POST,
-            bindgen::HttpMethod::Put => reqwest::Method::PUT,
-            bindgen::HttpMethod::Delete => reqwest::Method::DELETE,
-            bindgen::HttpMethod::Head => reqwest::Method::HEAD,
-            bindgen::HttpMethod::Patch => reqwest::Method::PATCH,
-            bindgen::HttpMethod::Options => reqwest::Method::OPTIONS,
-        };
+        use crate::api::plugin::cancel;
+        use std::sync::mpsc::{channel, RecvTimeoutError};
 
-        let mut req = HTTP_CLIENT.request(method, &url);
-
-        if let Some(timeout) = options.timeout_seconds {
-            let capped_timeout = timeout.min(30);
-            req = req.timeout(std::time::Duration::from_secs(capped_timeout as u64));
+        let id = &self._plugin_id;
+        if cancel::is_cancelled(id) {
+            return Err(cancel::CANCELLED.to_string());
         }
-
-        if let Some(headers) = options.headers {
-            for (k, v) in headers {
-                req = req.header(k, v);
+        let (tx, rx) = channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(send(url, options));
+        });
+        loop {
+            match rx.recv_timeout(CANCEL_POLL) {
+                Ok(result) => return result,
+                Err(RecvTimeoutError::Timeout) if cancel::is_cancelled(id) => {
+                    return Err(cancel::CANCELLED.to_string());
+                }
+                Err(RecvTimeoutError::Timeout) => {}
+                Err(RecvTimeoutError::Disconnected) => {
+                    return Err("HTTP request thread stopped".to_string());
+                }
             }
         }
-
-        if let Some(body) = options.body {
-            req = req.body(body);
-        }
-
-        let resp = req.send().map_err(|e| e.to_string())?;
-
-        let status = resp.status().as_u16();
-        let headers: Vec<(String, String)> = resp
-            .headers()
-            .iter()
-            .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
-            .collect();
-        let body_bytes = resp.bytes().map_err(|e| e.to_string())?.to_vec();
-
-        Ok(bindgen::HttpResponse {
-            status,
-            headers,
-            body: body_bytes,
-        })
     }
 
     fn random_number(&mut self) -> u64 {
@@ -270,5 +305,82 @@ fn to_import_track_item(t: bindgen::TrackItem) -> ImportTrackItem {
         is_explicit: t.is_explicit.unwrap_or(false),
         url: t.url,
         source_id: t.source_id,
+    }
+}
+
+#[cfg(test)]
+mod cancel_tests {
+    use super::*;
+    use crate::api::plugin::cancel;
+    use bindgen::UtilsHost;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::time::{Duration, Instant};
+
+    fn get() -> bindgen::RequestOptions {
+        bindgen::RequestOptions {
+            method: bindgen::HttpMethod::Get,
+            headers: None,
+            body: None,
+            timeout_seconds: None,
+        }
+    }
+
+    #[test]
+    fn a_cancelled_import_makes_no_http_call() {
+        let id = "host-cancel-before";
+        assert!(cancel::begin(id, cancel::ticket(id)));
+        cancel::request(id);
+        let mut host = ContentImporterHostImpl::new(id.to_string());
+        let started = Instant::now();
+        let r = host.http_request("http://127.0.0.1:9/never".to_string(), get());
+        assert_eq!(r.unwrap_err(), cancel::CANCELLED);
+        assert!(started.elapsed() < Duration::from_millis(50));
+        cancel::end(id);
+    }
+
+    #[test]
+    fn a_cancel_returns_while_the_request_is_still_waiting() {
+        // A server that accepts the connection and never answers.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let _conn = listener.accept();
+            std::thread::sleep(Duration::from_secs(60));
+        });
+        let id = "host-cancel-during";
+        assert!(cancel::begin(id, cancel::ticket(id)));
+        let canceller = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(300));
+            cancel::request(id);
+        });
+        let mut host = ContentImporterHostImpl::new(id.to_string());
+        let started = Instant::now();
+        let r = host.http_request(format!("http://{addr}/slow"), get());
+        let took = started.elapsed();
+        canceller.join().unwrap();
+        assert_eq!(r.unwrap_err(), cancel::CANCELLED);
+        // Returned soon after the cancel, not after the 30 s request timeout.
+        assert!(took >= Duration::from_millis(300) && took < Duration::from_secs(2), "{took:?}");
+        cancel::end(id);
+    }
+
+    #[test]
+    fn requests_are_unaffected_without_a_cancel() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = conn.read(&mut buf);
+            let _ = conn.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+        });
+        let id = "host-no-cancel";
+        assert!(cancel::begin(id, cancel::ticket(id)));
+        let mut host = ContentImporterHostImpl::new(id.to_string());
+        let r = host.http_request(format!("http://{addr}/ok"), get()).unwrap();
+        assert_eq!(r.status, 200);
+        assert_eq!(r.body, b"ok");
+        cancel::end(id);
     }
 }

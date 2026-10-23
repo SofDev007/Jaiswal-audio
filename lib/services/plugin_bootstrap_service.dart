@@ -15,6 +15,7 @@ import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/src/rust/api/plugin/plugin_info.dart';
 import 'package:Bloomee/src/rust/api/plugin/types.dart';
 import 'package:Bloomee/utils/country_info.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -160,6 +161,7 @@ class PluginBootstrapService {
     final available = await _safeGetAvailable(pluginService);
     final installedIds = available.map((p) => p.manifest.id).toSet();
     final bootstrapTargetIds = <String>{};
+    final countrySkipped = <String>{};
     final totalPlugins =
         installRepos.fold<int>(0, (sum, repo) => sum + repo.plugins.length);
     var processedPlugins = 0;
@@ -194,30 +196,14 @@ class PluginBootstrapService {
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
           try {
-            final bytes = await _downloadBytes(plugin.downloadUrl);
-            final tmpDir = await getTemporaryDirectory();
-            final file = File('${tmpDir.path}/${plugin.assetName}');
-            await file.writeAsBytes(bytes, flush: true);
-
-            final result = await pluginService.installPlugin(
-              packedFilePath: file.path,
-              shouldLoad: true,
-              policyCountryCode: countryCode,
-            );
-
-            final ok = result.status == PluginInstallStatus.installed ||
-                result.status == PluginInstallStatus.updated ||
-                result.status == PluginInstallStatus.alreadyInstalled;
-
-            if (ok) {
+            lastError = await _installOnce(plugin, countryCode, pluginService);
+            if (lastError == null) {
               installed = true;
               installedIds.add(plugin.id);
-            } else {
-              lastError =
-                  'Install returned status: ${result.status.name}${result.error != null ? ' — ${result.error}' : ''}';
             }
           } on PluginCountryRestrictedException {
             skippedByCountry = true;
+            countrySkipped.add(plugin.id);
             break;
           } catch (e) {
             lastError = e.toString();
@@ -239,6 +225,9 @@ class PluginBootstrapService {
                 (totalPlugins == 0 ? 1 : totalPlugins))));
       }
     }
+
+    await settingsDao.putSettingStr(SettingKeys.pluginsSkippedByCountry,
+        jsonEncode(countrySkipped.toList()));
 
     // Persist bootstrap-managed plugin IDs for auto-load regardless of
     // non-fatal install errors, so successful installs remain loaded on
@@ -537,6 +526,90 @@ class PluginBootstrapService {
     }
 
     throw Exception('Failed to update ${plugin.id}: $lastError');
+  }
+
+  /// Downloads and installs one catalogue plugin. Returns null on success,
+  /// else the reason; throws [PluginCountryRestrictedException] when the
+  /// plugin is not allowed in [countryCode].
+  static Future<String?> _installOnce(RemotePluginModel plugin,
+      String countryCode, PluginService pluginService) async {
+    final bytes = await _downloadBytes(plugin.downloadUrl);
+    final tmpDir = await getTemporaryDirectory();
+    final file = File('${tmpDir.path}/${plugin.assetName}');
+    await file.writeAsBytes(bytes, flush: true);
+    final result = await pluginService.installPlugin(
+      packedFilePath: file.path,
+      shouldLoad: true,
+      policyCountryCode: countryCode,
+    );
+    final ok = result.status == PluginInstallStatus.installed ||
+        result.status == PluginInstallStatus.updated ||
+        result.status == PluginInstallStatus.alreadyInstalled;
+    return ok
+        ? null
+        : 'Install returned status: ${result.status.name}${result.error != null ? ' — ${result.error}' : ''}';
+  }
+
+  /// After a country change: installs the catalogue plugins an earlier
+  /// country blocked (JioSaavn is India-only). Installs made before this list
+  /// was kept have no record, so they retry every catalogue plugin that is
+  /// not installed, once. Returns how many plugins were installed.
+  static Future<int> installNewlyAllowed({
+    required PluginService pluginService,
+    required PluginRepositoryService repositoryService,
+    required SettingsDAO settingsDao,
+  }) async {
+    final raw =
+        await settingsDao.getSettingStr(SettingKeys.pluginsSkippedByCountry);
+    final Set<String>? candidates =
+        raw == null ? null : (jsonDecode(raw) as List).cast<String>().toSet();
+    if (candidates != null && candidates.isEmpty) return 0;
+
+    final countryCode = await _resolveBootstrapCountryCode(settingsDao);
+    // debugPrint reaches logcat in release builds; log() does not.
+    debugPrint('Newly allowed: country=$countryCode candidates=$candidates');
+    final installedIds = (await _safeGetAvailable(pluginService))
+        .map((p) => p.manifest.id)
+        .toSet();
+    final stillBlocked = <String>{};
+    final added = <String>{};
+    try {
+      final entries = await _fetchHostedEntries();
+      for (final entry in entries.where((e) => e.install && e.url.isNotEmpty)) {
+        final repo = await repositoryService.fetchRepository(entry.url);
+        for (final plugin in repo.plugins) {
+          if (installedIds.contains(plugin.id) ||
+              (candidates != null && !candidates.contains(plugin.id)) ||
+              !plugin.isAllowedInCountry(countryCode)) {
+            continue;
+          }
+          try {
+            final error =
+                await _installOnce(plugin, countryCode, pluginService);
+            if (error == null) {
+              added.add(plugin.id);
+            } else {
+              debugPrint('Newly allowed: ${plugin.id}: $error');
+            }
+          } on PluginCountryRestrictedException {
+            stillBlocked.add(plugin.id);
+          } catch (e) {
+            // One failed download or install must not stop the others.
+            debugPrint('Newly allowed: ${plugin.id} failed: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Newly allowed: catalogue failed: $e');
+      return added.length;
+    }
+    if (added.isNotEmpty) {
+      await PluginLoadStateService(settingsDao).addAutoLoadPluginIds(added);
+    }
+    await settingsDao.putSettingStr(
+        SettingKeys.pluginsSkippedByCountry, jsonEncode(stillBlocked.toList()));
+    debugPrint('Newly allowed: installed $added for $countryCode');
+    return added.length;
   }
 
   static bool _isRemoteManifestCompatible(RemotePluginModel plugin) {

@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get onboardingTitle => 'Welcome to Bloomee';
+  String get onboardingTitle => 'Welcome to JARX';
 
   @override
   String get onboardingSubtitle => 'Let\'s set up your language and region.';
@@ -1010,7 +1010,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Save lyrics automatically when a song plays.';
 
   @override
-  String get storageResetApp => 'Reset Bloomee App';
+  String get storageResetApp => 'Reset JARX App';
 
   @override
   String get storageResetAppSubtitle =>
@@ -1021,7 +1021,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageResetConfirmMessage =>
-      'Are you sure you want to reset Bloomee? This will delete all your data and cannot be undone.';
+      'Are you sure you want to reset JARX? This will delete all your data and cannot be undone.';
 
   @override
   String get storageResetButton => 'Reset';
@@ -1034,7 +1034,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageLocationAndroid =>
-      'Backups are stored in:\n\n1. Downloads directory\n2. Android/data/ls.bloomee.musicplayer/data\n\nCopy the file from either location.';
+      'Backups are stored in:\n\n1. Downloads directory\n2. Android/data/com.jaiswal.jarx/data\n\nCopy the file from either location.';
 
   @override
   String get storageLocationOther =>
@@ -1130,7 +1130,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateCheckSubtitle =>
-      'See if a newer version of Bloomee is available.';
+      'See if a newer version of JARX is available.';
 
   @override
   String get updateAutoNotify => 'Auto Update Notify';
@@ -1143,7 +1143,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateCheckTitle => 'Check for Updates';
 
   @override
-  String get updateUpToDate => 'Bloomee🌸 is up-to-date!!!';
+  String get updateUpToDate => 'JARX is up-to-date!!!';
 
   @override
   String get updateViewPreRelease => 'View Latest Pre-Release';
@@ -1155,7 +1155,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateNewVersionAvailable =>
-      'New Version of Bloomee🌸 is now available!!';
+      'New Version of JARX is now available!!';
 
   @override
   String updateVersion(String ver, String build) {
@@ -1459,7 +1459,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get albumViewLoadFailed => 'Failed to load album';
 
   @override
-  String get aboutCraftingSubtitle => 'Crafting symphonies in code.';
+  String get aboutCraftingSubtitle => 'Jaiswal Audio Response eXperience';
 
   @override
   String get aboutFollowGitHub => 'Follow him on GitHub';
@@ -1472,13 +1472,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutTipQuote =>
-      'Enjoying Bloomee? A small tip keeps it blooming. 🌸';
+      'Enjoying JARX? A small tip keeps it blooming. 🌸';
 
   @override
   String get aboutTipButton => 'I\'ll help';
 
   @override
-  String get aboutTipDesc => 'I want Bloomee to keep improving.';
+  String get aboutTipDesc => 'I want JARX to keep improving.';
 
   @override
   String get aboutGitHub => 'GitHub';
@@ -1539,13 +1539,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Metadata refresh is unavailable for this source';
 
   @override
-  String get songInfoSearchTitle => 'Search for this song in Bloomee';
+  String get songInfoSearchTitle => 'Search for this song in JARX';
 
   @override
-  String get songInfoSearchArtist => 'Search for this artist in Bloomee';
+  String get songInfoSearchArtist => 'Search for this artist in JARX';
 
   @override
-  String get songInfoSearchAlbum => 'Search for this album in Bloomee';
+  String get songInfoSearchAlbum => 'Search for this album in JARX';
 
   @override
   String get eqTitle => 'Equalizer';
@@ -1625,7 +1625,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No content-importer plugins loaded.\nInstall an importer plugin to import playlists from external services.';
 
   @override
-  String get importBloomeeFiles => 'Import Bloomee Files';
+  String get importBloomeeFiles => 'Import JARX files';
 
   @override
   String get importM3UFiles => 'Import M3U Playlist';
@@ -1644,7 +1644,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importNoteMessage =>
-      'You can only import files created by Bloomee.\nIf your file is from another source, it will not work. Continue anyway?';
+      'You can only import files created by JARX.\nIf your file is from another source, it will not work. Continue anyway?';
 
   @override
   String get importTitle => 'Import';
@@ -2103,7 +2103,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateAvailableBody(String ver, String build) {
-    return 'New Version of Bloomee🌸 is now available!\n\nVersion: $ver+$build';
+    return 'New Version of JARX is now available!\n\nVersion: $ver+$build';
   }
 
   @override
@@ -2122,7 +2122,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get pluginBootstrapTitle => 'Setting up Bloomee';
+  String get pluginBootstrapTitle => 'Setting up JARX';
 
   @override
   String pluginBootstrapProgress(int percent) {
@@ -2137,8 +2137,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pluginBootstrapErrorBody =>
-      'Some plugins could not be installed. You can still use Bloomee — plugins will be retried on next launch.';
+      'Some plugins could not be installed. You can still use JARX — plugins will be retried on next launch.';
 
   @override
   String get pluginBootstrapContinue => 'Continue Anyway';
+
+  @override
+  String get homeGreetingMorning => 'Good morning';
+
+  @override
+  String get homeGreetingAfternoon => 'Good afternoon';
+
+  @override
+  String get homeGreetingEvening => 'Good evening';
+
+  @override
+  String get homeGreetingSubtitle => 'Pick up where you left off';
+
+  @override
+  String get homeContinueListening => 'Continue listening';
+
+  @override
+  String get homeForYou => 'For you';
+
+  @override
+  String get homeForYouHint =>
+      'Picked on this phone from what you play and skip';
+
+  @override
+  String get homeSeeAll => 'See all';
+
+  @override
+  String get homeJumpBackIn => 'Jump back in';
+
+  @override
+  String get homeUpNext => 'Up next for you';
+
+  @override
+  String get homePlayAll => 'Play all';
+
+  @override
+  String get homeYourPlaylists => 'Your playlists';
+
+  @override
+  String get homeRecentlyPlayed => 'Recently played';
+
+  @override
+  String get homeAuto => 'Auto';
+
+  @override
+  String get homeLayoutSetting => 'Home layout';
+
+  @override
+  String get homeLayoutChoose => 'Choose your Home';
+
+  @override
+  String get homeLayoutChooseHint => 'Pick the layout that suits you best.';
+
+  @override
+  String get homeLayoutForYou => 'For you';
+
+  @override
+  String get homeLayoutForYouDesc =>
+      'Greeting, Continue listening and picks for you';
+
+  @override
+  String get homeLayoutMixes => 'Mixes';
+
+  @override
+  String get homeLayoutMixesDesc => 'Playlist grid, moods and today\'s mix';
+
+  @override
+  String get homeLayoutPulse => 'Pulse';
+
+  @override
+  String get homeLayoutPulseDesc => 'Big Jump back in card and an Up next list';
+
+  @override
+  String get homeLayoutUse => 'Use this layout';
+
+  @override
+  String get homeLayoutDoneTitle => 'Your Home is ready';
+
+  @override
+  String homeLayoutChangeLater(String path) {
+    return 'You can change this later in Settings › $path.';
+  }
+
+  @override
+  String get homeLayoutGotIt => 'Got it';
+
+  @override
+  String get homeTodaysMix => 'Today\'s mix';
+
+  @override
+  String homeMixSummary(String titles, int count) {
+    return '$titles and $count more';
+  }
+
+  @override
+  String get homeMoodChill => 'Chill';
+
+  @override
+  String get homeMoodFocus => 'Focus';
+
+  @override
+  String get homeMoodRomance => 'Romance';
+
+  @override
+  String get homeMoodWorkout => 'Workout';
+
+  @override
+  String get homeMoodParty => 'Party';
 }

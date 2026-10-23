@@ -2,6 +2,7 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -102,7 +103,7 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen> {
         _errorByPlugin[plugin.id] = e.toString();
       });
       SnackbarService.showMessage(
-        l10n.pluginRepositoryDownloadFailed(plugin.name),
+        l10n.pluginRepositoryDownloadFailed(pluginDisplayName(plugin.id, plugin.name)),
       );
     }
   }
@@ -307,7 +308,7 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          remotePlugin.name,
+                          pluginDisplayName(remotePlugin.id, remotePlugin.name),
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.95),
                               fontSize: 15,

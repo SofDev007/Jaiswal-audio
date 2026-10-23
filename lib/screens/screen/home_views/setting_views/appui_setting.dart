@@ -6,6 +6,8 @@ import 'package:Bloomee/plugins/blocs/chart/chart_state.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 
 import 'package:Bloomee/repository/LastFM/lastfmapi.dart';
+import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
+import 'package:Bloomee/screens/screen/home_views/home_rows.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/setting_shared_widgets.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +84,7 @@ class _AppUISettingsState extends State<AppUISettings> {
       ),
       body: BlocBuilder<SettingsCubit, SettingsState>(
         buildWhen: (prev, curr) =>
+            prev.homeLayout != curr.homeLayout ||
             prev.autoSlideCharts != curr.autoSlideCharts ||
             prev.lFMPicks != curr.lFMPicks ||
             prev.chartMap != curr.chartMap,
@@ -93,6 +96,17 @@ class _AppUISettingsState extends State<AppUISettings> {
               SettingSectionHeader(label: l10n.settingsHomeScreen),
               SettingCard(
                 children: [
+                  SettingNavTile(
+                    icon: MingCute.layout_4_line,
+                    title: l10n.homeLayoutSetting,
+                    subtitle: switch (homeLayoutOf(state.homeLayout)) {
+                      HomeLayout.forYou => l10n.homeLayoutForYou,
+                      HomeLayout.mixes => l10n.homeLayoutMixes,
+                      HomeLayout.pulse => l10n.homeLayoutPulse,
+                    },
+                    onTap: () => showHomeLayoutPicker(context),
+                  ),
+                  const SettingDivider(),
                   SettingToggleTile(
                     icon: MingCute.play_circle_line,
                     title: l10n.appuiAutoSlideCharts,

@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/constants/cache_keys.dart';
+import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/repository/bloomee/settings_repository.dart';
 import 'package:Bloomee/services/player/stream_quality_selector.dart';
+import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/services/plugin_bootstrap_service.dart';
 import 'package:Bloomee/utils/country_info.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -169,6 +173,12 @@ class SettingsCubit extends Cubit<SettingsState> {
             defaultValue: ''),
         SettingKeys.suggestionPluginId,
       ),
+      // [27] homeLayout
+      _readSetting(
+        () => _settingsRepo.getSettingStr(SettingKeys.homeLayout,
+            defaultValue: ''),
+        SettingKeys.homeLayout,
+      ),
     ]);
 
     // Normalize stream quality labels.
@@ -276,6 +286,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       eqPreset: (results[20] as String?) ?? 'Flat',
       eqSource: eqSource,
       homePluginId: (results[22] as String?) ?? '',
+      homeLayout: (results[27] as String?) ?? '',
       searchPluginId: (results[23] as String?) ?? '',
       resolverPriority: resolverPriority,
       lyricsPriority: lyricsPriority,
@@ -361,9 +372,16 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(state.copyWith(autoResolveUnavailableTracks: v));
   }
 
-  void setCountryCode(String v) {
-    _settingsRepo.putSettingStr(SettingKeys.countryCode, v);
+  Future<void> setCountryCode(String v) async {
     emit(state.copyWith(countryCode: v));
+    await _settingsRepo.putSettingStr(SettingKeys.countryCode, v);
+    // Some plugins are country-only (JioSaavn: India); install the ones the
+    // previous country blocked.
+    unawaited(PluginBootstrapService.installNewlyAllowed(
+      pluginService: ServiceLocator.pluginService,
+      repositoryService: ServiceLocator.pluginRepositoryService,
+      settingsDao: SettingsDAO(DBProvider.db),
+    ));
   }
 
   void setLanguageCode(String v) {
@@ -467,6 +485,11 @@ class SettingsCubit extends Cubit<SettingsState> {
   void setHomePluginId(String id) {
     _settingsRepo.putSettingStr(SettingKeys.homePluginId, id);
     emit(state.copyWith(homePluginId: id));
+  }
+
+  void setHomeLayout(String layout) {
+    _settingsRepo.putSettingStr(SettingKeys.homeLayout, layout);
+    emit(state.copyWith(homeLayout: layout));
   }
 
   void setSearchPluginId(String id) {

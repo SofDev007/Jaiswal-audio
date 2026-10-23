@@ -111,7 +111,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Bloomee'**
+  /// **'Welcome to JARX'**
   String get onboardingTitle;
 
   /// No description provided for @onboardingSubtitle.
@@ -1869,7 +1869,7 @@ abstract class AppLocalizations {
   /// No description provided for @storageResetApp.
   ///
   /// In en, this message translates to:
-  /// **'Reset Bloomee App'**
+  /// **'Reset JARX App'**
   String get storageResetApp;
 
   /// No description provided for @storageResetAppSubtitle.
@@ -1887,7 +1887,7 @@ abstract class AppLocalizations {
   /// No description provided for @storageResetConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to reset Bloomee? This will delete all your data and cannot be undone.'**
+  /// **'Are you sure you want to reset JARX? This will delete all your data and cannot be undone.'**
   String get storageResetConfirmMessage;
 
   /// No description provided for @storageResetButton.
@@ -1911,7 +1911,7 @@ abstract class AppLocalizations {
   /// No description provided for @storageLocationAndroid.
   ///
   /// In en, this message translates to:
-  /// **'Backups are stored in:\n\n1. Downloads directory\n2. Android/data/ls.bloomee.musicplayer/data\n\nCopy the file from either location.'**
+  /// **'Backups are stored in:\n\n1. Downloads directory\n2. Android/data/com.jaiswal.jarx/data\n\nCopy the file from either location.'**
   String get storageLocationAndroid;
 
   /// No description provided for @storageLocationOther.
@@ -2079,7 +2079,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateCheckSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'See if a newer version of Bloomee is available.'**
+  /// **'See if a newer version of JARX is available.'**
   String get updateCheckSubtitle;
 
   /// No description provided for @updateAutoNotify.
@@ -2103,7 +2103,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateUpToDate.
   ///
   /// In en, this message translates to:
-  /// **'Bloomee🌸 is up-to-date!!!'**
+  /// **'JARX is up-to-date!!!'**
   String get updateUpToDate;
 
   /// No description provided for @updateViewPreRelease.
@@ -2121,7 +2121,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateNewVersionAvailable.
   ///
   /// In en, this message translates to:
-  /// **'New Version of Bloomee🌸 is now available!!'**
+  /// **'New Version of JARX is now available!!'**
   String get updateNewVersionAvailable;
 
   /// No description provided for @updateVersion.
@@ -2655,7 +2655,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutCraftingSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Crafting symphonies in code.'**
+  /// **'Jaiswal Audio Response eXperience'**
   String get aboutCraftingSubtitle;
 
   /// No description provided for @aboutFollowGitHub.
@@ -2679,7 +2679,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutTipQuote.
   ///
   /// In en, this message translates to:
-  /// **'Enjoying Bloomee? A small tip keeps it blooming. 🌸'**
+  /// **'Enjoying JARX? A small tip keeps it blooming. 🌸'**
   String get aboutTipQuote;
 
   /// No description provided for @aboutTipButton.
@@ -2691,7 +2691,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutTipDesc.
   ///
   /// In en, this message translates to:
-  /// **'I want Bloomee to keep improving.'**
+  /// **'I want JARX to keep improving.'**
   String get aboutTipDesc;
 
   /// No description provided for @aboutGitHub.
@@ -2811,19 +2811,19 @@ abstract class AppLocalizations {
   /// No description provided for @songInfoSearchTitle.
   ///
   /// In en, this message translates to:
-  /// **'Search for this song in Bloomee'**
+  /// **'Search for this song in JARX'**
   String get songInfoSearchTitle;
 
   /// No description provided for @songInfoSearchArtist.
   ///
   /// In en, this message translates to:
-  /// **'Search for this artist in Bloomee'**
+  /// **'Search for this artist in JARX'**
   String get songInfoSearchArtist;
 
   /// No description provided for @songInfoSearchAlbum.
   ///
   /// In en, this message translates to:
-  /// **'Search for this album in Bloomee'**
+  /// **'Search for this album in JARX'**
   String get songInfoSearchAlbum;
 
   /// No description provided for @eqTitle.
@@ -2973,7 +2973,7 @@ abstract class AppLocalizations {
   /// No description provided for @importBloomeeFiles.
   ///
   /// In en, this message translates to:
-  /// **'Import Bloomee Files'**
+  /// **'Import JARX files'**
   String get importBloomeeFiles;
 
   /// No description provided for @importM3UFiles.
@@ -3009,7 +3009,7 @@ abstract class AppLocalizations {
   /// No description provided for @importNoteMessage.
   ///
   /// In en, this message translates to:
-  /// **'You can only import files created by Bloomee.\nIf your file is from another source, it will not work. Continue anyway?'**
+  /// **'You can only import files created by JARX.\nIf your file is from another source, it will not work. Continue anyway?'**
   String get importNoteMessage;
 
   /// No description provided for @importTitle.
@@ -3735,7 +3735,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateAvailableBody.
   ///
   /// In en, this message translates to:
-  /// **'New Version of Bloomee🌸 is now available!\n\nVersion: {ver}+{build}'**
+  /// **'New Version of JARX is now available!\n\nVersion: {ver}+{build}'**
   String updateAvailableBody(String ver, String build);
 
   /// No description provided for @pluginSnackbarInstalled.
@@ -3759,7 +3759,7 @@ abstract class AppLocalizations {
   /// No description provided for @pluginBootstrapTitle.
   ///
   /// In en, this message translates to:
-  /// **'Setting up Bloomee'**
+  /// **'Setting up JARX'**
   String get pluginBootstrapTitle;
 
   /// No description provided for @pluginBootstrapProgress.
@@ -3783,7 +3783,7 @@ abstract class AppLocalizations {
   /// No description provided for @pluginBootstrapErrorBody.
   ///
   /// In en, this message translates to:
-  /// **'Some plugins could not be installed. You can still use Bloomee — plugins will be retried on next launch.'**
+  /// **'Some plugins could not be installed. You can still use JARX — plugins will be retried on next launch.'**
   String get pluginBootstrapErrorBody;
 
   /// No description provided for @pluginBootstrapContinue.
@@ -3791,6 +3791,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue Anyway'**
   String get pluginBootstrapContinue;
+
+  /// No description provided for @homeGreetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get homeGreetingMorning;
+
+  /// No description provided for @homeGreetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get homeGreetingAfternoon;
+
+  /// No description provided for @homeGreetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get homeGreetingEvening;
+
+  /// No description provided for @homeGreetingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick up where you left off'**
+  String get homeGreetingSubtitle;
+
+  /// No description provided for @homeContinueListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue listening'**
+  String get homeContinueListening;
+
+  /// No description provided for @homeForYou.
+  ///
+  /// In en, this message translates to:
+  /// **'For you'**
+  String get homeForYou;
+
+  /// No description provided for @homeForYouHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Picked on this phone from what you play and skip'**
+  String get homeForYouHint;
+
+  /// No description provided for @homeSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get homeSeeAll;
+
+  /// No description provided for @homeJumpBackIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump back in'**
+  String get homeJumpBackIn;
+
+  /// No description provided for @homeUpNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Up next for you'**
+  String get homeUpNext;
+
+  /// No description provided for @homePlayAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Play all'**
+  String get homePlayAll;
+
+  /// No description provided for @homeYourPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Your playlists'**
+  String get homeYourPlaylists;
+
+  /// No description provided for @homeRecentlyPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently played'**
+  String get homeRecentlyPlayed;
+
+  /// No description provided for @homeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get homeAuto;
+
+  /// No description provided for @homeLayoutSetting.
+  ///
+  /// In en, this message translates to:
+  /// **'Home layout'**
+  String get homeLayoutSetting;
+
+  /// No description provided for @homeLayoutChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your Home'**
+  String get homeLayoutChoose;
+
+  /// No description provided for @homeLayoutChooseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the layout that suits you best.'**
+  String get homeLayoutChooseHint;
+
+  /// No description provided for @homeLayoutForYou.
+  ///
+  /// In en, this message translates to:
+  /// **'For you'**
+  String get homeLayoutForYou;
+
+  /// No description provided for @homeLayoutForYouDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Greeting, Continue listening and picks for you'**
+  String get homeLayoutForYouDesc;
+
+  /// No description provided for @homeLayoutMixes.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixes'**
+  String get homeLayoutMixes;
+
+  /// No description provided for @homeLayoutMixesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist grid, moods and today\'s mix'**
+  String get homeLayoutMixesDesc;
+
+  /// No description provided for @homeLayoutPulse.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulse'**
+  String get homeLayoutPulse;
+
+  /// No description provided for @homeLayoutPulseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Big Jump back in card and an Up next list'**
+  String get homeLayoutPulseDesc;
+
+  /// No description provided for @homeLayoutUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this layout'**
+  String get homeLayoutUse;
+
+  /// No description provided for @homeLayoutDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Home is ready'**
+  String get homeLayoutDoneTitle;
+
+  /// No description provided for @homeLayoutChangeLater.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change this later in Settings › {path}.'**
+  String homeLayoutChangeLater(String path);
+
+  /// No description provided for @homeLayoutGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get homeLayoutGotIt;
+
+  /// No description provided for @homeTodaysMix.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s mix'**
+  String get homeTodaysMix;
+
+  /// No description provided for @homeMixSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{titles} and {count} more'**
+  String homeMixSummary(String titles, int count);
+
+  /// No description provided for @homeMoodChill.
+  ///
+  /// In en, this message translates to:
+  /// **'Chill'**
+  String get homeMoodChill;
+
+  /// No description provided for @homeMoodFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus'**
+  String get homeMoodFocus;
+
+  /// No description provided for @homeMoodRomance.
+  ///
+  /// In en, this message translates to:
+  /// **'Romance'**
+  String get homeMoodRomance;
+
+  /// No description provided for @homeMoodWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout'**
+  String get homeMoodWorkout;
+
+  /// No description provided for @homeMoodParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Party'**
+  String get homeMoodParty;
 }
 
 class _AppLocalizationsDelegate

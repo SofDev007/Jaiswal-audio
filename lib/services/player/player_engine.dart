@@ -1,8 +1,11 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:media_kit/media_kit.dart';
 import 'package:rxdart/rxdart.dart';
+
+import 'output_route.dart';
 
 enum EngineState { idle, loading, buffering, ready, completed, error }
 
@@ -154,10 +157,14 @@ class PlayerEngine {
   PlayerEngine() {
     _playerA = Player(
         configuration: const PlayerConfiguration(
-            title: 'BloomeeTunes', bufferSize: 16 * 1024 * 1024));
+            title: 'JARX',
+            bufferSize: 16 * 1024 * 1024,
+            logLevel: MPVLogLevel.warn));
     _playerB = Player(
         configuration: const PlayerConfiguration(
-            title: 'BloomeeTunes', bufferSize: 16 * 1024 * 1024));
+            title: 'JARX',
+            bufferSize: 16 * 1024 * 1024,
+            logLevel: MPVLogLevel.warn));
 
     _configureNativePlayer(_playerA);
     _configureNativePlayer(_playerB);
@@ -174,11 +181,17 @@ class PlayerEngine {
       native.setProperty('cache', 'yes');
       native.setProperty('demuxer-max-bytes', '134217728'); // 128 MB
       native.setProperty('network-timeout', '15');
+      // ponytail: temporary EQ diagnostic, mpv warnings to logcat; remove
+      // once the equalizer investigation is done.
+      player.stream.log
+          .listen((l) => debugPrint('mpv[${l.level}] ${l.prefix}: ${l.text}'));
     }
   }
 
   List<StreamSubscription> _buildSubscriptions() {
     return [
+      // Headphones or Bluetooth connected or removed: switch the EQ filter.
+      OutputRoute.phoneSpeaker.distinct().skip(1).listen((_) => _applyEqualizer()),
       _activePlayerSubject.switchMap((p) => p.stream.playing).listen((playing) {
         _playingSubject.add(playing);
         _deriveState();
@@ -660,6 +673,9 @@ class PlayerEngine {
   List<EqualizerBand> get equalizerBands => List.unmodifiable(_eqBands);
   bool get equalizerEnabled => _eqEnabled;
 
+  /// The EQ is on and the sound is not coming from the phone's own speaker.
+  bool get _eqActive => _eqEnabled && !OutputRoute.phoneSpeaker.value;
+
   Future<void> setEqualizerEnabled(bool enabled) async {
     _eqEnabled = enabled;
     _eqEnabledSubject.add(enabled);
@@ -728,7 +744,7 @@ class PlayerEngine {
   Future<void> _applyEqualizer() async {
     if (_disposed) return;
     try {
-      final filter = _eqEnabled ? _buildEqualizerFilter() : '';
+      final filter = _eqActive ? _buildEqualizerFilter() : '';
       log('Applying EQ filter: ${filter.isEmpty ? '<off>' : filter}',
           name: 'PlayerEngine');
 
@@ -751,13 +767,17 @@ class PlayerEngine {
   Future<void> _applyEqualizerToPlayer(Player player) async {
     if (_disposed) return;
     try {
-      final filter = _eqEnabled ? _buildEqualizerFilter() : '';
+      final filter = _eqActive ? _buildEqualizerFilter() : '';
       final platform = player.platform;
       if (platform is NativePlayer) {
         await platform.setProperty('af', filter);
+        // debugPrint reaches logcat in release builds; log() does not. An
+        // empty read-back for a non-empty filter means mpv rejected it.
+        debugPrint(
+            'EQ af set="$filter" now="${await platform.getProperty('af')}"');
       }
     } catch (e) {
-      log('Equalizer apply to player error: $e', name: 'PlayerEngine');
+      debugPrint('EQ af apply error: $e');
     }
   }
 

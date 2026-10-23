@@ -3,4 +3,5 @@
     <!-- JARX ink: the launch window and the first frame of the intro animation
          share this colour so the hand-off from the system splash is seamless. -->
     <color name="jarx_ink">#0E0E10</color>
+	<color name="ic_launcher_background">#0E0E10</color>
 </resources>

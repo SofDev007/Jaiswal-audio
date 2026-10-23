@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Manages the visibility state of the full-screen player overlay.
@@ -21,6 +22,20 @@ class PlayerOverlayCubit extends Cubit<bool> {
   /// Returns true if the panel was collapsed, false otherwise
   bool collapseUpNextPanel() {
     return _collapseUpNextPanel?.call() ?? false;
+  }
+
+  /// Back press while the player is open: close a screen opened from the
+  /// player (those sit on [rootNavigator]), else collapse Up Next, else hide
+  /// the player. The page under the player is never popped. Returns false
+  /// when the player is closed, so the caller navigates pages instead.
+  bool handleBack(NavigatorState rootNavigator) {
+    if (!state) return false;
+    if (rootNavigator.canPop()) {
+      rootNavigator.pop();
+    } else if (!collapseUpNextPanel()) {
+      hidePlayer();
+    }
+    return true;
   }
 
   void showPlayer() => emit(true);

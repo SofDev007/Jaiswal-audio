@@ -1,5 +1,4 @@
 import 'dart:developer';
-import 'package:Bloomee/blocs/explore/cubit/explore_cubits.dart';
 import 'package:Bloomee/blocs/internet_connectivity/cubit/connectivity_cubit.dart';
 import 'package:Bloomee/blocs/lastdotfm/lastdotfm_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
@@ -13,12 +12,12 @@ import 'package:Bloomee/plugins/blocs/content/content_event.dart';
 import 'package:Bloomee/plugins/blocs/content/content_state.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
-import 'package:Bloomee/screens/screen/home_views/recents_view.dart';
-import 'package:Bloomee/screens/screen/home_views/setting_views/about.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/sign_board_widget.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
+import 'package:Bloomee/screens/screen/home_views/home_rows.dart';
 import 'package:Bloomee/screens/screen/home_views/notification_view.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_view.dart';
 import 'package:Bloomee/screens/screen/home_views/timer_view.dart';
@@ -26,7 +25,6 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'chart/carousal_widget.dart';
 import '../widgets/horizontal_card_view.dart';
 import '../widgets/tab_list_widget.dart';
 import 'package:badges/badges.dart' as badges;
@@ -48,6 +46,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.initState();
     _homeContentBloc = ContentBloc(pluginService: ServiceLocator.pluginService);
     _tryLoadHomeSections();
+    _maybeAskLayout();
+  }
+
+  bool _layoutAsked = false;
+
+  /// First run: once settings are loaded and no Home layout is saved yet,
+  /// ask the user to pick one.
+  void _maybeAskLayout() {
+    final settings = context.read<SettingsCubit>().state;
+    if (_layoutAsked || !settings.settingsReady || settings.homeLayout != '') {
+      return;
+    }
+    _layoutAsked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showHomeLayoutPicker(context, firstRun: true);
+    });
   }
 
   /// Only loads home sections when both settings are ready and plugins are loaded.
@@ -135,6 +149,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             listener: (context, state) {
               _homeContentBloc.add(const ClearHomeSections());
               _tryLoadHomeSections();
+              _maybeAskLayout();
             },
           ),
           BlocListener<PluginBloc, PluginState>(
@@ -181,66 +196,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 SliverList(
                   delegate: SliverChildListDelegate(
                     [
-                      const CaraouselWidget(),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 15.0),
-                        child: SizedBox(
-                          child: BlocBuilder<RecentlyCubit, RecentlyCubitState>(
-                            builder: (context, state) {
-                              if (state is RecentlyCubitInitial) {
-                                return const Center(
-                                  child: SizedBox(
-                                    height: 60,
-                                    width: 60,
-                                    child: JarxLoadingIndicator(
-                                      color: Default_Theme.accentColor2,
-                                    ),
-                                  ),
-                                );
-                              }
-                              if (state.tracks.isNotEmpty) {
-                                return InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const HistoryView(),
-                                      ),
-                                    );
-                                  },
-                                  child: TabSongListWidget(
-                                    list: state.tracks.map((e) {
-                                      return SongCardWidget(
-                                        song: e,
-                                        onTap: () {
-                                          context
-                                              .read<BloomeePlayerCubit>()
-                                              .bloomeePlayer
-                                              .loadPlaylist(
-                                                Playlist(
-                                                  tracks: state.tracks,
-                                                  title: 'Recently',
-                                                ),
-                                                idx: state.tracks.indexOf(e),
-                                                doPlay: true,
-                                              );
-                                        },
-                                        onOptionsTap: () => showMoreBottomSheet(
-                                          context,
-                                          e,
-                                          showSinglePlay: true,
-                                        ),
-                                      );
-                                    }).toList(),
-                                    category: AppLocalizations.of(context)!
-                                        .exploreRecently,
-                                    columnSize: 3,
-                                  ),
-                                );
-                              }
-                              return const SizedBox();
-                            },
+                      BlocBuilder<SettingsCubit, SettingsState>(
+                        buildWhen: (a, b) => a.homeLayout != b.homeLayout,
+                        builder: (context, settings) =>
+                            BlocBuilder<ContentBloc, ContentState>(
+                          bloc: _homeContentBloc,
+                          buildWhen: (a, b) =>
+                              a.homeSectionsStatus != b.homeSectionsStatus,
+                          builder: (context, state) => HomeTop(
+                            layout: homeLayoutOf(settings.homeLayout),
+                            // For you starts after the Home sections, so it
+                            // does not queue ahead of them (or a search) on
+                            // the same plugin.
+                            homeReady: state.homeSectionsStatus ==
+                                    DetailStatus.loaded ||
+                                state.homeSectionsStatus == DetailStatus.error,
                           ),
                         ),
                       ),
@@ -458,28 +428,23 @@ class CustomDiscoverBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverAppBar(
-      floating: true,
-      surfaceTintColor: Default_Theme.themeColor,
-      backgroundColor: Default_Theme.themeColor,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.exploreDiscover,
-            style: Default_Theme.primaryTextStyle.merge(
-              const TextStyle(
-                fontSize: 34,
-                color: Default_Theme.primaryColor1,
-              ),
-            ),
-          ),
-          const Spacer(),
-          const NotificationIcon(),
-          const SiteIcon(),
-          const TimerIcon(),
-          const SettingsIcon(),
-        ],
+    return BlocBuilder<SettingsCubit, SettingsState>(
+      buildWhen: (a, b) => a.homeLayout != b.homeLayout,
+      builder: (context, state) => SliverAppBar(
+        floating: true,
+        surfaceTintColor: Default_Theme.themeColor,
+        backgroundColor: Default_Theme.themeColor,
+        title: Row(
+          children: [
+            Expanded(
+                child: homeLayoutOf(state.homeLayout) == HomeLayout.forYou
+                    ? const HomeGreeting()
+                    : const HomeTitle()),
+            const NotificationIcon(),
+            const TimerIcon(),
+            const SettingsIcon(),
+          ],
+        ),
       ),
     );
   }
@@ -594,29 +559,6 @@ class SettingsIcon extends StatelessWidget {
         MingCute.settings_3_line,
         color: Default_Theme.primaryColor1,
         size: 30.0,
-      ),
-    );
-  }
-}
-
-class SiteIcon extends StatelessWidget {
-  const SiteIcon({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      padding: const EdgeInsets.all(5),
-      constraints: const BoxConstraints(),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const About()),
-        );
-      },
-      icon: const Icon(
-        MingCute.flower_4_fill,
-        color: Default_Theme.primaryColor1,
-        size: 28.0,
       ),
     );
   }

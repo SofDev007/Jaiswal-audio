@@ -350,4 +350,117 @@ void main() {
       await cubit.close();
     });
   });
+
+  group('cancellation reaches the running Rust call', () {
+    testWidgets('cancel stops the call in Rust and a new import starts at once',
+        (tester) async {
+      var tracksCalls = 0;
+      late final FakePluginService svc;
+      svc = FakePluginService(_plugin(
+        tracks: () => ++tracksCalls == 1 ? svc.hang() : Future.value(_tracks(2)),
+      ));
+      final cubit = _cubit(svc);
+
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(seconds: 5));
+      expect(cubit.state.phase, ImportPhase.fetchingTracks);
+
+      cubit.cancel();
+      expect(svc.cancelled, ['spotify']);
+      expect(cubit.state.phase, ImportPhase.idle);
+
+      // The abandoned call is over, so nothing waits for the 40 s guard.
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(svc.calls, ['check', 'info', 'tracks', 'check', 'info', 'tracks']);
+      expect(cubit.state.phase, ImportPhase.review);
+      expect(svc.maxActive, 1);
+      await cubit.close();
+    });
+
+    testWidgets('a timeout cancels the call in Rust; retry runs at once',
+        (tester) async {
+      var infoCalls = 0;
+      late final FakePluginService svc;
+      svc = FakePluginService(_plugin(
+        info: () => ++infoCalls == 1 ? svc.hang() : Future.value(_info(2)),
+      ));
+      final cubit = _cubit(svc);
+
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(seconds: 46));
+      expect(cubit.state.errorKind, ImportErrorKind.timeout);
+      expect(svc.cancelled, ['spotify']);
+
+      unawaited(cubit.retry());
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(cubit.state.phase, ImportPhase.review);
+      expect(svc.calls, ['check', 'info', 'check', 'info', 'tracks']);
+      await cubit.close();
+    });
+
+    testWidgets('repeated cancels are harmless and leave no stale state',
+        (tester) async {
+      var tracksCalls = 0;
+      late final FakePluginService svc;
+      svc = FakePluginService(_plugin(
+        tracks: () => ++tracksCalls == 1 ? svc.hang() : Future.value(_tracks(2)),
+      ));
+      final cubit = _cubit(svc);
+
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(seconds: 1));
+      cubit.cancel();
+      cubit.cancel(); // already idle: nothing more to cancel
+      expect(svc.cancelled, ['spotify']);
+
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(cubit.state.phase, ImportPhase.review);
+      await cubit.close();
+    });
+
+    testWidgets('a call that finishes just after its timeout does not break '
+        'the next import', (tester) async {
+      var infoCalls = 0;
+      final svc = FakePluginService(_plugin(
+        // 1 ms past the 45 s budget: the timeout wins, then the answer lands.
+        info: () => ++infoCalls == 1
+            ? _after(const Duration(milliseconds: 45001), _info(2))
+            : Future.value(_info(2)),
+      ));
+      final cubit = _cubit(svc);
+
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(seconds: 46));
+      expect(cubit.state.errorKind, ImportErrorKind.timeout);
+      expect(svc.cancelled, ['spotify']);
+
+      unawaited(cubit.retry());
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(cubit.state.phase, ImportPhase.review);
+      await cubit.close();
+    });
+
+    testWidgets('a plugin that ignores the cancel still cannot block forever',
+        (tester) async {
+      var infoCalls = 0;
+      final svc = FakePluginService(_plugin(
+        // Not cancellable: models a plugin stuck in a loop with no requests.
+        info: () => ++infoCalls == 1
+            ? _after(const Duration(seconds: 200), _info(2))
+            : Future.value(_info(2)),
+      ));
+      final cubit = _cubit(svc);
+
+      unawaited(cubit.checkUrl('spotify', _url));
+      await tester.pump(const Duration(seconds: 46)); // timeout: cancel #1
+      unawaited(cubit.retry()); // still in flight: cancel #2, then wait
+      await tester.pump(const Duration(seconds: 41));
+      expect(svc.cancelled, ['spotify', 'spotify']);
+      expect(cubit.state.errorKind, ImportErrorKind.pluginBusy);
+      await tester.pump(const Duration(seconds: 200)); // let it drain
+      await cubit.close();
+    });
+  });
 }

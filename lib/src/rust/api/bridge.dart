@@ -165,6 +165,13 @@ Future<PluginResponse> handlePluginRequest(
     RustLib.instance.api.crateApiBridgeHandlePluginRequest(
         manager: manager, pluginId: pluginId, request: request);
 
+/// Cancel the content-importer request running on [plugin_id], and any
+/// already waiting for it: its current HTTP call returns an error at once and
+/// its next ones are refused, so the plugin stops and releases its lock.
+/// Requests made after this call run normally. See plugin/cancel.rs.
+void cancelPluginRequests({required String pluginId}) =>
+    RustLib.instance.api.crateApiBridgeCancelPluginRequests(pluginId: pluginId);
+
 Future<PluginInstallResult> installPackedPlugin(
         {required String packedFilePath,
         required String pluginsDir,

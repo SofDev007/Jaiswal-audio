@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -93,6 +94,7 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       clearError: true,
     ));
 
+    final watch = Stopwatch()..start();
     try {
       final response = await _pluginService.execute(
         pluginId: pluginId,
@@ -104,6 +106,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
           ),
         ),
       );
+      // Search speed on the device: debugPrint reaches logcat in release.
+      debugPrint('Search on $pluginId took ${watch.elapsedMilliseconds} ms');
 
       response.when(
         search: (results) {

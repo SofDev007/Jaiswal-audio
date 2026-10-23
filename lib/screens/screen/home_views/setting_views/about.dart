@@ -112,28 +112,21 @@ class About extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Image.asset('assets/icons/jarx/icon_android.png',
+                      width: 34, height: 34),
+                  const SizedBox(width: 10),
                   ShaderMask(
                     blendMode: BlendMode.srcIn,
                     shaderCallback: (bounds) => kTitleGradient.createShader(
                       Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                     ),
-                    // Use Wrap so title + flower can wrap on narrow widths.
-                    child: const Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 6,
-                      children: [
-                        Text(
-                          'BloomeeTunes',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Gilroy',
-                          ),
-                        ),
-                        // Small animated flower
-                        GentleRotatingFlower(size: 28),
-                      ],
+                    child: const Text(
+                      'JARX',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Gilroy',
+                      ),
                     ),
                   ),
                 ],
@@ -175,7 +168,7 @@ class About extends StatelessWidget {
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        'Based on BloomeeTunes (GPL-2.0)',
+                        'Licensed under GPL-2.0',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: kPrimaryTextColor,
@@ -465,64 +458,4 @@ class Particle {
       required this.lifespan,
       required this.maxLifespan,
       required this.isSharp});
-}
-
-// A calming, natural-looking rotating flower using a sinusoidal motion.
-class GentleRotatingFlower extends StatefulWidget {
-  final double size;
-  const GentleRotatingFlower({this.size = 28, super.key});
-
-  @override
-  State<GentleRotatingFlower> createState() => _GentleRotatingFlowerState();
-}
-
-class _GentleRotatingFlowerState extends State<GentleRotatingFlower>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    // Slow, calming cycle. Repeats forever.
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value; // 0..1
-        // Sinusoidal rotation: small angle in radians (~ +/-9 deg)
-        final angle = sin(t * 2 * pi) * (pi / 20);
-        // Slight 'breathing' scale for softness
-        final scale = 1 + 0.03 * sin(t * 2 * pi);
-        // Gentle horizontal sway in logical pixels
-        final dx = 2.0 * sin(t * 2 * pi);
-
-        return Transform.translate(
-          offset: Offset(dx, 0),
-          child: Transform.rotate(
-            angle: angle,
-            child: Transform.scale(
-              scale: scale,
-              child: Text(
-                "🌸",
-                style: TextStyle(fontSize: widget.size),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }

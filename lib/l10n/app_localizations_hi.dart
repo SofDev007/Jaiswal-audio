@@ -9,7 +9,7 @@ class AppLocalizationsHi extends AppLocalizations {
   AppLocalizationsHi([String locale = 'hi']) : super(locale);
 
   @override
-  String get onboardingTitle => 'Bloomee में आपका स्वागत है';
+  String get onboardingTitle => 'JARX में आपका स्वागत है';
 
   @override
   String get onboardingSubtitle => 'आइए आपकी भाषा और क्षेत्र सेट करें।';
@@ -1017,7 +1017,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'गाना बजते समय उसके लिरिक्स अपने-आप डिवाइस में सेव कर लें।';
 
   @override
-  String get storageResetApp => 'Bloomee ऐप को रीसेट करें';
+  String get storageResetApp => 'JARX ऐप को रीसेट करें';
 
   @override
   String get storageResetAppSubtitle =>
@@ -1028,7 +1028,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get storageResetConfirmMessage =>
-      'क्या आप वाकई Bloomee को रीसेट करना चाहते हैं? इससे आपका सारा डेटा डिलीट हो जाएगा और इसे वापस नहीं पाया जा सकेगा।';
+      'क्या आप वाकई JARX को रीसेट करना चाहते हैं? इससे आपका सारा डेटा डिलीट हो जाएगा और इसे वापस नहीं पाया जा सकेगा।';
 
   @override
   String get storageResetButton => 'रीसेट करें';
@@ -1041,7 +1041,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get storageLocationAndroid =>
-      'बैकअप यहाँ सेव किए जाते हैं:\n\n1. Downloads फ़ोल्डर\n2. Android/data/ls.bloomee.musicplayer/data\n\nदोनों में से किसी भी जगह से आप फ़ाइल कॉपी कर सकते हैं।';
+      'बैकअप यहाँ सेव किए जाते हैं:\n\n1. Downloads फ़ोल्डर\n2. Android/data/com.jaiswal.jarx/data\n\nदोनों में से किसी भी जगह से आप फ़ाइल कॉपी कर सकते हैं।';
 
   @override
   String get storageLocationOther =>
@@ -1137,7 +1137,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get updateCheckSubtitle =>
-      'देखें कि Bloomee का कोई नया वर्शन मौजूद है या नहीं।';
+      'देखें कि JARX का कोई नया वर्शन मौजूद है या नहीं।';
 
   @override
   String get updateAutoNotify => 'ऑटो अपडेट सूचना';
@@ -1150,7 +1150,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get updateCheckTitle => 'अपडेट्स चेक करें';
 
   @override
-  String get updateUpToDate => 'Bloomee🌸 पूरी तरह से अपडेटेड है!';
+  String get updateUpToDate => 'JARX पूरी तरह से अपडेटेड है!';
 
   @override
   String get updateViewPreRelease => 'नया प्री-रिलीज़ वर्शन देखें';
@@ -1161,8 +1161,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get updateNewVersionAvailable =>
-      'Bloomee🌸 का एक नया वर्शन उपलब्ध है!';
+  String get updateNewVersionAvailable => 'JARX का एक नया वर्शन उपलब्ध है!';
 
   @override
   String updateVersion(String ver, String build) {
@@ -1465,7 +1464,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get albumViewLoadFailed => 'एल्बम लोड नहीं हो पाया';
 
   @override
-  String get aboutCraftingSubtitle => 'कोड के ज़रिए संगीत पिरोना।';
+  String get aboutCraftingSubtitle => 'Jaiswal Audio Response eXperience';
 
   @override
   String get aboutFollowGitHub => 'GitHub पर फ़ॉलो करें';
@@ -1478,13 +1477,13 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get aboutTipQuote =>
-      'Bloomee पसंद आ रहा है? आपका छोटा-सा सहयोग इसे और बेहतर बनाने में मदद करेगा। 🌸';
+      'JARX पसंद आ रहा है? आपका छोटा-सा सहयोग इसे और बेहतर बनाने में मदद करेगा। 🌸';
 
   @override
   String get aboutTipButton => 'मैं सहायता करना चाहता/चाहती हूँ';
 
   @override
-  String get aboutTipDesc => 'Bloomee को और बेहतर बनाने में अपना योगदान दें।';
+  String get aboutTipDesc => 'JARX को और बेहतर बनाने में अपना योगदान दें।';
 
   @override
   String get aboutGitHub => 'GitHub';
@@ -1545,13 +1544,13 @@ class AppLocalizationsHi extends AppLocalizations {
       'इस सोर्स के लिए नया डेटा लाना उपलब्ध नहीं है';
 
   @override
-  String get songInfoSearchTitle => 'Bloomee में यह गाना खोजें';
+  String get songInfoSearchTitle => 'JARX में यह गाना खोजें';
 
   @override
-  String get songInfoSearchArtist => 'Bloomee में इस कलाकार को खोजें';
+  String get songInfoSearchArtist => 'JARX में इस कलाकार को खोजें';
 
   @override
-  String get songInfoSearchAlbum => 'Bloomee में इस एल्बम को खोजें';
+  String get songInfoSearchAlbum => 'JARX में इस एल्बम को खोजें';
 
   @override
   String get eqTitle => 'इक्वलाइज़र';
@@ -1632,7 +1631,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'कोई इम्पोर्टर प्लगइन मौजूद नहीं है।\nबाहरी जगहों से प्लेलिस्ट लाने के लिए पहले कोई इम्पोर्टर प्लगइन इंस्टॉल करें।';
 
   @override
-  String get importBloomeeFiles => 'Bloomee फ़ाइलें इम्पोर्ट करें';
+  String get importBloomeeFiles => 'JARX फ़ाइलें इम्पोर्ट करें';
 
   @override
   String get importM3UFiles => 'M3U प्लेलिस्ट इम्पोर्ट करें';
@@ -1652,7 +1651,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get importNoteMessage =>
-      'आप केवल Bloomee द्वारा बनाई गई फ़ाइलें ही इम्पोर्ट कर सकते हैं।\nयदि आपकी फ़ाइल किसी और जगह की है, तो वह काम नहीं करेगी। क्या आप फिर भी आगे बढ़ना चाहते हैं?';
+      'आप केवल JARX द्वारा बनाई गई फ़ाइलें ही इम्पोर्ट कर सकते हैं।\nयदि आपकी फ़ाइल किसी और जगह की है, तो वह काम नहीं करेगी। क्या आप फिर भी आगे बढ़ना चाहते हैं?';
 
   @override
   String get importTitle => 'इम्पोर्ट करें';
@@ -2117,7 +2116,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String updateAvailableBody(String ver, String build) {
-    return 'Bloomee🌸 का नया वर्शन आ गया है!\n\nवर्शन: $ver+$build';
+    return 'JARX का नया वर्शन आ गया है!\n\nवर्शन: $ver+$build';
   }
 
   @override
@@ -2136,7 +2135,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get pluginBootstrapTitle => 'Bloomee को तैयार किया जा रहा है';
+  String get pluginBootstrapTitle => 'JARX को तैयार किया जा रहा है';
 
   @override
   String pluginBootstrapProgress(int percent) {
@@ -2151,8 +2150,116 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pluginBootstrapErrorBody =>
-      'कुछ प्लगइन्स इंस्टॉल नहीं हो सके। आप फिर भी Bloomee का उपयोग कर सकते हैं — ऐप दोबारा खुलने पर इन्हें इंस्टॉल करने की कोशिश की जाएगी।';
+      'कुछ प्लगइन्स इंस्टॉल नहीं हो सके। आप फिर भी JARX का उपयोग कर सकते हैं — ऐप दोबारा खुलने पर इन्हें इंस्टॉल करने की कोशिश की जाएगी।';
 
   @override
   String get pluginBootstrapContinue => 'फिर भी आगे बढ़ें';
+
+  @override
+  String get homeGreetingMorning => 'सुप्रभात';
+
+  @override
+  String get homeGreetingAfternoon => 'नमस्ते';
+
+  @override
+  String get homeGreetingEvening => 'शुभ संध्या';
+
+  @override
+  String get homeGreetingSubtitle => 'जहाँ छोड़ा था, वहीं से सुनें';
+
+  @override
+  String get homeContinueListening => 'सुनना जारी रखें';
+
+  @override
+  String get homeForYou => 'आपके लिए';
+
+  @override
+  String get homeForYouHint =>
+      'आप जो सुनते और छोड़ते हैं, उसके आधार पर इसी फ़ोन पर चुना गया';
+
+  @override
+  String get homeSeeAll => 'सभी देखें';
+
+  @override
+  String get homeJumpBackIn => 'फिर से सुनें';
+
+  @override
+  String get homeUpNext => 'आपके लिए आगे';
+
+  @override
+  String get homePlayAll => 'सभी चलाएँ';
+
+  @override
+  String get homeYourPlaylists => 'आपकी प्लेलिस्ट';
+
+  @override
+  String get homeRecentlyPlayed => 'हाल ही में चलाए गए';
+
+  @override
+  String get homeAuto => 'ऑटो';
+
+  @override
+  String get homeLayoutSetting => 'होम लेआउट';
+
+  @override
+  String get homeLayoutChoose => 'अपना होम चुनें';
+
+  @override
+  String get homeLayoutChooseHint => 'वह लेआउट चुनें जो आपको सबसे अच्छा लगे।';
+
+  @override
+  String get homeLayoutForYou => 'आपके लिए';
+
+  @override
+  String get homeLayoutForYouDesc =>
+      'अभिवादन, सुनना जारी रखें और आपके लिए गाने';
+
+  @override
+  String get homeLayoutMixes => 'मिक्स';
+
+  @override
+  String get homeLayoutMixesDesc => 'प्लेलिस्ट ग्रिड, मूड और आज का मिक्स';
+
+  @override
+  String get homeLayoutPulse => 'पल्स';
+
+  @override
+  String get homeLayoutPulseDesc => 'बड़ा फिर से सुनें कार्ड और आगे की सूची';
+
+  @override
+  String get homeLayoutUse => 'यह लेआउट चुनें';
+
+  @override
+  String get homeLayoutDoneTitle => 'आपका होम तैयार है';
+
+  @override
+  String homeLayoutChangeLater(String path) {
+    return 'आप इसे बाद में सेटिंग्स › $path में बदल सकते हैं।';
+  }
+
+  @override
+  String get homeLayoutGotIt => 'ठीक है';
+
+  @override
+  String get homeTodaysMix => 'आज का मिक्स';
+
+  @override
+  String homeMixSummary(String titles, int count) {
+    return '$titles और $count और';
+  }
+
+  @override
+  String get homeMoodChill => 'चिल';
+
+  @override
+  String get homeMoodFocus => 'फ़ोकस';
+
+  @override
+  String get homeMoodRomance => 'रोमांस';
+
+  @override
+  String get homeMoodWorkout => 'वर्कआउट';
+
+  @override
+  String get homeMoodParty => 'पार्टी';
 }

@@ -81,7 +81,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1806068831;
+  int get rustContentHash => -1437987052;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -241,6 +241,8 @@ abstract class RustLibApi extends BaseApi {
       {required DownloadManager manager,
       required String taskId,
       required bool deletePartial});
+
+  void crateApiBridgeCancelPluginRequests({required String pluginId});
 
   Future<DownloadManager> crateApiBridgeCreateDownloadManager(
       {required PluginManager pluginManager,
@@ -1564,6 +1566,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  void crateApiBridgeCancelPluginRequests({required String pluginId}) {
+    return handler.executeSync(SyncTask(
+      callFfi: () {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_String(pluginId, serializer);
+        return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_unit,
+        decodeErrorData: null,
+      ),
+      constMeta: kCrateApiBridgeCancelPluginRequestsConstMeta,
+      argValues: [pluginId],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiBridgeCancelPluginRequestsConstMeta =>
+      const TaskConstMeta(
+        debugName: "cancel_plugin_requests",
+        argNames: ["pluginId"],
+      );
+
+  @override
   Future<DownloadManager> crateApiBridgeCreateDownloadManager(
       {required PluginManager pluginManager,
       required String stateDir,
@@ -1578,7 +1604,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(tempDir, serializer);
         sse_encode_u_32(maxConcurrentTasks, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 43, port: port_);
+            funcId: 44, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData:
@@ -1610,7 +1636,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_String(pluginsDir, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 44, port: port_);
+            funcId: 45, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData:
@@ -1640,7 +1666,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             manager, serializer);
         sse_encode_box_autoadd_enqueue_download_request(request, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 45, port: port_);
+            funcId: 46, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_String,
@@ -1667,7 +1693,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPluginManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 46, port: port_);
+            funcId: 47, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData:
@@ -1695,7 +1721,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDownloadManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 47, port: port_);
+            funcId: 48, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_download_task_snapshot,
@@ -1720,7 +1746,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_String(url, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 48, port: port_);
+            funcId: 49, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_metadata_result,
@@ -1746,7 +1772,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPluginManager(
             manager, serializer);
-        return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 49)!;
+        return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_String,
@@ -1777,7 +1803,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(pluginId, serializer);
         sse_encode_plugin_type(pluginType, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 50, port: port_);
+            funcId: 51, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData:
@@ -1804,7 +1830,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPluginManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 51, port: port_);
+            funcId: 52, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_String,
@@ -1828,7 +1854,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       callFfi: () {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_String(name, serializer);
-        return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52)!;
+        return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53)!;
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_String,
@@ -1858,7 +1884,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(pluginId, serializer);
         sse_encode_box_autoadd_plugin_request(request, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 53, port: port_);
+            funcId: 54, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_plugin_response,
@@ -1882,7 +1908,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 54, port: port_);
+            funcId: 55, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -1910,7 +1936,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             manager, serializer);
         sse_encode_StreamSink_download_manager_event_Sse(sink, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 55, port: port_);
+            funcId: 56, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -1940,7 +1966,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             manager, serializer);
         sse_encode_StreamSink_plugin_manager_event_Sse(sink, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 56, port: port_);
+            funcId: 57, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -1968,7 +1994,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(packedFilePath, serializer);
         sse_encode_String(tempDir, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 57, port: port_);
+            funcId: 58, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_manifest,
@@ -2005,7 +2031,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPluginManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 58, port: port_);
+            funcId: 59, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_plugin_install_result,
@@ -2050,7 +2076,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(pluginId, serializer);
         sse_encode_plugin_type(pluginType, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 59, port: port_);
+            funcId: 60, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_bool,
@@ -2081,7 +2107,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(pluginId, serializer);
         sse_encode_plugin_type(pluginType, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 60, port: port_);
+            funcId: 61, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2108,7 +2134,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             manager, serializer);
         sse_encode_String(taskId, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 61, port: port_);
+            funcId: 62, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_bool,
@@ -2136,7 +2162,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             manager, serializer);
         sse_encode_String(pluginId, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 62, port: port_);
+            funcId: 63, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2167,7 +2193,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(pluginId, serializer);
         sse_encode_String(key, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 63, port: port_);
+            funcId: 64, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_opt_String,
@@ -2200,7 +2226,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(key, serializer);
         sse_encode_String(value, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 64, port: port_);
+            funcId: 65, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2233,7 +2259,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(key, serializer);
         sse_encode_String(value, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 65, port: port_);
+            funcId: 66, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_bool,
@@ -2259,7 +2285,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_plugin_type(that, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 66, port: port_);
+            funcId: 67, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2285,7 +2311,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_String(s, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 67, port: port_);
+            funcId: 68, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_opt_box_autoadd_plugin_type,
@@ -2311,7 +2337,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_plugin_type(that, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 68, port: port_);
+            funcId: 69, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2338,7 +2364,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(filePath, serializer);
         sse_encode_String(coverCacheDir, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 69, port: port_);
+            funcId: 70, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_local_track_meta,
@@ -2365,7 +2391,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPluginManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 70, port: port_);
+            funcId: 71, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2392,7 +2418,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDownloadManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 71, port: port_);
+            funcId: 72, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_download_task_snapshot,
@@ -2420,7 +2446,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             manager, serializer);
         sse_encode_String(taskId, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 72, port: port_);
+            funcId: 73, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_bool,
@@ -2447,7 +2473,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_list_String(directories, serializer);
         sse_encode_String(coverCacheDir, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 73, port: port_);
+            funcId: 74, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_local_track_meta,
@@ -2472,7 +2498,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_String(directory, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 74, port: port_);
+            funcId: 75, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_String,
@@ -2498,7 +2524,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPluginManager(
             manager, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 75, port: port_);
+            funcId: 76, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -2529,7 +2555,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(pluginId, serializer);
         sse_encode_plugin_type(pluginType, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 76, port: port_);
+            funcId: 77, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -7942,50 +7968,44 @@ class PluginManagerImpl extends RustOpaque implements PluginManager {
       .crateApiPluginPluginPluginManagerAutoAccessorSetPluginsDir(
           that: this, pluginsDir: pluginsDir);
 
-  /// Get available plugins (scanned from directory)
   Future<List<PluginInfo>> getAvailablePlugins() =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerGetAvailablePlugins(
         that: this,
       );
 
-  /// Get list of loaded plugin IDs
+  /// FIX M-02: No longer uses block_on — uses std::sync::RwLock directly.
   Future<List<String>> getLoadedPlugins() =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerGetLoadedPlugins(
         that: this,
       );
 
-  /// Initialize the event stream from Dart.
-  /// Call this ONCE after creating the manager.
-  /// The sink is held forever and used for all event emissions.
   Stream<PluginManagerEvent> initEventStream() =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerInitEventStream(
         that: this,
       );
 
-  /// Check if a plugin is loaded
+  /// FIX M-02: is_plugin_loaded is now a fully async function that only
+  /// acquires the std RwLock for the map lookup, then the tokio Mutex for
+  /// type verification. No block_on involved.
   Future<bool> isPluginLoaded(
           {required String pluginId, required PluginType pluginType}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerIsPluginLoaded(
           that: this, pluginId: pluginId, pluginType: pluginType);
 
-  /// Alias for is_plugin_loaded (API compatibility)
   Future<bool> isPluginLoadedById(
           {required String pluginId, required PluginType pluginType}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerIsPluginLoadedById(
           that: this, pluginId: pluginId, pluginType: pluginType);
 
-  /// Load a plugin by ID with event emission
   Future<void> loadPlugin({required PluginInfo pluginInfo}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerLoadPlugin(
           that: this, pluginInfo: pluginInfo);
 
-  /// Load a plugin by ID (looks up from available plugins)
   Future<void> loadPluginById(
           {required String pluginId, required PluginType pluginType}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerLoadPluginById(
           that: this, pluginId: pluginId, pluginType: pluginType);
 
-  /// Load plugin from an explicit path (for install-then-load flow)
   Future<void> loadPluginFromPath(
           {required String pluginId,
           required PluginType pluginType,
@@ -7996,34 +8016,28 @@ class PluginManagerImpl extends RustOpaque implements PluginManager {
           pluginType: pluginType,
           pluginPath: pluginPath);
 
-  /// Refresh available plugins and emit event
   Future<void> refreshAvailablePlugins() => RustLib.instance.api
           .crateApiPluginPluginPluginManagerRefreshAvailablePlugins(
         that: this,
       );
 
-  /// Gracefully shutdown manager-owned state.
   Future<void> shutdown() =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerShutdown(
         that: this,
       );
 
-  /// Clear all storage for a plugin
   Future<void> storageClear({required String pluginId}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerStorageClear(
           that: this, pluginId: pluginId);
 
-  /// Delete a storage value
   Future<bool> storageDelete({required String pluginId, required String key}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerStorageDelete(
           that: this, pluginId: pluginId, key: key);
 
-  /// Get a storage value (instant in-memory read)
   Future<String?> storageGet({required String pluginId, required String key}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerStorageGet(
           that: this, pluginId: pluginId, key: key);
 
-  /// Preload a storage value from Dart (startup sync, no event emitted)
   Future<void> storagePreload(
           {required String pluginId,
           required String key,
@@ -8031,7 +8045,6 @@ class PluginManagerImpl extends RustOpaque implements PluginManager {
       RustLib.instance.api.crateApiPluginPluginPluginManagerStoragePreload(
           that: this, pluginId: pluginId, key: key, value: value);
 
-  /// Set a storage value (instant in-memory, emits event for Dart persistence)
   Future<bool> storageSet(
           {required String pluginId,
           required String key,
@@ -8039,13 +8052,11 @@ class PluginManagerImpl extends RustOpaque implements PluginManager {
       RustLib.instance.api.crateApiPluginPluginPluginManagerStorageSet(
           that: this, pluginId: pluginId, key: key, value: value);
 
-  /// Unload a plugin with event emission
   Future<void> unloadPlugin(
           {required String pluginId, required PluginType pluginType}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerUnloadPlugin(
           that: this, pluginId: pluginId, pluginType: pluginType);
 
-  /// Alias for unload_plugin (API compatibility)
   Future<void> unloadPluginById(
           {required String pluginId, required PluginType pluginType}) =>
       RustLib.instance.api.crateApiPluginPluginPluginManagerUnloadPluginById(

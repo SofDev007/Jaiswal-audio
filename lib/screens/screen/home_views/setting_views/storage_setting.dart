@@ -106,8 +106,8 @@ class BackupSettings extends StatelessWidget {
                                   SharePlus.instance
                                       .share(ShareParams(
                                     files: [XFile(value)],
-                                    text: 'Bloomee backup file',
-                                    subject: 'Bloomee Backup',
+                                    text: 'JARX backup file',
+                                    subject: 'JARX Backup',
                                   ))
                                       .catchError((e) {
                                     SnackbarService.showMessage(
@@ -143,8 +143,8 @@ class BackupSettings extends StatelessWidget {
                                   SharePlus.instance
                                       .share(ShareParams(
                                     files: [XFile(value)],
-                                    text: 'Bloomee JSON backup file',
-                                    subject: 'Bloomee JSON Backup',
+                                    text: 'JARX JSON backup file',
+                                    subject: 'JARX JSON Backup',
                                   ))
                                       .catchError((e) {
                                     SnackbarService.showMessage(

@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
 import 'package:Bloomee/services/db/dao/playlist_dao.dart';
 import 'package:Bloomee/services/db/dao/track_dao.dart';
 import 'package:Bloomee/services/db/global_db.dart';
@@ -61,6 +62,30 @@ class FakePluginService extends PluginService {
     } finally {
       _active--;
     }
+  }
+
+  /// Plugin IDs passed to [cancelRequests], in order.
+  final cancelled = <String>[];
+  final _hanging = <Completer<PluginResponse>>[];
+
+  /// A call that never answers on its own, like a request stuck on the
+  /// network. [cancelRequests] fails it the way Rust does.
+  Future<PluginResponse> hang() {
+    final c = Completer<PluginResponse>();
+    _hanging.add(c);
+    return c.future;
+  }
+
+  @override
+  void cancelRequests(String pluginId) {
+    cancelled.add(pluginId);
+    for (final c in _hanging) {
+      if (!c.isCompleted) {
+        c.completeError(
+            const PluginExecutionException(message: 'Cancelled by the app'));
+      }
+    }
+    _hanging.clear();
   }
 
   @override

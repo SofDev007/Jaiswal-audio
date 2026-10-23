@@ -288,7 +288,7 @@ class DBProvider {
         '_meta': {
           'format': 'legacy-v2-full',
           'exportedAt': DateTime.now().toIso8601String(),
-          'generatedBy': 'Bloomee DBProvider',
+          'generatedBy': 'JARX DBProvider',
           'playlistsCount': playlistRows.length,
           'mediaItemsCount': mediaRows.length,
         },

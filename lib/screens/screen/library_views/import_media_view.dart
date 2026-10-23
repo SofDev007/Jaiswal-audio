@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/core/constants/route_paths.dart';
 import 'package:Bloomee/services/csv_playlist_parser.dart';
 import 'package:path/path.dart' as p;
@@ -66,7 +67,7 @@ class _ImportMediaFromPlatformsViewState
                     _buildEmptyState(context)
                   else
                     ...importerPlugins.map((plugin) => _ImporterPluginTile(
-                          pluginName: plugin.manifest.name,
+                          pluginName: pluginDisplayName(plugin.manifest.id, plugin.manifest.name),
                           pluginId: plugin.manifest.id,
                           description: plugin.manifest.description,
                         )),

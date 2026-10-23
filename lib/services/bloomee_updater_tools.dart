@@ -1,9 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-import 'package:Bloomee/core/constants/setting_keys.dart';
-import 'package:Bloomee/services/db/db_provider.dart';
-import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -212,65 +209,10 @@ Future<Map<String, dynamic>> githubUpdate(
   }
 }
 
-/// New public API: try GitHub first, then SourceForge; return a consistent map.
-Future<Map<String, dynamic>> getAppUpdates() async {
-  // Try GitHub first, then SourceForge, produce an `updates` map and attach changelogs.
-  Map<String, dynamic> updates;
-  try {
-    updates = await githubUpdate();
-  } catch (e) {
-    log('GitHub check failed, trying SourceForge: $e', name: 'UpdaterTools');
-    try {
-      updates = await sourceforgeUpdate();
-    } catch (e2) {
-      log('SourceForge check failed: $e2', name: 'UpdaterTools');
-      // Final fallback: return structured failure map with current info
-      try {
-        final packageInfo = await PackageInfo.fromPlatform();
-        updates = {
-          'results': false,
-          'error': 'Failed to check remote releases',
-          'currVer': packageInfo.version,
-          'currBuild': packageInfo.buildNumber,
-          'source': 'none',
-        };
-      } catch (e3) {
-        updates = {
-          'results': false,
-          'error':
-              'Failed to check remote releases and failed to read local package info',
-          'source': 'none',
-        };
-      }
-    }
-  }
-
-  try {
-    // Contains the latest changelog read by the user. [eg. v2.11.6+171] (can be null)
-    final readChangelogs = await SettingsDAO(DBProvider.db)
-        .getSettingStr(SettingKeys.readChangelogs);
-    final currVer = "v${updates['currVer']}";
-    final newVer = "v${updates['newVer']}";
-
-    log('Current version: $currVer, New version: $newVer, Read changelogs: $readChangelogs',
-        name: 'UpdaterTools');
-
-    if (currVer == newVer &&
-        (readChangelogs == null || readChangelogs != currVer)) {
-      final changelogText = await fetchChangelog();
-      updates['changelogs'] = changelogText;
-    } else {
-      updates['changelogs'] = null;
-    }
-  } catch (e, st) {
-    log('Attaching changelog failed: $e\n$st', name: 'UpdaterTools');
-    updates['changelogs'] = null;
-  }
-
-  // log('Update check completed: $updates', name: 'UpdaterTools');
-
-  return updates;
-}
+/// Update checks are off in JARX: the GitHub and SourceForge releases and the
+/// changelog belong to upstream Bloomee, not to this app.
+Future<Map<String, dynamic>> getAppUpdates() async =>
+    {'results': false, 'changelogs': null, 'source': 'disabled'};
 
 /// Fetch the project's CHANGELOG.md from the hosted GitHub Pages site.
 /// Returns the changelog text on success, or null on any failure.

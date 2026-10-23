@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
-        android:label="Bloomee"
+        android:label="JARX"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">

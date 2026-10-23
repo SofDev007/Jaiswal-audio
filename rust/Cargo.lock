@@ -1502,6 +1502,7 @@ dependencies = [
  "flutter_rust_bridge",
  "image",
  "lofty",
+ "log",
  "once_cell",
  "rand",
  "reqwest",

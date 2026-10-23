@@ -9,7 +9,6 @@ import 'package:Bloomee/screens/screen/home_views/setting_views/player_setting.d
 import 'package:Bloomee/screens/widgets/gradient_progress_bar.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/up_next_panel.dart';
-import 'package:Bloomee/screens/widgets/volume_slider.dart';
 import 'package:Bloomee/screens/widgets/media_metadata_links.dart';
 import 'package:Bloomee/screens/screen/player_views/segments_sheet.dart';
 import 'package:Bloomee/services/bloomee_player.dart';
@@ -259,34 +258,31 @@ class CoverImageVolSlider extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloomeePlayerCubit = context.read<BloomeePlayerCubit>();
 
-    return VolumeDragController(
-      child: StreamBuilder<MediaItem?>(
-        stream: bloomeePlayerCubit.bloomeePlayer.mediaItem,
-        builder: (context, snapshot) {
-          final currentTrack =
-              bloomeePlayerCubit.bloomeePlayer.currentTrackInfo;
-          final highResUrl =
-              currentTrack.thumbnail.urlHigh ?? currentTrack.thumbnail.url;
-          final lowResUrl =
-              currentTrack.thumbnail.urlLow ?? currentTrack.thumbnail.url;
+    return StreamBuilder<MediaItem?>(
+      stream: bloomeePlayerCubit.bloomeePlayer.mediaItem,
+      builder: (context, snapshot) {
+        final currentTrack = bloomeePlayerCubit.bloomeePlayer.currentTrackInfo;
+        final highResUrl =
+            currentTrack.thumbnail.urlHigh ?? currentTrack.thumbnail.url;
+        final lowResUrl =
+            currentTrack.thumbnail.urlLow ?? currentTrack.thumbnail.url;
 
-          return SizedBox.expand(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1.0,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: LoadImageCached(
-                    imageUrl: highResUrl,
-                    fallbackUrl: lowResUrl,
-                    fit: BoxFit.contain,
-                  ),
+        return SizedBox.expand(
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: 1.0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: LoadImageCached(
+                  imageUrl: highResUrl,
+                  fallbackUrl: lowResUrl,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

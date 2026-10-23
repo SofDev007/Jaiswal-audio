@@ -21,6 +21,11 @@ pub fn greet(name: String) -> String {
 #[frb(init)]
 pub fn init_app() {
     flutter_rust_bridge::setup_default_user_utils();
+    // The default logs at Trace: every plugin compile step and HTTP wait went
+    // to logcat (~200k lines in 28 min on a phone). Release builds keep warnings.
+    if !cfg!(debug_assertions) {
+        log::set_max_level(log::LevelFilter::Warn);
+    }
 }
 
 /// Initialize the plugin event stream from Dart.
@@ -221,6 +226,15 @@ pub async fn handle_plugin_request(
         .handle_plugin_request(&plugin_id, request)
         .await
         .map_err(encode_plugin_error)
+}
+
+/// Cancel the content-importer request running on [plugin_id], and any
+/// already waiting for it: its current HTTP call returns an error at once and
+/// its next ones are refused, so the plugin stops and releases its lock.
+/// Requests made after this call run normally. See plugin/cancel.rs.
+#[frb(sync)]
+pub fn cancel_plugin_requests(plugin_id: String) {
+    crate::api::plugin::cancel::request(&plugin_id);
 }
 
 #[frb]

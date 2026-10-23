@@ -1,4 +1,4 @@
-package ls.bloomee.musicplayer
+package com.jaiswal.jarx
 
 import io.flutter.embedding.android.FlutterActivity
 

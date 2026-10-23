@@ -1,3 +1,4 @@
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/blocs/settings_cubit/cubit/settings_cubit.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
@@ -137,7 +138,7 @@ class PluginDefaultsSettings extends StatelessWidget {
                   children: [
                     const SettingDivider(),
                     SettingRadioTile<String>(
-                      title: plugin.name,
+                      title: pluginDisplayName(plugin.manifest.id, plugin.name),
                       subtitle: plugin.manifest.id,
                       value: plugin.manifest.id,
                       groupValue: selectedPluginId,
@@ -207,7 +208,7 @@ class PluginDefaultsSettings extends StatelessWidget {
     ];
 
     final nameMap = {
-      for (final r in resolvers) r.manifest.id: r.name,
+      for (final r in resolvers) r.manifest.id: pluginDisplayName(r.manifest.id, r.name),
     };
 
     return Column(
@@ -284,7 +285,7 @@ class PluginDefaultsSettings extends StatelessWidget {
     ];
 
     final nameMap = {
-      for (final p in lyricsProviders) p.manifest.id: p.name,
+      for (final p in lyricsProviders) p.manifest.id: pluginDisplayName(p.manifest.id, p.name),
     };
 
     return Column(
@@ -369,7 +370,7 @@ class PluginDefaultsSettings extends StatelessWidget {
                   children: [
                     const SettingDivider(),
                     SettingRadioTile<String>(
-                      title: plugin.name,
+                      title: pluginDisplayName(plugin.manifest.id, plugin.name),
                       subtitle: plugin.manifest.id,
                       value: plugin.manifest.id,
                       groupValue: selectedId,

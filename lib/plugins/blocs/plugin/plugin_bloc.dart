@@ -14,7 +14,6 @@ import 'package:Bloomee/services/plugin/plugin_load_state_service.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/services/plugin_bootstrap_service.dart';
 import 'package:Bloomee/src/rust/api/plugin/events.dart';
-import 'package:Bloomee/src/rust/api/plugin/plugin_info.dart';
 import 'package:Bloomee/src/rust/api/plugin/types.dart';
 
 /// Manages plugin lifecycle: load, unload, install, refresh.
@@ -149,18 +148,12 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       ));
 
       _preferredAutoLoadIds = await _loadStateService.readAutoLoadPluginIds();
-      final availableById = <String, PluginInfo>{
-        for (final plugin in available) plugin.manifest.id: plugin,
-      };
 
-      final missingAutoLoad = _preferredAutoLoadIds
-          .where((id) => !loaded.contains(id))
-          .map((id) {
-            final info = availableById[id];
-            if (info == null) return null;
-            return (pluginId: info.manifest.id, pluginType: info.pluginType);
-          })
-          .whereType<({String pluginId, PluginType pluginType})>()
+      // Load every installed plugin at startup, not just the saved set.
+      final missingAutoLoad = available
+          .where((info) => !loaded.contains(info.manifest.id))
+          .map((info) =>
+              (pluginId: info.manifest.id, pluginType: info.pluginType))
           .toList(growable: false);
 
       if (missingAutoLoad.isNotEmpty) {

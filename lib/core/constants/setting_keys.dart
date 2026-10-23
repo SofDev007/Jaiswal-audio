@@ -30,6 +30,9 @@ class SettingKeys {
   /// Name of the currently selected EQ preset (e.g. "Flat", "Rock").
   static const String eqPreset = "eqPreset";
 
+  /// JSON list of the user's saved EQ curves: [{name, gains}].
+  static const String eqCustomProfiles = "eqCustomProfiles";
+
   /// EQ routing mode: 'builtin' (default) uses the in-app EQ.
   /// 'device' disables the in-app EQ so audio passes through unmodified,
   /// allowing the device's system equalizer (e.g. Dolby Atmos, OEM EQ) to
@@ -78,6 +81,10 @@ class SettingKeys {
   /// Whether the first-run plugin repository bootstrap has been completed.
   /// Once true, the bootstrap is never run again even if the user uninstalls plugins.
   static const String repositoriesBootstrapped = "repositoriesBootstrapped";
+
+  /// JSON list of catalogue plugin IDs the first-run setup skipped because
+  /// of the chosen country; retried when the country changes.
+  static const String pluginsSkippedByCountry = "pluginsSkippedByCountry";
   static const String appSetupCompleted = "appSetupCompleted";
 
   // ── Plugins ────────────────────────────────────────────────────────────────
@@ -91,6 +98,14 @@ class SettingKeys {
   /// ID of the content resolver plugin last used for search.
   /// Empty string = use the first available content resolver.
   static const String searchPluginId = "searchPluginId";
+
+  /// JSON of the Home "For you" picks, their seed track and when they were
+  /// made (see home_rows.dart).
+  static const String forYouCache = "forYouCache";
+
+  /// Home layout the user picked (a HomeLayout name); empty until the
+  /// first-run chooser is answered.
+  static const String homeLayout = "homeLayout";
 
   /// JSON-encoded list of content resolver plugin IDs in priority order
   /// for the cross-plugin metadata resolver.

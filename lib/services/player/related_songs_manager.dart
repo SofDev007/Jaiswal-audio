@@ -56,14 +56,14 @@ class RelatedSongsManager {
                 plugins, CrossPluginResolver(pluginService: plugins)),
         _ranker = ranker ??
             RecommendationRanker(CrossPluginResolver(pluginService: plugins)),
-        _loadTaste = loadTaste ?? _tasteFromDevice,
+        _loadTaste = loadTaste ?? tasteFromDevice,
         _autoPlayEnabled = autoPlayEnabled ?? _autoPlaySetting;
 
   static Future<bool> _autoPlaySetting() async =>
       await SettingsDAO(DBProvider.db).getSettingBool(SettingKeys.autoPlay) !=
       false;
 
-  static Future<UserTaste> _tasteFromDevice(RecommendationRanker ranker) async {
+  static Future<UserTaste> tasteFromDevice(RecommendationRanker ranker) async {
     final trackDao = TrackDAO(DBProvider.db);
     final results = await Future.wait([
       TrackSignalDAO(DBProvider.db).getAll(),

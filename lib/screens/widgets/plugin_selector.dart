@@ -1,3 +1,4 @@
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_state.dart';
@@ -81,7 +82,8 @@ class PluginSelectorBar extends StatelessWidget {
               final isActive = id == activePluginId;
 
               return _PluginChip(
-                label: plugin.manifest.name,
+                label:
+                    pluginDisplayName(plugin.manifest.id, plugin.manifest.name),
                 isActive: isActive,
                 onTap: () => onPluginSelected(plugin),
               );

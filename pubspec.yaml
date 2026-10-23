@@ -3,7 +3,7 @@ description: An Open source Free Music Player.
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 3.0.4+0
+version: 1.0.0+1
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -105,16 +105,21 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  adaptive_icon_background: "assets/icons/bloomee_light_gradient.png"
-  adaptive_icon_foreground: "assets/icons/BloomeeTunes4ZoomedOut2.png"
-  image_path: "assets/icons/BloomeeLogoFG.png"
+  # JARX J1 "Pulse J", rendered from docs/branding/jarx/*.svg.
+  image_path_android: "assets/icons/jarx/icon_android.png"
+  image_path_ios: "assets/icons/jarx/icon_ios.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#0E0E10"
+  adaptive_icon_foreground: "assets/icons/jarx/adaptive_foreground.png"
+  adaptive_icon_monochrome: "assets/icons/jarx/monochrome.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
 
+  # Desktop icons are left for the desktop phase.
   macos:
-    generate: true
+    generate: false
     image_path: "assets/icons/BloomeeLogo4.png"
   windows:
-    generate: true
+    generate: false
     image_path: "assets/icons/BloomeeLogo4.png"
     
 
@@ -128,6 +133,9 @@ flutter:
     - assets/icons/bloomee_new_logo_c.png
     - assets/icons/lazy_loading.png
     - assets/icons/BloomeeLogoFG.png
+    - assets/icons/jarx/icon_android.png
+    - assets/icons/jarx/icon_ios.png
+    - assets/images/home_layouts/
     
   fonts:
     - family: Unageo

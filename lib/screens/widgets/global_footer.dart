@@ -22,38 +22,25 @@ class GlobalFooter extends StatelessWidget {
 
     return PlayerOverlayWrapper(
       child: BackButtonListener(
-        // FIX H-04: Back button priority order:
-        // ① Navigator routes (FullscreenLyricsView, PlayerSettings, TimerView, etc.)
-        // ② UpNext panel collapse
-        // ③ Player overlay hide
-        // ④ GoRouter shell navigation
-        // ⑤ System exit
-        //
-        // Previously the handler short-circuited at step ③ whenever the player
-        // was visible, swallowing Navigator pops and causing sub-screens to
-        // appear orphaned over a hidden/collapsed player.
+        // Back button priority order:
+        // ① Player open: close a screen opened from it (lyrics, timer...),
+        //   else collapse Up Next, else slide the player down. The page
+        //   under the player is left alone.
+        // ② GoRouter page navigation
+        // ③ Home tab, then system exit (PopScope below)
         onBackButtonPressed: () async {
-          final overlayC = context.read<PlayerOverlayCubit>();
+          if (context
+              .read<PlayerOverlayCubit>()
+              .handleBack(Navigator.of(context, rootNavigator: true))) {
+            return true;
+          }
           final router = GoRouter.of(context);
-
-          // ① Navigator MUST have first priority — always.
           if (router.canPop()) {
             router.pop();
             return true;
           }
 
-          // ② Collapse UpNext panel if expanded (player must be visible).
-          if (overlayC.state && overlayC.collapseUpNextPanel()) {
-            return true;
-          }
-
-          // ③ Hide the player overlay.
-          if (overlayC.state) {
-            overlayC.hidePlayer();
-            return true;
-          }
-
-          // ④ Let PopScope handle tab/exit navigation below.
+          // Let PopScope handle tab/exit navigation below.
           return false;
         },
         child: PopScope(
@@ -104,31 +91,27 @@ class GlobalFooter extends StatelessWidget {
   /// Handles PopScope back presses using the same priority order as
   /// BackButtonListener above.
   Future<void> _handleHardwareBackPress(BuildContext context) async {
-    final overlayC = context.read<PlayerOverlayCubit>();
-    final router = GoRouter.of(context);
+    // ① Player first: sub-screen, Up Next, then the player itself
+    if (context
+        .read<PlayerOverlayCubit>()
+        .handleBack(Navigator.of(context, rootNavigator: true))) {
+      return;
+    }
 
-    // ① Navigator routes first
+    // ② Page navigation
+    final router = GoRouter.of(context);
     if (router.canPop()) {
       router.pop();
       return;
     }
 
-    // ② Collapse UpNext panel
-    if (overlayC.state && overlayC.collapseUpNextPanel()) return;
-
-    // ③ Hide player
-    if (overlayC.state) {
-      overlayC.hidePlayer();
-      return;
-    }
-
-    // ④ Navigate to home tab
+    // ③ Navigate to home tab
     if (navigationShell.currentIndex != 0) {
       navigationShell.goBranch(0);
       return;
     }
 
-    // ⑤ Exit app
+    // ④ Exit app
     if (context.mounted) {
       await SystemNavigator.pop();
     }

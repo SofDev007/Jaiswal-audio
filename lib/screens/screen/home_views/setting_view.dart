@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/about.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/appui_setting.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/local_music_setting.dart';
@@ -8,7 +9,6 @@ import 'package:Bloomee/screens/screen/home_views/setting_views/country_setting.
 import 'package:Bloomee/screens/screen/home_views/setting_views/download_setting.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/lastfm_setting.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/player_setting.dart';
-import 'package:Bloomee/screens/screen/home_views/setting_views/updates_setting.dart';
 import 'package:Bloomee/screens/screen/plugin_manager_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
@@ -68,14 +68,6 @@ class SettingsView extends StatelessWidget {
                     onTap: () =>
                         _navigate(context, const PluginDefaultsSettings()),
                   ),
-                  _SettingsTile(
-                    title: AppLocalizations.of(context)!.settingsUpdates,
-                    subtitle:
-                        AppLocalizations.of(context)!.settingsUpdatesSubtitle,
-                    icon: MingCute.download_3_fill,
-                    iconColor: Default_Theme.accentColor2,
-                    onTap: () => _navigate(context, const UpdatesSettings()),
-                  ),
                 ],
               ),
 
@@ -112,6 +104,14 @@ class SettingsView extends StatelessWidget {
               // ── Group 3: Preferences & Integrations ──
               _SettingsSection(
                 children: [
+                  _SettingsTile(
+                    title: AppLocalizations.of(context)!.homeLayoutSetting,
+                    subtitle:
+                        AppLocalizations.of(context)!.homeLayoutChooseHint,
+                    icon: MingCute.layout_4_fill,
+                    iconColor: Default_Theme.accentColor2,
+                    onTap: () => showHomeLayoutPicker(context),
+                  ),
                   _SettingsTile(
                     title: AppLocalizations.of(context)!.settingsUIElements,
                     subtitle: AppLocalizations.of(context)!

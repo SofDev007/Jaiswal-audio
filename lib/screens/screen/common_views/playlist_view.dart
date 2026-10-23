@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/core/events/global_event_bus.dart';
@@ -72,7 +73,7 @@ class _OnlPlaylistViewState extends State<OnlPlaylistView> {
 
   String _sourceName(BuildContext context) {
     for (final plugin in context.read<PluginBloc>().state.availablePlugins) {
-      if (plugin.manifest.id == widget.pluginId) return plugin.manifest.name;
+      if (plugin.manifest.id == widget.pluginId) return pluginDisplayName(plugin.manifest.id, plugin.manifest.name);
     }
     return widget.pluginId;
   }

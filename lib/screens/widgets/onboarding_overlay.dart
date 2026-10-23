@@ -30,7 +30,6 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
   String _selectedCountry = CountryInfoService.defaultCountryCode;
   bool _autoDetectCountry = false;
   bool _isResolvingCountry = false;
-  bool _countryTouchedByUser = false;
   Locale? _currentLocale;
 
   @override
@@ -67,30 +66,6 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
       _autoDetectCountry = auto;
       _currentLocale = normalizedLang.isEmpty ? null : Locale(normalizedLang);
     });
-
-    // Improve first guess quickly without network delay.
-    _updateCountryFromDeviceLocaleIfNeeded(
-      shouldGuess: storedCountry.isEmpty,
-    );
-  }
-
-  Future<void> _updateCountryFromDeviceLocaleIfNeeded({
-    required bool shouldGuess,
-  }) async {
-    if (!shouldGuess) {
-      return;
-    }
-
-    final guessed =
-        await CountryInfoService.resolveCountryCodeFromDeviceLocale();
-    if (!mounted || guessed == null || _countryTouchedByUser) {
-      return;
-    }
-
-    setState(() {
-      _selectedCountry = guessed;
-    });
-    await _settingsDao.putSettingStr(SettingKeys.countryCode, guessed);
   }
 
   void _updateLang(String? val) {
@@ -105,7 +80,6 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
   void _updateCountry(String? val) {
     if (val == null) return;
     setState(() {
-      _countryTouchedByUser = true;
       _selectedCountry = val;
       if (_autoDetectCountry) {
         _autoDetectCountry = false;
@@ -231,11 +205,8 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Icon(
-                            MingCute.music_2_fill,
-                            size: 70,
-                            color: Default_Theme.accentColor2,
-                          ),
+                          Image.asset('assets/icons/jarx/icon_android.png',
+                              height: 72),
                           const SizedBox(height: 18),
                           Text(
                             l10n.onboardingTitle,

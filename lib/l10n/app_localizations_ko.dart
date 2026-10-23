@@ -9,7 +9,7 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
-  String get onboardingTitle => 'Bloomee에 오신 것을 환영합니다';
+  String get onboardingTitle => 'JARX에 오신 것을 환영합니다';
 
   @override
   String get onboardingSubtitle => '언어와 지역 설정을 시작합니다.';
@@ -968,7 +968,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get storageLocationAndroid =>
-      '백업 파일은 다음 위치에 저장됩니다:\n\n1. 다운로드 폴더\n2. Android/data/ls.bloomee.musicplayer/data\n\n해당 위치에서 파일을 확인하세요.';
+      '백업 파일은 다음 위치에 저장됩니다:\n\n1. 다운로드 폴더\n2. Android/data/com.jaiswal.jarx/data\n\n해당 위치에서 파일을 확인하세요.';
 
   @override
   String get storageLocationOther => '백업은 다운로드 폴더에 저장됩니다.';
@@ -1077,7 +1077,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get updateNewVersionAvailable => '새로운 버전의 Bloomee🌸가 출시되었습니다!';
+  String get updateNewVersionAvailable => '새로운 버전의 JARX가 출시되었습니다!';
 
   @override
   String updateVersion(String ver, String build) {
@@ -1370,7 +1370,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get albumViewLoadFailed => '앨범 정보를 불러오지 못했습니다';
 
   @override
-  String get aboutCraftingSubtitle => '코드로 음악적 감성을 만듭니다.';
+  String get aboutCraftingSubtitle => 'Jaiswal Audio Response eXperience';
 
   @override
   String get aboutFollowGitHub => 'GitHub 팔로우';
@@ -1382,7 +1382,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aboutCreativeHighlights => '업데이트 및 주요 소식';
 
   @override
-  String get aboutTipQuote => 'Bloomee가 마음에 드시나요? 소중한 후원이 더 멋진 발전을 만듭니다. 🌸';
+  String get aboutTipQuote => 'JARX가 마음에 드시나요? 소중한 후원이 더 멋진 발전을 만듭니다. 🌸';
 
   @override
   String get aboutTipButton => '후원하기';
@@ -1532,7 +1532,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '가져오기 플러그인이 없습니다. 외부 플레이리스트를 가져오려면 플러그인을 설치하세요.';
 
   @override
-  String get importBloomeeFiles => 'Bloomee 파일 가져오기';
+  String get importBloomeeFiles => 'JARX 파일 가져오기';
 
   @override
   String get importM3UFiles => 'M3U 플레이리스트 가져오기';
@@ -1550,8 +1550,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importNoteTitle => '주의';
 
   @override
-  String get importNoteMessage =>
-      'Bloomee에서 생성한 파일만 정상적으로 가져올 수 있습니다. 계속하시겠습니까?';
+  String get importNoteMessage => 'JARX에서 생성한 파일만 정상적으로 가져올 수 있습니다. 계속하시겠습니까?';
 
   @override
   String get importTitle => '가져오기';
@@ -1982,7 +1981,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String updateAvailableBody(String ver, String build) {
-    return '새로운 버전의 Bloomee🌸가 출시되었습니다!\n\n버전: $ver+$build';
+    return '새로운 버전의 JARX가 출시되었습니다!\n\n버전: $ver+$build';
   }
 
   @override
@@ -2001,7 +2000,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get pluginBootstrapTitle => 'Bloomee 설정 중';
+  String get pluginBootstrapTitle => 'JARX 설정 중';
 
   @override
   String pluginBootstrapProgress(int percent) {
@@ -2020,4 +2019,110 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginBootstrapContinue => '무시하고 계속';
+
+  @override
+  String get homeGreetingMorning => '좋은 아침이에요';
+
+  @override
+  String get homeGreetingAfternoon => '좋은 오후예요';
+
+  @override
+  String get homeGreetingEvening => '좋은 저녁이에요';
+
+  @override
+  String get homeGreetingSubtitle => '듣던 곳에서 이어 듣기';
+
+  @override
+  String get homeContinueListening => '이어서 듣기';
+
+  @override
+  String get homeForYou => '추천';
+
+  @override
+  String get homeForYouHint => '이 기기에서 재생·건너뛰기 기록으로 골랐어요';
+
+  @override
+  String get homeSeeAll => '모두 보기';
+
+  @override
+  String get homeJumpBackIn => '이어서 듣기';
+
+  @override
+  String get homeUpNext => '다음 추천곡';
+
+  @override
+  String get homePlayAll => '모두 재생';
+
+  @override
+  String get homeYourPlaylists => '내 플레이리스트';
+
+  @override
+  String get homeRecentlyPlayed => '최근 재생';
+
+  @override
+  String get homeAuto => '자동';
+
+  @override
+  String get homeLayoutSetting => '홈 레이아웃';
+
+  @override
+  String get homeLayoutChoose => '홈 선택';
+
+  @override
+  String get homeLayoutChooseHint => '가장 마음에 드는 레이아웃을 고르세요.';
+
+  @override
+  String get homeLayoutForYou => '추천';
+
+  @override
+  String get homeLayoutForYouDesc => '인사말, 이어서 듣기, 추천곡';
+
+  @override
+  String get homeLayoutMixes => '믹스';
+
+  @override
+  String get homeLayoutMixesDesc => '플레이리스트 그리드, 분위기, 오늘의 믹스';
+
+  @override
+  String get homeLayoutPulse => '펄스';
+
+  @override
+  String get homeLayoutPulseDesc => '큰 이어서 듣기 카드와 다음 추천 목록';
+
+  @override
+  String get homeLayoutUse => '이 레이아웃 사용';
+
+  @override
+  String get homeLayoutDoneTitle => '홈이 준비되었어요';
+
+  @override
+  String homeLayoutChangeLater(String path) {
+    return '나중에 설정 › $path에서 바꿀 수 있어요.';
+  }
+
+  @override
+  String get homeLayoutGotIt => '확인';
+
+  @override
+  String get homeTodaysMix => '오늘의 믹스';
+
+  @override
+  String homeMixSummary(String titles, int count) {
+    return '$titles 외 $count곡';
+  }
+
+  @override
+  String get homeMoodChill => '칠';
+
+  @override
+  String get homeMoodFocus => '집중';
+
+  @override
+  String get homeMoodRomance => '로맨스';
+
+  @override
+  String get homeMoodWorkout => '운동';
+
+  @override
+  String get homeMoodParty => '파티';
 }

@@ -136,6 +136,18 @@ class PluginService {
     }
   }
 
+  /// Cancels the content-importer request running (or waiting) on
+  /// [pluginId] in Rust: its current HTTP call fails at once and its next
+  /// ones are refused, so the plugin stops and releases its lock. Requests
+  /// made afterwards run normally. See rust/src/api/plugin/cancel.rs.
+  void cancelRequests(String pluginId) {
+    try {
+      bridge.cancelPluginRequests(pluginId: pluginId);
+    } catch (e) {
+      log('Cancel for $pluginId failed: $e', name: 'PluginService');
+    }
+  }
+
   // ── Plugin Lifecycle ───────────────────────────────────────────────────────
 
   /// Load a plugin by ID and type.

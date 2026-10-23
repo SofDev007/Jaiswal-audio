@@ -6,6 +6,10 @@ import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/custom_switch.dart';
+import 'package:Bloomee/services/db/dao/settings_dao.dart';
+import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/services/player/eq_profiles.dart';
+import 'package:Bloomee/services/player/output_route.dart';
 import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -55,6 +59,9 @@ class _EqualizerViewState extends State<EqualizerView>
   late List<double> _animStartGains;
   String _selectedPreset = 'Flat';
 
+  /// Curves the user saved under a name, shown before the built-in presets.
+  List<EqProfile> _profiles = const [];
+
   // FIX H-01: EQ source (builtin vs device) state
   late String _eqSource;
 
@@ -87,6 +94,7 @@ class _EqualizerViewState extends State<EqualizerView>
         _engine.equalizerBands.map((b) => b.gain).toList(growable: false);
     _animStartGains = List.filled(_currentGains.length, 0.0);
 
+    _loadProfiles();
     _selectedPreset = _settingsCubit.state.eqPreset;
     if (_selectedPreset != _matchingPreset()) {
       _selectedPreset = _matchingPreset();
@@ -146,7 +154,7 @@ class _EqualizerViewState extends State<EqualizerView>
   }
 
   void _applyPreset(String name) {
-    final values = _kPresets[name];
+    final values = _profileGains(name) ?? _kPresets[name];
     if (values == null) return;
 
     HapticFeedback.lightImpact();
@@ -198,7 +206,189 @@ class _EqualizerViewState extends State<EqualizerView>
     }
   }
 
+  // ── Saved profiles ──────────────────────────────────────────────────────
+
+  List<double>? _profileGains(String name) {
+    for (final p in _profiles) {
+      if (p.name == name) return p.gains;
+    }
+    return null;
+  }
+
+  bool _sameCurve(List<double> gains) {
+    for (var i = 0; i < _currentGains.length && i < gains.length; i++) {
+      if ((_currentGains[i] - gains[i]).abs() > 0.5) return false;
+    }
+    return true;
+  }
+
+  Future<void> _loadProfiles() async {
+    final raw = await SettingsDAO(DBProvider.db)
+        .getSettingStr(SettingKeys.eqCustomProfiles);
+    if (!mounted) return;
+    setState(() {
+      _profiles = decodeEqProfiles(raw);
+      _selectedPreset = _matchingPreset();
+    });
+  }
+
+  Future<void> _storeProfiles(List<EqProfile> profiles) async {
+    setState(() => _profiles = profiles);
+    await SettingsDAO(DBProvider.db).putSettingStr(
+        SettingKeys.eqCustomProfiles, encodeEqProfiles(profiles));
+  }
+
+  /// Names in use other than [except]: presets and other saved profiles.
+  List<String> _takenNames({String? except}) => [
+        ..._kPresets.keys,
+        for (final p in _profiles)
+          if (p.name != except) p.name,
+      ];
+
+  Future<void> _saveProfile() async {
+    var n = _profiles.length + 1;
+    while (_takenNames().contains('My EQ $n')) {
+      n++;
+    }
+    final name = await _askName(
+        title: 'Save equalizer', initial: 'My EQ $n', action: 'Save');
+    if (name == null) return;
+    HapticFeedback.lightImpact();
+    await _storeProfiles(
+        [..._profiles, (name: name, gains: List<double>.from(_currentGains))]);
+    setState(() => _selectedPreset = name);
+    _settingsCubit.setEqPreset(name);
+  }
+
+  Future<void> _renameProfile(String old) async {
+    final name =
+        await _askName(title: 'Rename', initial: old, action: 'Rename', except: old);
+    if (name == null || name == old) return;
+    await _storeProfiles([
+      for (final p in _profiles)
+        p.name == old ? (name: name, gains: p.gains) : p,
+    ]);
+    if (_selectedPreset == old) {
+      setState(() => _selectedPreset = name);
+      _settingsCubit.setEqPreset(name);
+    }
+  }
+
+  Future<void> _deleteProfile(String name) async {
+    await _storeProfiles([
+      for (final p in _profiles)
+        if (p.name != name) p,
+    ]);
+    setState(() => _selectedPreset = _matchingPreset());
+    _settingsCubit.setEqPreset(_selectedPreset);
+  }
+
+  void _showProfileMenu(String name) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Default_Theme.themeColor,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(name,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded, color: Colors.white),
+              title: const Text('Rename', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(sheet);
+                _renameProfile(name);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded,
+                  color: Default_Theme.accentColor2),
+              title: const Text('Delete',
+                  style: TextStyle(color: Default_Theme.accentColor2)),
+              onTap: () {
+                Navigator.pop(sheet);
+                _deleteProfile(name);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Asks for a profile name; null when cancelled.
+  Future<String?> _askName(
+      {required String title,
+      required String initial,
+      required String action,
+      String? except}) {
+    final controller = TextEditingController(text: initial)
+      ..selection = TextSelection(baseOffset: 0, extentOffset: initial.length);
+    String? error;
+    return showDialog<String>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, setDialog) {
+          void submit() {
+            final e = eqProfileNameError(
+                controller.text, _takenNames(except: except));
+            if (e != null) {
+              setDialog(() => error = e);
+              return;
+            }
+            Navigator.pop(dialog, controller.text.trim());
+          }
+
+          return AlertDialog(
+            backgroundColor: Default_Theme.themeColor,
+            title: Text(title, style: const TextStyle(color: Colors.white)),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              maxLength: 30,
+              style: const TextStyle(color: Colors.white),
+              cursorColor: Default_Theme.accentColor2,
+              onSubmitted: (_) => submit(),
+              decoration: InputDecoration(
+                errorText: error,
+                counterStyle:
+                    TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.3))),
+                focusedBorder: const UnderlineInputBorder(
+                    borderSide:
+                        BorderSide(color: Default_Theme.accentColor2)),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog),
+                child: Text('Cancel',
+                    style:
+                        TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+              ),
+              TextButton(
+                onPressed: submit,
+                child: Text(action,
+                    style: const TextStyle(color: Default_Theme.accentColor2)),
+              ),
+            ],
+          );
+        },
+      ),
+    ).whenComplete(controller.dispose);
+  }
+
   String _matchingPreset() {
+    for (final p in _profiles) {
+      if (_sameCurve(p.gains)) return p.name;
+    }
     for (final entry in _kPresets.entries) {
       bool match = true;
       for (var i = 0; i < _currentGains.length && i < entry.value.length; i++) {
@@ -399,6 +589,40 @@ class _EqualizerViewState extends State<EqualizerView>
 
                   // Only show built-in EQ controls when in builtin mode
                   if (isBuiltinMode) ...[
+                    StreamBuilder<bool>(
+                      stream: OutputRoute.phoneSpeaker,
+                      initialData: OutputRoute.phoneSpeaker.value,
+                      builder: (context, snap) => snap.data != true
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: accent.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(Icons.headphones_rounded,
+                                        color: accent, size: 18),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Paused on the phone speaker, where it only distorts the sound. It turns on by itself with headphones or Bluetooth.',
+                                        style: TextStyle(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.75),
+                                            fontSize: 12.5,
+                                            height: 1.45),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ),
                     _buildSectionHeader('PRESETS'),
                     _buildPresetTabs(accent),
                     const SizedBox(height: 32),
@@ -515,22 +739,59 @@ class _EqualizerViewState extends State<EqualizerView>
     );
   }
 
+  Widget _buildSaveChip(Color accent) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _saveProfile,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: accent.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_rounded, size: 16, color: accent),
+              const SizedBox(width: 4),
+              Text('Save',
+                  style: TextStyle(
+                      color: accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPresetTabs(Color accent) {
+    // The Save chip, then saved profiles (long-press to rename or delete),
+    // then the built-in presets.
+    final names = [for (final p in _profiles) p.name, ..._kPresets.keys];
     return SizedBox(
       height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _kPresets.length,
+        itemCount: names.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final name = _kPresets.keys.elementAt(index);
+          if (index == 0) return _buildSaveChip(accent);
+          final name = names[index - 1];
+          final isSaved = index - 1 < _profiles.length;
           final isActive = name == _selectedPreset;
           return Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () => _applyPreset(name),
+              onLongPress: isSaved ? () => _showProfileMenu(name) : null,
               borderRadius: BorderRadius.circular(18),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -547,15 +808,30 @@ class _EqualizerViewState extends State<EqualizerView>
                           : Default_Theme.primaryColor1
                               .withValues(alpha: 0.05)),
                 ),
-                child: Text(name,
-                    style: TextStyle(
-                        color: isActive
-                            ? accent
-                            : Default_Theme.primaryColor1
-                                .withValues(alpha: 0.75),
-                        fontSize: 13,
-                        fontWeight:
-                            isActive ? FontWeight.w700 : FontWeight.w500)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSaved) ...[
+                      Icon(Icons.bookmark_rounded,
+                          size: 14,
+                          color: isActive
+                              ? accent
+                              : Default_Theme.primaryColor1
+                                  .withValues(alpha: 0.6)),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(name,
+                        style: TextStyle(
+                            color: isActive
+                                ? accent
+                                : Default_Theme.primaryColor1
+                                    .withValues(alpha: 0.75),
+                            fontSize: 13,
+                            fontWeight: isActive
+                                ? FontWeight.w700
+                                : FontWeight.w500)),
+                  ],
+                ),
               ),
             ),
           );

@@ -9,7 +9,7 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
-  String get onboardingTitle => 'Bloomeeへようこそ';
+  String get onboardingTitle => 'JARXへようこそ';
 
   @override
   String get onboardingSubtitle => '言語と地域の設定を行いましょう。';
@@ -967,7 +967,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get storageLocationAndroid =>
-      'バックアップは以下に保存されます:\n\n1. ダウンロードフォルダー\n2. Android/data/ls.bloomee.musicplayer/data\n\nここからファイルをコピーしてください。';
+      'バックアップは以下に保存されます:\n\n1. ダウンロードフォルダー\n2. Android/data/com.jaiswal.jarx/data\n\nここからファイルをコピーしてください。';
 
   @override
   String get storageLocationOther => 'バックアップはダウンロードフォルダーに保存されます。';
@@ -1052,7 +1052,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateCheckForUpdates => 'アップデートを確認';
 
   @override
-  String get updateCheckSubtitle => 'Bloomee の新しいバージョンがあるか確認します。';
+  String get updateCheckSubtitle => 'JARX の新しいバージョンがあるか確認します。';
 
   @override
   String get updateAutoNotify => 'アップデートの自動通知';
@@ -1064,7 +1064,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateCheckTitle => '更新の確認';
 
   @override
-  String get updateUpToDate => 'Bloomee🌸 は最新の状態です！';
+  String get updateUpToDate => 'JARX は最新の状態です！';
 
   @override
   String get updateViewPreRelease => '最新のプレリリースを表示';
@@ -1075,7 +1075,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get updateNewVersionAvailable => 'Bloomee🌸 の新しいバージョンが利用可能です！';
+  String get updateNewVersionAvailable => 'JARX の新しいバージョンが利用可能です！';
 
   @override
   String updateVersion(String ver, String build) {
@@ -1368,7 +1368,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get albumViewLoadFailed => 'アルバムの読み込みに失敗しました';
 
   @override
-  String get aboutCraftingSubtitle => 'コードで音楽を奏でる。';
+  String get aboutCraftingSubtitle => 'Jaiswal Audio Response eXperience';
 
   @override
   String get aboutFollowGitHub => 'GitHub でフォロー';
@@ -1380,7 +1380,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aboutCreativeHighlights => 'アップデートとクリエイティブな活動';
 
   @override
-  String get aboutTipQuote => 'Bloomee を気に入っていただけましたか？応援が活動の励みになります。 🌸';
+  String get aboutTipQuote => 'JARX を気に入っていただけましたか？応援が活動の励みになります。 🌸';
 
   @override
   String get aboutTipButton => '応援する';
@@ -1446,13 +1446,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get songInfoMetadataUnavailable => 'このソースは情報の更新に対応していません';
 
   @override
-  String get songInfoSearchTitle => 'Bloomee でこの曲を検索';
+  String get songInfoSearchTitle => 'JARX でこの曲を検索';
 
   @override
-  String get songInfoSearchArtist => 'Bloomee でこのアーティストを検索';
+  String get songInfoSearchArtist => 'JARX でこのアーティストを検索';
 
   @override
-  String get songInfoSearchAlbum => 'Bloomee でこのアルバムを検索';
+  String get songInfoSearchAlbum => 'JARX でこのアルバムを検索';
 
   @override
   String get eqTitle => 'イコライザー';
@@ -1530,7 +1530,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'インポータープラグインがありません。外部サービスから取り込むにはインストールしてください。';
 
   @override
-  String get importBloomeeFiles => 'Bloomee ファイルをインポート';
+  String get importBloomeeFiles => 'JARX ファイルをインポート';
 
   @override
   String get importM3UFiles => 'M3U プレイリストをインポート';
@@ -1548,7 +1548,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importNoteTitle => '注記';
 
   @override
-  String get importNoteMessage => 'Bloomee で作成されたファイルのみが対象です。続行しますか？';
+  String get importNoteMessage => 'JARX で作成されたファイルのみが対象です。続行しますか？';
 
   @override
   String get importTitle => 'インポート';
@@ -1978,7 +1978,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String updateAvailableBody(String ver, String build) {
-    return 'Bloomee🌸 の新しいバージョンが利用可能です！\n\nバージョン: $ver+$build';
+    return 'JARX の新しいバージョンが利用可能です！\n\nバージョン: $ver+$build';
   }
 
   @override
@@ -1997,7 +1997,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get pluginBootstrapTitle => 'Bloomee をセットアップ中';
+  String get pluginBootstrapTitle => 'JARX をセットアップ中';
 
   @override
   String pluginBootstrapProgress(int percent) {
@@ -2016,4 +2016,110 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginBootstrapContinue => 'そのまま続行';
+
+  @override
+  String get homeGreetingMorning => 'おはようございます';
+
+  @override
+  String get homeGreetingAfternoon => 'こんにちは';
+
+  @override
+  String get homeGreetingEvening => 'こんばんは';
+
+  @override
+  String get homeGreetingSubtitle => '前回の続きから';
+
+  @override
+  String get homeContinueListening => '続けて聴く';
+
+  @override
+  String get homeForYou => 'あなたへのおすすめ';
+
+  @override
+  String get homeForYouHint => 'この端末で、再生やスキップの履歴から選びました';
+
+  @override
+  String get homeSeeAll => 'すべて表示';
+
+  @override
+  String get homeJumpBackIn => '続きから再生';
+
+  @override
+  String get homeUpNext => '次のおすすめ';
+
+  @override
+  String get homePlayAll => 'すべて再生';
+
+  @override
+  String get homeYourPlaylists => 'あなたのプレイリスト';
+
+  @override
+  String get homeRecentlyPlayed => '最近再生した曲';
+
+  @override
+  String get homeAuto => '自動';
+
+  @override
+  String get homeLayoutSetting => 'ホームのレイアウト';
+
+  @override
+  String get homeLayoutChoose => 'ホームを選択';
+
+  @override
+  String get homeLayoutChooseHint => 'いちばん合うレイアウトを選んでください。';
+
+  @override
+  String get homeLayoutForYou => 'おすすめ';
+
+  @override
+  String get homeLayoutForYouDesc => 'あいさつ、続きから再生、おすすめ';
+
+  @override
+  String get homeLayoutMixes => 'ミックス';
+
+  @override
+  String get homeLayoutMixesDesc => 'プレイリストのグリッド、ムード、今日のミックス';
+
+  @override
+  String get homeLayoutPulse => 'パルス';
+
+  @override
+  String get homeLayoutPulseDesc => '大きな「続きから再生」カードと次のおすすめ一覧';
+
+  @override
+  String get homeLayoutUse => 'このレイアウトを使う';
+
+  @override
+  String get homeLayoutDoneTitle => 'ホームの準備ができました';
+
+  @override
+  String homeLayoutChangeLater(String path) {
+    return 'あとで 設定 › $path から変更できます。';
+  }
+
+  @override
+  String get homeLayoutGotIt => 'OK';
+
+  @override
+  String get homeTodaysMix => '今日のミックス';
+
+  @override
+  String homeMixSummary(String titles, int count) {
+    return '$titles ほか $count 曲';
+  }
+
+  @override
+  String get homeMoodChill => 'チル';
+
+  @override
+  String get homeMoodFocus => '集中';
+
+  @override
+  String get homeMoodRomance => 'ロマンス';
+
+  @override
+  String get homeMoodWorkout => 'ワークアウト';
+
+  @override
+  String get homeMoodParty => 'パーティー';
 }

@@ -9,7 +9,7 @@ Commands are PowerShell. `adb` is not on PATH, so:
 
 ```powershell
 $adb = "D:\Android\Sdk\platform-tools\adb.exe"
-$pkg = "ls.bloomee.musicplayer"
+$pkg = "com.jaiswal.jarx"
 $act = "$pkg/com.ryanheise.audioservice.AudioServiceActivity"
 ```
 
@@ -78,7 +78,7 @@ If the certificate differs, the options are:
   database and export JSON, then copy the files to the PC
   (`& $adb pull /sdcard/Download/<file>`). Then uninstall, install, restore.
 - **Install the test build side by side** under a test-only app ID (for
-  example `ls.bloomee.musicplayer.devtest`). This needs a small, opt-in
+  example `com.jaiswal.jarx.devtest`). This needs a small, opt-in
   Gradle change that I have not made. Your installed app and its data are
   untouched.
 

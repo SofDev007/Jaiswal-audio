@@ -30,6 +30,7 @@ class SettingsState extends Equatable {
   final String eqSource;
 
   final String homePluginId; // content resolver plugin for home sections
+  final String homeLayout; // a HomeLayout name, '' until the user picks one
   final String searchPluginId; // persisted search plugin selection
   final List<String> resolverPriority; // content resolver priority order
   final List<String> lyricsPriority; // lyrics provider plugin priority order
@@ -60,6 +61,7 @@ class SettingsState extends Equatable {
     required this.eqPreset,
     required this.eqSource,
     required this.homePluginId,
+    required this.homeLayout,
     required this.searchPluginId,
     required this.resolverPriority,
     required this.lyricsPriority,
@@ -91,6 +93,7 @@ class SettingsState extends Equatable {
     String? eqPreset,
     String? eqSource,
     String? homePluginId,
+    String? homeLayout,
     String? searchPluginId,
     List<String>? resolverPriority,
     List<String>? lyricsPriority,
@@ -124,6 +127,7 @@ class SettingsState extends Equatable {
       eqPreset: eqPreset ?? this.eqPreset,
       eqSource: eqSource ?? this.eqSource,
       homePluginId: homePluginId ?? this.homePluginId,
+      homeLayout: homeLayout ?? this.homeLayout,
       searchPluginId: searchPluginId ?? this.searchPluginId,
       resolverPriority: resolverPriority != null
           ? List<String>.from(resolverPriority)
@@ -161,6 +165,7 @@ class SettingsState extends Equatable {
         eqPreset,
         eqSource,
         homePluginId,
+        homeLayout,
         searchPluginId,
         resolverPriority,
         lyricsPriority,
@@ -195,6 +200,7 @@ class SettingsInitial extends SettingsState {
           eqPreset: 'Flat',
           eqSource: EqSourceValues.builtin,
           homePluginId: '',
+          homeLayout: '',
           searchPluginId: '',
           resolverPriority: const [],
           lyricsPriority: const [],

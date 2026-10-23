@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
@@ -482,7 +483,7 @@ class _PluginCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            manifest.name,
+                            pluginDisplayName(manifest.id, manifest.name),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.95),
                               fontSize: 15,
@@ -798,7 +799,7 @@ class _PluginDetailSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          manifest.name,
+                          pluginDisplayName(manifest.id, manifest.name),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -981,7 +982,7 @@ class _PluginDetailSheet extends StatelessWidget {
                       onPressed: operating
                           ? null
                           : () => _confirmDelete(
-                              context, manifest.id, manifest.name),
+                              context, manifest.id, pluginDisplayName(manifest.id, manifest.name)),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.red.withValues(alpha: 0.15),
                         shape: RoundedRectangleBorder(

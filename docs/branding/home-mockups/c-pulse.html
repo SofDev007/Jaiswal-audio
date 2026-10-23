@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>JARX Home C</title>
+<link rel="stylesheet" href="mockup.css">
+<style>
+  .hero { margin-top: 4px; border-radius: 22px; padding: 18px; position: relative; overflow: hidden;
+    background: radial-gradient(120% 90% at 100% 0%, rgba(255,77,46,.45), transparent 60%), var(--surface);
+    border: 1px solid var(--line); height: 250px; }
+  .hero .k { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); }
+  .hero .art { width: 92px; height: 92px; border-radius: 16px; font-size: 24px; margin-top: 12px; }
+  .hero .h { font-size: 24px; font-weight: 700; margin-top: 12px; }
+  .hero .m { font-size: 12.5px; color: var(--muted); }
+  .hero .bigplay { position: absolute; right: 18px; bottom: 18px; width: 62px; height: 62px; border-radius: 50%;
+    background: var(--accent); display: grid; place-items: center; box-shadow: 0 0 28px rgba(255,77,46,.55); }
+  .hero .bigplay svg { width: 26px; height: 26px; fill: #fff; }
+  .hero .pulse { position: absolute; left: 130px; right: 96px; top: 66px; height: 40px; }
+  .list { margin-top: 8px; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .item .art { width: 46px; height: 46px; border-radius: 10px; font-size: 13px; padding: 5px; flex: 0 0 46px; }
+  .item .t { flex: 1; min-width: 0; }
+  .item b { display: block; font-size: 13.5px; }
+  .item span { font-size: 11.5px; color: var(--muted); }
+  .item .reason { margin-top: 0; }
+</style></head>
+<body>
+<div class="status"><span>9:41</span><span>4G &nbsp;49%</span></div>
+<div class="screen">
+  <div class="label">Option C · Pulse</div>
+  <div class="content">
+    <div class="topbar">
+      <svg class="logo" viewBox="0 0 120 120"><rect width="120" height="120" rx="28" fill="#17171B"/><path d="M32 38 L46 38 L53 22 L62 54 L68 38 L88 38 L88 78 A20 20 0 0 1 48 78" fill="none" stroke="#FF4D2E" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="title">JARX</div>
+      <div class="spacer"></div>
+      <div class="iconbtn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>
+    </div>
+
+    <div class="hero">
+      <div class="k">JUMP BACK IN</div>
+      <div class="art a1">TH</div>
+      <svg class="pulse" viewBox="0 0 160 40" preserveAspectRatio="none"><path d="M0 22 H40 L50 6 L62 36 L72 22 H160" fill="none" stroke="#FF4D2E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>
+      <div class="h">Tum Ho</div>
+      <div class="m">Mohit Chauhan · 2:41 left</div>
+      <div class="bigplay"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+    </div>
+
+    <div class="section">
+      <h2>Up next for you <span class="more">Play all</span></h2>
+      <div class="list">
+        <div class="item"><div class="art a4">ZS</div><div class="t"><b>Zara Sa</b><span>KK</span></div><span class="reason">Because you played Tum Ho</span></div>
+        <div class="item"><div class="art a5">PL</div><div class="t"><b>Phir Le Aya Dil</b><span>Rekha Bhardwaj</span></div><span class="reason">From Soothing</span></div>
+        <div class="item"><div class="art a6">YH</div><div class="t"><b>Yun Hi</b><span>Mohit Chauhan</span></div><span class="reason">Same artist</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Your playlists</h2>
+      <div class="row">
+        <div class="card"><div class="art a3">So</div><div class="name">Soothing</div><div class="meta">57 tracks</div></div>
+        <div class="card"><div class="art a2">LS</div><div class="name">Liked songs</div><div class="meta">12 tracks</div></div>
+        <div class="card"><div class="art a4">RP</div><div class="name">Recently played</div><div class="meta">Auto</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mini"><div class="art a1">TH</div><div class="t"><b>Tum Ho</b><span>Mohit Chauhan · Rockstar</span></div><div class="play"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></div><div class="bar"><i></i></div></div>
+  <div class="nav">
+    <div class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</div>
+    <div><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Search</div>
+    <div><svg viewBox="0 0 24 24"><path d="M4 4v16M9 4v16M14 4l6 16"/></svg>Library</div>
+    <div><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Local</div>
+  </div>
+</div>
+</body></html>

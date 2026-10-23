@@ -1,0 +1,91 @@
+/* Shared styles for the JARX Home mock-ups (412 x 892 CSS px phone). */
+@font-face { font-family: Poppins; src: url("../../../assets/fonts/Poppins/Poppins-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: Poppins; src: url("../../../assets/fonts/Poppins/Poppins-Bold.ttf"); font-weight: 700; }
+
+:root {
+  --ink: #0E0E10;
+  --surface: #17171B;
+  --surface-2: #202026;
+  --line: #2A2A31;
+  --accent: #FF4D2E;
+  --accent-soft: rgba(255, 77, 46, 0.14);
+  --text: #F5F5F7;
+  --muted: #9A9AA3;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 412px; height: 892px; background: var(--ink); color: var(--text);
+  font-family: Poppins, sans-serif; overflow: hidden; }
+
+.status { height: 32px; display: flex; justify-content: space-between; align-items: center;
+  padding: 0 20px; font-size: 12px; color: var(--text); }
+.screen { position: relative; height: 860px; overflow: hidden; }
+.content { padding: 4px 16px 0; }
+
+.topbar { display: flex; align-items: center; gap: 10px; padding: 10px 0 14px; }
+.logo { width: 30px; height: 30px; }
+.topbar .title { font-size: 21px; font-weight: 700; letter-spacing: 0.2px; }
+.topbar .sub { font-size: 12px; color: var(--muted); }
+.topbar .spacer { flex: 1; }
+.iconbtn { width: 36px; height: 36px; border-radius: 50%; background: var(--surface);
+  display: grid; place-items: center; }
+.iconbtn svg { width: 18px; height: 18px; stroke: var(--text); fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; }
+
+.section { margin-top: 18px; }
+.section h2 { font-size: 16px; font-weight: 700; display: flex; align-items: baseline; gap: 8px; }
+.section h2 .more { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--accent); }
+.section .hint { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.row { display: flex; gap: 12px; margin-top: 10px; overflow: hidden; }
+.card { flex: 0 0 124px; }
+.card .art { width: 124px; height: 124px; border-radius: 14px; position: relative; overflow: hidden; }
+.card .name { font-size: 12.5px; font-weight: 700; margin-top: 7px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.card .meta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+.reason { display: inline-block; margin-top: 4px; font-size: 10px; color: var(--accent);
+  background: var(--accent-soft); border-radius: 6px; padding: 1px 6px; }
+
+/* Placeholder artwork: colour fields with the track's initials (no real cover art). */
+.art { display: grid; place-items: end start; padding: 8px; font-weight: 700; font-size: 20px;
+  color: rgba(255, 255, 255, 0.9); }
+.a1 { background: linear-gradient(135deg, #3B1F5C, #C04A7A); }
+.a2 { background: linear-gradient(135deg, #12343B, #2C8C8C); }
+.a3 { background: linear-gradient(135deg, #3A2A14, #C98A2E); }
+.a4 { background: linear-gradient(135deg, #1B2240, #4E6CD6); }
+.a5 { background: linear-gradient(135deg, #3B1414, #D2503A); }
+.a6 { background: linear-gradient(135deg, #1F3318, #6BA04A); }
+.progress { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
+
+.chips { display: flex; gap: 8px; margin-top: 10px; overflow: hidden; }
+.chip { flex: 0 0 auto; font-size: 12px; padding: 7px 14px; border-radius: 18px;
+  background: var(--surface); border: 1px solid var(--line); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
+/* Mini player and bottom navigation, shared by all three options. */
+.mini { position: absolute; left: 10px; right: 10px; bottom: 74px; height: 60px; border-radius: 14px;
+  background: var(--surface-2); display: flex; align-items: center; gap: 10px; padding: 0 10px;
+  border: 1px solid var(--line); }
+.mini .art { width: 42px; height: 42px; border-radius: 9px; font-size: 13px; padding: 5px; }
+.mini .t { flex: 1; min-width: 0; }
+.mini .t b { display: block; font-size: 13px; }
+.mini .t span { font-size: 11px; color: var(--muted); }
+.play { width: 38px; height: 38px; border-radius: 50%; background: var(--accent);
+  display: grid; place-items: center; }
+.play svg { width: 16px; height: 16px; fill: #fff; }
+.mini .bar { position: absolute; left: 12px; right: 12px; bottom: 4px; height: 2px;
+  background: var(--line); border-radius: 2px; }
+.mini .bar i { display: block; width: 38%; height: 100%; background: var(--accent); border-radius: 2px; }
+
+.nav { position: absolute; left: 0; right: 0; bottom: 0; height: 66px; background: #0A0A0C;
+  border-top: 1px solid var(--line); display: flex; justify-content: space-around; align-items: center; }
+.nav div { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px;
+  color: var(--muted); }
+.nav div.on { color: var(--accent); font-weight: 700; }
+.nav svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; }
+.nav div.on::after { content: ""; width: 18px; height: 3px; border-radius: 2px; background: var(--accent); }
+
+.label { position: absolute; top: -26px; left: 50%; transform: translateX(-50%); font-size: 10px;
+  color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 1px 8px; }
