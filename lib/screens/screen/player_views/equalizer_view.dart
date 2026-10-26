@@ -553,34 +553,55 @@ class _EqualizerViewState extends State<EqualizerView>
                               ),
                             ],
                           ),
-                          if (_eqSource == EqSourceValues.device) ...[
-                            const SizedBox(height: 10),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: accent.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(Icons.info_outline_rounded,
-                                      color: accent, size: 16),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'In-app EQ is disabled. Configure your device EQ in:\nSettings → Sound & Vibration → Equalizer',
-                                      style: TextStyle(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.7),
-                                          fontSize: 12,
-                                          height: 1.5),
-                                    ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.info_outline_rounded,
+                                    color: accent, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _eqSource == EqSourceValues.device
+                                        ? 'In-app EQ is off, so your equalizer app (Wavelet, Equalizer FX and others) controls JARX\'s sound. Choose JARX in it if it asks.'
+                                        : 'While this EQ is on, equalizer apps let go of JARX. System-wide effects still apply to every app: an equalizer app in global mode, or Dolby/Dirac in the phone\'s sound settings. Turn those off for the built-in EQ alone.',
+                                    style: TextStyle(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.7),
+                                        fontSize: 12,
+                                        height: 1.5),
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_eqSource == EqSourceValues.device)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () async {
+                                  if (await _engine.openExternalEqualizer() ||
+                                      !context.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'No equalizer app found. The phone\'s own EQ is in Settings → Sound & Vibration → Equalizer.')),
+                                  );
+                                },
+                                icon: Icon(Icons.open_in_new_rounded,
+                                    color: accent, size: 18),
+                                label: Text('Open equalizer app',
+                                    style: TextStyle(color: accent)),
                               ),
                             ),
-                          ],
                         ],
                       ),
                     ),

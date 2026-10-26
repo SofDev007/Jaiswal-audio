@@ -51,3 +51,27 @@ Checked 2026-10-23 on the realme 5 Pro (Android 11) with JARX build 3–4.
    dependency and native-build change: its own phase.
 4. Remove the temporary EQ diagnostics in `player_engine.dart` (mpv log
    forwarding and the read-back print) once 1 is done.
+
+## Update 2026-10-26: per-app hand-off implemented (build 16, not yet heard on device)
+
+Item 3 turned out not to need a custom mpv build. The bundled libmpv has
+mpv's AudioTrack output with `audiotrack-session-id`; media_kit just forces
+`ao=opensles`, and it already registers the Java VM with mpv.
+
+- `PlayerEngine` generates a session (`AndroidAudioManager.generateAudioSessionId`),
+  sets `audiotrack-session-id` and `ao=audiotrack,opensles` on both players
+  (OpenSL ES is the fallback), and waits for that before opening tracks.
+- In-app EQ **off** (switch off, or "Device EQ" source): JARX broadcasts
+  `OPEN_AUDIO_EFFECT_CONTROL_SESSION`, so per-app equalizers attach to JARX.
+- In-app EQ **on**: JARX broadcasts `CLOSE_…`, so they let go of JARX.
+- `MainActivity` sends the broadcasts implicitly and also directly to each
+  receiver (Android 8+ drops implicit ones for manifest receivers; listed in
+  `<queries>`), and opens the EQ app's panel ("Open equalizer app" in Device EQ).
+- Still true: system-wide effects (an EQ app's global mode, Dolby/Dirac in the
+  phone's sound settings) apply to every app and cannot be blocked.
+
+Test on device: (a) audio still plays; (b) Device EQ → "Open equalizer app"
+opens Equalizer FX / Wavelet and its changes are heard; (c) switch to Built-in
+EQ on → the external app's changes stop; (d) crossfade between tracks still
+works; (e) `adb logcat | grep -i "audiotrack\|opensles"` shows mpv using
+AudioTrack.

@@ -97,5 +97,15 @@
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
         </intent>
+        <!-- Equalizer apps, so JARX can hand them its audio session (MainActivity). -->
+        <intent>
+            <action android:name="android.media.action.OPEN_AUDIO_EFFECT_CONTROL_SESSION" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.CLOSE_AUDIO_EFFECT_CONTROL_SESSION" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
+        </intent>
     </queries>
 </manifest>

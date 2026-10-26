@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io' show Platform;
+
+import 'package:audio_session/audio_session.dart' show AndroidAudioManager;
+import 'package:flutter/services.dart' show MethodChannel;
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:media_kit/media_kit.dart';
@@ -168,6 +172,7 @@ class PlayerEngine {
 
     _configureNativePlayer(_playerA);
     _configureNativePlayer(_playerB);
+    _audioSessionReady = _setUpAudioSession();
 
     _activePlayerSubject = BehaviorSubject.seeded(_playerA);
     _subs = _buildSubscriptions();
@@ -339,6 +344,7 @@ class PlayerEngine {
     setLoadingState();
 
     try {
+      await _audioSessionReady;
       await _active.setVolume(_userVolume * 100.0);
       await _active.open(Media(uri.toString(), httpHeaders: httpHeaders),
           play: autoPlay);
@@ -634,6 +640,7 @@ class PlayerEngine {
     }
 
     try {
+      await _audioSessionReady;
       await _standby.setVolume(0);
       await _standby.open(Media(uri.toString(), httpHeaders: httpHeaders),
           play: false);
@@ -680,7 +687,67 @@ class PlayerEngine {
     _eqEnabled = enabled;
     _eqEnabledSubject.add(enabled);
     _eqApplyDebounceTimer?.cancel();
+    unawaited(_audioSessionReady.then((_) => _syncExternalEq()));
     await _applyEqualizer();
+  }
+
+  // ── External equalizers (Android) ──────────────────────────────────────────
+  //
+  // media_kit plays through OpenSL ES, which has no Android audio session, so
+  // equalizer apps could not find JARX. Both players instead play through
+  // AudioTrack into one session JARX creates. While the in-app EQ is off,
+  // JARX offers that session to equalizer apps; while it is on, JARX takes it
+  // back so they stop processing JARX. System-wide effects (Dolby or Dirac in
+  // the phone's sound settings, an EQ app's global mode) apply to every app's
+  // output, and no app can opt out of those.
+
+  static const _audioEffects = MethodChannel('jarx/audio_effects');
+  late final Future<void> _audioSessionReady;
+  int? _audioSessionId;
+  bool? _externalEqOpen;
+
+  Future<void> _setUpAudioSession() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final id = await AndroidAudioManager().generateAudioSessionId();
+      for (final player in [_playerA, _playerB]) {
+        final native = player.platform as NativePlayer;
+        await native.setProperty('audiotrack-session-id', '$id');
+        // OpenSL ES stays as the fallback if AudioTrack cannot start.
+        await native.setProperty('ao', 'audiotrack,opensles');
+      }
+      _audioSessionId = id;
+    } catch (e) {
+      log('Audio session setup failed, staying on OpenSL ES: $e',
+          name: 'PlayerEngine');
+    }
+  }
+
+  /// Offers the session to equalizer apps while the in-app EQ is off and
+  /// takes it back while it is on (or once the engine is disposed).
+  Future<void> _syncExternalEq() async {
+    final id = _audioSessionId;
+    final open = !_eqEnabled && !_disposed;
+    if (id == null || open == _externalEqOpen) return;
+    _externalEqOpen = open;
+    try {
+      await _audioEffects.invokeMethod(open ? 'open' : 'close', id);
+    } catch (e) {
+      log('External EQ hand-off failed: $e', name: 'PlayerEngine');
+    }
+  }
+
+  /// Opens the installed equalizer app on JARX's session. False when there
+  /// is no session or no equalizer app.
+  Future<bool> openExternalEqualizer() async {
+    await _audioSessionReady;
+    final id = _audioSessionId;
+    if (id == null) return false;
+    try {
+      return await _audioEffects.invokeMethod<bool>('panel', id) ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> setEqualizerBandGain(int bandIndex, double gain,
@@ -812,6 +879,7 @@ class PlayerEngine {
     _fadeOutCleanupTimer?.cancel();
     _eqApplyDebounceTimer?.cancel();
     _isTransitioning = false;
+    await _syncExternalEq();
 
     for (final sub in _subs) {
       await sub.cancel();
