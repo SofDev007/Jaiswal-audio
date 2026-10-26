@@ -59,7 +59,7 @@ class PluginBootstrapProgress {
 
 class PluginBootstrapService {
   static const String hostedRepositoriesUrl =
-      'https://hemantkarya.github.io/BloomeeTunes/repositories.json';
+      'https://raw.githubusercontent.com/SofDev007/jarx-plugins/main/repositories.json';
 
   static const int maxRetries = 3;
 
