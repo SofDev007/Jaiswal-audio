@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'song_tile.dart';
 import 'more_bottom_sheet.dart';
+import 'never_suggest_button.dart';
 import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class _UpNextStyles {
@@ -661,24 +662,39 @@ class _QueueItem extends StatelessWidget {
                               songModel.artists.map((a) => a.name).join(', '),
                               recReasonText(AppLocalizations.of(context)!, reason),
                             ].where((s) => s.isNotEmpty).join(' · '),
-                      trailing: IconButton(
-                        tooltip: 'More options',
-                        iconSize: 20,
-                        splashRadius: 18,
-                        padding: const EdgeInsets.all(6),
-                        constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
-                        ),
-                        color: Default_Theme.primaryColor2.withValues(alpha: 0.65),
-                        icon: const Icon(Icons.more_horiz_rounded),
-                        onPressed: () => showMoreBottomSheet(
-                          context,
-                          songModel,
-                          showAddToQueue: false,
-                          showPlayNext: false,
-                          showSinglePlay: true,
-                        ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Suggested: the minus button blocks it for good.
+                          if (reason != null)
+                            NeverSuggestButton(
+                              track: songModel,
+                              onBlocked: () => playerCubit.bloomeePlayer
+                                  .removeQueueItemAt(index),
+                            ),
+                          IconButton(
+                            tooltip: 'More options',
+                            iconSize: 20,
+                            splashRadius: 18,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            color: Default_Theme.primaryColor2
+                                .withValues(alpha: 0.65),
+                            icon: const Icon(Icons.more_horiz_rounded),
+                            onPressed: () => showMoreBottomSheet(
+                              context,
+                              songModel,
+                              showAddToQueue: false,
+                              showPlayNext: false,
+                              showSinglePlay: true,
+                              onRemoveFromQueue: () => playerCubit.bloomeePlayer
+                                  .removeQueueItemAt(index),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

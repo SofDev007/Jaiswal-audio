@@ -737,6 +737,13 @@ class PlayerEngine {
     }
   }
 
+  /// JARX's Android audio session, for the live visualizer. Null off Android
+  /// or when the session could not be set up.
+  Future<int?> get audioSessionId async {
+    await _audioSessionReady;
+    return _audioSessionId;
+  }
+
   /// Opens the installed equalizer app on JARX's session. False when there
   /// is no session or no equalizer app.
   Future<bool> openExternalEqualizer() async {
@@ -847,6 +854,12 @@ class PlayerEngine {
       debugPrint('EQ af apply error: $e');
     }
   }
+
+  /// Loudness of what is playing, for the Pulse card's wave. Always null:
+  /// the bundled libmpv has no `astats` filter, and adding it to `af` made
+  /// mpv reject the whole filter chain, so nothing played (build 19).
+  // ponytail: needs a libmpv/ffmpeg build with astats for a real meter.
+  Future<double?> audioLevelDb() async => null;
 
   String _buildEqualizerFilter() {
     final parts = <String>[];

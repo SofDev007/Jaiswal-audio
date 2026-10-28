@@ -2249,4 +2249,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeMoodParty => 'Party';
+
+  @override
+  String get menuRemoveFromQueue => 'Remove from queue';
+
+  @override
+  String snackbarRemovedFromQueue(String title) {
+    return 'Removed \"$title\" from the queue';
+  }
+
+  @override
+  String get menuRemoveFromPlaylist => 'Remove from playlist';
+
+  @override
+  String get neverSuggestTooltip => 'Never suggest this song';
+
+  @override
+  String neverSuggestDone(String title) {
+    return '\"$title\" won\'t be suggested again';
+  }
+
+  @override
+  String get neverSuggestUndo => 'Undo';
 }

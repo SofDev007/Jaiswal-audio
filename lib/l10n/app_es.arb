@@ -785,5 +785,11 @@
   "homeMoodFocus": "Concentración",
   "homeMoodRomance": "Romance",
   "homeMoodWorkout": "Ejercicio",
-  "homeMoodParty": "Fiesta"
+  "homeMoodParty": "Fiesta",
+  "menuRemoveFromQueue": "Quitar de la cola",
+  "snackbarRemovedFromQueue": "Se quitó \"{title}\" de la cola",
+  "menuRemoveFromPlaylist": "Quitar de la playlist",
+  "neverSuggestTooltip": "No sugerir nunca esta canción",
+  "neverSuggestDone": "\"{title}\" no se volverá a sugerir",
+  "neverSuggestUndo": "Deshacer"
 }

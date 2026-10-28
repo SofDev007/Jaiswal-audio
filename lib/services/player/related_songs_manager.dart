@@ -13,6 +13,7 @@ import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/services/recommendations/candidate_gatherer.dart';
 import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
+import 'package:Bloomee/services/recommendations/suggestion_blocklist.dart';
 import 'package:rxdart/rxdart.dart';
 
 typedef TasteLoader = Future<UserTaste> Function(RecommendationRanker ranker);
@@ -71,11 +72,13 @@ class RelatedSongsManager {
           .loadPlaylist(PlaylistDAO.likedPlaylist)
           .then((p) => p.tracks),
       HistoryDAO(DBProvider.db, trackDao).getHistory(limit: 200),
+      SuggestionBlocklist.load(),
     ]);
     return ranker.buildTaste(
       signals: results[0] as List<TrackSignal>,
       liked: results[1] as List<Track>,
       history: results[2] as List<Track>,
+      blocked: results[3] as Set<String>,
     );
   }
 

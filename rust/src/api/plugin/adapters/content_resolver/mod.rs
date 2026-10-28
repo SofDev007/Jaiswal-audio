@@ -444,7 +444,7 @@ fn to_audio_album(a: bindgen::AlbumSummary) -> AlbumSummary {
 fn to_audio_track(t: bindgen::Track) -> Track {
     Track {
         id: t.id,
-        title: t.title,
+        title: crate::utils::normal_case(t.title),
         artists: t.artists.into_iter().map(to_audio_artist).collect(),
         album: t.album.map(to_audio_album),
         duration_ms: t.duration_ms,

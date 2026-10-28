@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' as io;
+import 'package:Bloomee/services/app_restart.dart';
 import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
 import 'package:Bloomee/blocs/global_events/global_events_cubit.dart';
 import 'package:Bloomee/blocs/internet_connectivity/cubit/connectivity_cubit.dart';
@@ -157,10 +158,24 @@ Future<void> main() async {
   MediaKit.ensureInitialized();
   unawaited(setHighRefreshRate());
   // The JARX intro plays while the app initialises; see JarxLaunch.
-  runApp(JarxLaunch(init: _initApp, app: (_) => const MyApp()));
+  runApp(JarxLaunch(init: _initOrRestart, app: (_) => const MyApp()));
 }
 
 /// Everything MyApp needs before its first frame.
+/// [_initApp], restarting the process once if the database is still locked
+/// by an earlier engine in this process (see [AppRestart]).
+Future<void> _initOrRestart() async {
+  try {
+    await _initApp();
+  } catch (e) {
+    // The process is ending: keep the intro on screen until it does.
+    if (await AppRestart.restartIfDatabaseLocked(e)) {
+      return Completer<void>().future;
+    }
+    rethrow;
+  }
+}
+
 Future<void> _initApp() async {
   await bootstrapApp();
   await setupPlayerCubit();

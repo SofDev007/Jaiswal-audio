@@ -785,5 +785,11 @@
   "homeMoodFocus": "专注",
   "homeMoodRomance": "浪漫",
   "homeMoodWorkout": "健身",
-  "homeMoodParty": "派对"
+  "homeMoodParty": "派对",
+  "menuRemoveFromQueue": "从队列中移除",
+  "snackbarRemovedFromQueue": "已从队列中移除“{title}”",
+  "menuRemoveFromPlaylist": "从歌单中移除",
+  "neverSuggestTooltip": "不再推荐这首歌",
+  "neverSuggestDone": "不会再推荐“{title}”",
+  "neverSuggestUndo": "撤销"
 }

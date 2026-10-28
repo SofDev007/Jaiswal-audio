@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
+import 'package:Bloomee/screens/screen/home_views/setting_views/about_photos.dart';
+import 'package:Bloomee/screens/widgets/round_carousel.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -72,18 +74,20 @@ class About extends StatelessWidget {
             child: ConstrainedBox(
               constraints:
                   const BoxConstraints(maxWidth: 480), // Responsive constraint
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              // Scrolls on short screens; centred when everything fits.
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                    20, MediaQuery.paddingOf(context).top + kToolbarHeight, 20, 12),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Spacer(),
                     _buildInfoCard(context, l10n),
-                    const Spacer(),
-                    // Footer moved to bottom of screen
-                    const SizedBox(height: 12),
+                    if (aboutPhotos.isNotEmpty) ...[
+                      const SizedBox(height: 28),
+                      const RoundCarousel(photos: aboutPhotos),
+                    ],
+                    const SizedBox(height: 24),
                     _buildFooter(l10n),
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),

@@ -10,6 +10,7 @@ import 'package:Bloomee/screens/widgets/gradient_progress_bar.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/up_next_panel.dart';
 import 'package:Bloomee/screens/widgets/media_metadata_links.dart';
+import 'package:Bloomee/screens/widgets/marquee_overflow.dart';
 import 'package:Bloomee/screens/screen/player_views/segments_sheet.dart';
 import 'package:Bloomee/services/bloomee_player.dart';
 import 'package:audio_service/audio_service.dart';
@@ -105,8 +106,10 @@ class _AudioPlayerViewState extends State<AudioPlayerView>
                 size: 22, color: Default_Theme.primaryColor1),
           ),
           IconButton(
-            onPressed: () =>
-                showMoreBottomSheet(context, musicPlayer.currentMedia),
+            onPressed: () => showMoreBottomSheet(
+                context, musicPlayer.currentMedia,
+                onRemoveFromQueue: () => musicPlayer
+                    .removeQueueItemAt(musicPlayer.currentQueueIndex)),
             icon: const Icon(MingCute.more_2_fill,
                 size: 25, color: Default_Theme.primaryColor1),
           )
@@ -325,28 +328,33 @@ class _SongInfoRow extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    currentTrack.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        Default_Theme.secondoryTextStyle.merge(const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Default_Theme.primaryColor1,
-                    )),
+                  MarqueeOverflow(
+                    key: ValueKey('title-${currentTrack.id}'),
+                    child: Text(
+                      currentTrack.title,
+                      maxLines: 1,
+                      style: Default_Theme.secondoryTextStyle
+                          .merge(const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Default_Theme.primaryColor1,
+                      )),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  TrackMetadataLinks(
-                    track: currentTrack,
-                    showAlbum: currentTrack.album != null,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Default_Theme.secondoryTextStyle.merge(TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Default_Theme.primaryColor1.withValues(alpha: 0.7),
-                    )),
+                  MarqueeOverflow(
+                    key: ValueKey('meta-${currentTrack.id}'),
+                    child: TrackMetadataLinks(
+                      track: currentTrack,
+                      showAlbum: currentTrack.album != null,
+                      maxLines: 1,
+                      style: Default_Theme.secondoryTextStyle.merge(TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color:
+                            Default_Theme.primaryColor1.withValues(alpha: 0.7),
+                      )),
+                    ),
                   ),
                 ],
               );

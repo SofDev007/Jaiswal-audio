@@ -3,6 +3,7 @@
 // For you cards. B "Mixes": mood shortcuts, a playlist grid and Today's mix.
 // C "Pulse": Jump back in, Up next for you and Your playlists.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:Bloomee/blocs/explore/cubit/explore_cubits.dart';
@@ -18,8 +19,11 @@ import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/screens/screen/home_views/recents_view.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/about.dart';
-import 'package:Bloomee/screens/screen/library_screen.dart' show openLibraryItem;
+import 'package:Bloomee/screens/screen/library_screen.dart'
+    show openLibraryItem;
+import 'package:Bloomee/screens/widgets/live_visualizer.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
+import 'package:Bloomee/screens/widgets/never_suggest_button.dart';
 import 'package:Bloomee/screens/widgets/up_next_panel.dart' show recReasonText;
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
@@ -27,8 +31,10 @@ import 'package:Bloomee/services/meta_resolver/cross_plugin_resolver.dart';
 import 'package:Bloomee/services/player/related_songs_manager.dart';
 import 'package:Bloomee/services/recommendations/candidate_gatherer.dart';
 import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
+import 'package:Bloomee/services/recommendations/suggestion_blocklist.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -266,14 +272,32 @@ class _TrackRow extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: LoadImageCached(
-                            imageUrl: t.thumbnail.urlHigh ?? t.thumbnail.url,
-                            fallbackUrl: t.thumbnail.url,
-                            width: _cardSize,
-                            height: _cardSize,
-                          ),
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: LoadImageCached(
+                                imageUrl:
+                                    t.thumbnail.urlHigh ?? t.thumbnail.url,
+                                fallbackUrl: t.thumbnail.url,
+                                width: _cardSize,
+                                height: _cardSize,
+                              ),
+                            ),
+                            // Suggestions only: never suggest this one again.
+                            if (captions != null)
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.black.withValues(alpha: 0.45),
+                                  ),
+                                  child: NeverSuggestButton(track: t),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 7),
                         Text(t.title,
@@ -585,10 +609,12 @@ class JumpBackInCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            const Expanded(
+                            Expanded(
                               child: SizedBox(
                                 height: 40,
-                                child: CustomPaint(painter: _PulsePainter()),
+                                child: LivePulseVisualizer(
+                                    trackId: t.id,
+                                    fallback: _LivePulse(trackId: t.id)),
                               ),
                             ),
                             const SizedBox(width: 24),
@@ -601,8 +627,8 @@ class JumpBackInCard extends StatelessWidget {
                             t.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Default_Theme.secondoryTextStyleMedium
-                                .merge(const TextStyle(
+                            style: Default_Theme.secondoryTextStyleMedium.merge(
+                                const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                     color: Default_Theme.primaryColor1)),
@@ -677,6 +703,150 @@ class _PulsePainter extends CustomPainter {
   bool shouldRepaint(_PulsePainter oldDelegate) => false;
 }
 
+/// The Pulse card's heartbeat line. Still unless [trackId] is playing; then
+/// a wave driven by the music's loudness scrolls right to left and every
+/// beat lifts a taller spike.
+class _LivePulse extends StatefulWidget {
+  const _LivePulse({required this.trackId});
+
+  final String trackId;
+
+  @override
+  State<_LivePulse> createState() => _LivePulseState();
+}
+
+class _LivePulseState extends State<_LivePulse>
+    with SingleTickerProviderStateMixin {
+  // Tuning knobs, set by eye on the test phone.
+  static const _sampleEvery = Duration(milliseconds: 33);
+  static const _floorDb = -50.0; // quieter than this draws flat
+  static const _lagSamples =
+      6; // ~200 ms: mpv filters audio ahead of the speaker
+  static const _points = 40; // spikes across the card
+
+  late final _player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+  late final Ticker _ticker = createTicker(_tick);
+  late final StreamSubscription<bool> _playingSub;
+  final _wave = _Wave();
+  Duration _last = Duration.zero;
+  bool _polling = false;
+  double _avg = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _playingSub = _player.engine.playingStream.listen((playing) {
+      if (playing && !_ticker.isActive) {
+        _last = Duration.zero;
+        _ticker.start();
+      } else if (!playing && _ticker.isActive) {
+        _ticker.stop();
+        _wave.reset();
+      }
+    });
+  }
+
+  Future<void> _tick(Duration elapsed) async {
+    if (_polling || elapsed - _last < _sampleEvery) return;
+    if (_player.currentMedia.id != widget.trackId) {
+      _wave.reset();
+      return;
+    }
+    _last = elapsed;
+    _polling = true;
+    final db = await _player.engine.audioLevelDb();
+    _polling = false;
+    if (!mounted || !_ticker.isActive) return;
+    // No loudness reading (see PlayerEngine.audioLevelDb): a steady
+    // "lub-dub" heartbeat at 75 bpm instead.
+    final t = (elapsed.inMilliseconds % 800) / 800;
+    final x = db != null
+        ? ((db - _floorDb) / -_floorDb).clamp(0.0, 1.0)
+        : t < 0.08
+            ? 1.0
+            : t > 0.18 && t < 0.24
+                ? 0.6
+                : 0.05;
+    _avg += (x - _avg) * 0.08;
+    // A beat is a jump above the recent average loudness.
+    final beat = ((x - _avg) * 4).clamp(0.0, 1.0);
+    _wave.push(x * 0.35 + beat * 0.65, keep: _points + _lagSamples);
+  }
+
+  @override
+  void dispose() {
+    _playingSub.cancel();
+    _ticker.dispose();
+    _wave.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+      painter: _WavePainter(_wave, points: _points, lag: _lagSamples));
+}
+
+/// Recent loudness samples for [_WavePainter], newest last.
+class _Wave extends ChangeNotifier {
+  final samples = <double>[];
+
+  /// Samples ever pushed; keeps each spike on the same side while it scrolls.
+  int count = 0;
+
+  void push(double v, {required int keep}) {
+    samples.add(v);
+    count++;
+    if (samples.length > keep) samples.removeAt(0);
+    notifyListeners();
+  }
+
+  void reset() {
+    if (samples.isEmpty) return;
+    samples.clear();
+    notifyListeners();
+  }
+}
+
+class _WavePainter extends CustomPainter {
+  _WavePainter(this.wave, {required this.points, required this.lag})
+      : super(repaint: wave);
+
+  final _Wave wave;
+  final int points;
+  final int lag;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = wave.samples;
+    if (s.length <= lag) {
+      const _PulsePainter().paint(canvas, size);
+      return;
+    }
+    // Same baseline and spike room as the still heartbeat (160 x 40 mock-up).
+    final sy = size.height / 40, base = 22 * sy;
+    final dx = size.width / (points - 1);
+    final shown = s.length - lag;
+    final path = Path()..moveTo(0, base);
+    for (var j = 0; j < shown; j++) {
+      final age = shown - 1 - j; // 0 = newest shown sample, at the right edge
+      final up = (wave.count - lag - age).isEven;
+      path.lineTo(size.width - age * dx, base + (up ? -16 : 14) * sy * s[j]);
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Default_Theme.accentColor2.withValues(alpha: 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter oldDelegate) => false;
+}
+
 /// The first picks as a list with their reasons; "Play all" plays every pick.
 class _UpNextList extends StatelessWidget {
   const _UpNextList({required this.picks});
@@ -742,9 +912,10 @@ class _UpNextList extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 150),
+                      constraints: const BoxConstraints(maxWidth: 130),
                       child: _ReasonChip(recReasonText(l10n, picks[i].$2)),
                     ),
+                    NeverSuggestButton(track: picks[i].$1),
                   ],
                 ),
               ),
@@ -1064,6 +1235,7 @@ class _ForYouRowState extends State<ForYouRow> {
 
   Future<List<ForYouPick>> _load(Track seed, List<Track> recent) async {
     final settings = SettingsDAO(DBProvider.db);
+    await SuggestionBlocklist.load(); // cached picks are filtered by it
     final saved = decodeForYou(
         await settings.getSettingStr(SettingKeys.forYouCache),
         seed.id,
@@ -1118,12 +1290,21 @@ class _ForYouRowState extends State<ForYouRow> {
         }
         return FutureBuilder<List<ForYouPick>>(
           future: _future,
-          builder: (context, snap) {
-            final picks = snap.data ?? const [];
-            return picks.isEmpty
-                ? const SizedBox.shrink()
-                : widget.builder(picks);
-          },
+          builder: (context, snap) => StreamBuilder<Set<String>>(
+            // A pick blocked with the minus button disappears at once.
+            stream: SuggestionBlocklist.keys,
+            builder: (context, blocked) {
+              final picks = [
+                for (final p in snap.data ?? const <ForYouPick>[])
+                  if (!(blocked.data ?? const {})
+                      .contains(SuggestionBlocklist.keyOf(p.$1)))
+                    p
+              ];
+              return picks.isEmpty
+                  ? const SizedBox.shrink()
+                  : widget.builder(picks);
+            },
+          ),
         );
       },
     );

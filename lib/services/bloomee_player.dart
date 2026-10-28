@@ -1055,8 +1055,17 @@ class BloomeeMusicPlayer extends BaseAudioHandler
       _queueManager.insertTrack(index, mediaItemToTrack(mi));
 
   @override
-  Future<void> removeQueueItemAt(int index) async =>
-      _queueManager.removeTrackAt(index);
+  /// Removes the queue item at [index]. Removing the playing track starts
+  /// the one that takes its place (or stops after the last one) instead of
+  /// letting the removed track play on.
+  Future<void> removeQueueItemAt(int index) async {
+    final wasPlaying = index == _queueManager.currentIndex;
+    final wasLast = index == _queueManager.length - 1;
+    _queueManager.removeTrackAt(index);
+    if (!wasPlaying) return;
+    if (wasLast || _queueManager.length == 0) return stop();
+    await skipToQueueItem(_queueManager.currentIndex);
+  }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async =>
       _queueManager.moveTrack(oldIndex, newIndex);

@@ -4,35 +4,32 @@ import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:rxdart/rxdart.dart';
 
-/// Whether sound is coming from the phone's own speaker, with no headphones,
-/// Bluetooth, USB or other output connected. The in-app equalizer is skipped
-/// then: boosting a phone speaker only makes it distort.
+/// Whether sound is coming from the phone's own speaker, with no headphones
+/// (jack or USB-C) or Bluetooth device connected. The in-app equalizer only
+/// runs on those: boosting a phone speaker only makes it distort.
 class OutputRoute {
   OutputRoute._();
 
-  static final phoneSpeaker = BehaviorSubject<bool>.seeded(false);
+  /// Phones start as "speaker" so the EQ never plays on it before the first
+  /// device check; desktops have no speaker to protect.
+  static final phoneSpeaker =
+      BehaviorSubject<bool>.seeded(Platform.isAndroid || Platform.isIOS);
   static StreamSubscription? _sub;
 
-  /// Device types that are part of the phone itself, not a listening device.
-  static const _phoneOwn = {
-    AudioDeviceType.unknown,
-    AudioDeviceType.builtInEarpiece,
-    AudioDeviceType.builtInSpeaker,
-    AudioDeviceType.builtInSpeakerSafe,
-    AudioDeviceType.builtInMic,
-    AudioDeviceType.telephony,
-    AudioDeviceType.fm,
-    AudioDeviceType.fmTuner,
-    AudioDeviceType.tvTuner,
-    AudioDeviceType.ip,
-    AudioDeviceType.bus,
-    AudioDeviceType.virtual,
+  /// Headphones and Bluetooth: the only outputs the EQ is allowed on.
+  static const _listening = {
+    AudioDeviceType.wiredHeadset,
+    AudioDeviceType.wiredHeadphones,
+    AudioDeviceType.usbAudio, // USB-C earphones / dongles on jack-less phones
+    AudioDeviceType.bluetoothA2dp,
+    AudioDeviceType.bluetoothSco,
+    AudioDeviceType.bluetoothLe,
+    AudioDeviceType.hearingAid,
   };
 
-  /// True when none of [outputs] is a headphone, Bluetooth, USB or similar
-  /// device.
+  /// True when none of [outputs] is headphones or a Bluetooth device.
   static bool isPhoneSpeakerOnly(Iterable<AudioDeviceType> outputs) =>
-      outputs.every(_phoneOwn.contains);
+      !outputs.any(_listening.contains);
 
   /// Starts watching the outputs. Phones only: desktops report no devices
   /// here and have no built-in speaker to protect.

@@ -103,6 +103,10 @@ class SettingKeys {
   /// made (see home_rows.dart).
   static const String forYouCache = "forYouCache";
 
+  /// JSON list of song keys the user never wants suggested (see
+  /// SuggestionBlocklist).
+  static const String blockedSuggestions = "blockedSuggestions";
+
   /// Home layout the user picked (a HomeLayout name); empty until the
   /// first-run chooser is answered.
   static const String homeLayout = "homeLayout";

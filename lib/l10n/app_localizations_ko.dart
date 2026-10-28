@@ -2125,4 +2125,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeMoodParty => '파티';
+
+  @override
+  String get menuRemoveFromQueue => '대기열에서 삭제';
+
+  @override
+  String snackbarRemovedFromQueue(String title) {
+    return '\"$title\"을(를) 대기열에서 삭제했어요';
+  }
+
+  @override
+  String get menuRemoveFromPlaylist => '플레이리스트에서 삭제';
+
+  @override
+  String get neverSuggestTooltip => '이 곡 추천 안 함';
+
+  @override
+  String neverSuggestDone(String title) {
+    return '\"$title\"은(는) 더 이상 추천되지 않아요';
+  }
+
+  @override
+  String get neverSuggestUndo => '실행 취소';
 }

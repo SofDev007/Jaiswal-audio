@@ -32,6 +32,17 @@ void main() {
           AudioDeviceType.builtInSpeaker,
           AudioDeviceType.builtInEarpiece,
           AudioDeviceType.telephony,
+          AudioDeviceType.remoteSubmix,
+          AudioDeviceType.unknown,
+        ]),
+        isTrue);
+    // Only headphones and Bluetooth count; HDMI, car, virtual outputs don't.
+    expect(
+        OutputRoute.isPhoneSpeakerOnly([
+          AudioDeviceType.builtInSpeaker,
+          AudioDeviceType.hdmi,
+          AudioDeviceType.carAudio,
+          AudioDeviceType.virtual,
         ]),
         isTrue);
     expect(

@@ -12,6 +12,7 @@ import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/services/db/global_db.dart';
 import 'package:Bloomee/src/rust/api/local_music.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart';
+import 'package:Bloomee/utils/extentions.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -498,7 +499,7 @@ class LocalMusicService {
 
     return Track(
       id: mediaId,
-      title: meta.title ?? p.basenameWithoutExtension(meta.filePath),
+      title: (meta.title ?? p.basenameWithoutExtension(meta.filePath)).normalCase(),
       artists: artists,
       album: album,
       durationMs: meta.durationMs,

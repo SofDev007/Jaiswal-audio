@@ -7,6 +7,18 @@ extension StringExtension on String {
     }
   }
 
+  /// ALL-CAPS titles become Title Case; mixed case, caseless scripts and
+  /// short caps like "DNA" stay. Same rule as `normal_case` in rust/src/utils.
+  String normalCase() {
+    final letters = RegExp(r'\p{L}', unicode: true).allMatches(this).length;
+    if (letters < 4 || toUpperCase() != this || toLowerCase() == this) {
+      return this;
+    }
+    return toLowerCase().replaceAllMapped(
+        RegExp(r"(^|[^\p{L}\p{N}'])(\p{L})", unicode: true),
+        (m) => '${m[1]}${m[2]!.toUpperCase()}');
+  }
+
   bool isNumeric() {
     return double.tryParse(this) != null;
   }

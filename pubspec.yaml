@@ -3,7 +3,7 @@ description: An Open source Free Music Player.
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.0.0+22
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -136,6 +136,7 @@ flutter:
     - assets/icons/jarx/icon_android.png
     - assets/icons/jarx/icon_ios.png
     - assets/images/home_layouts/
+    - assets/images/about/
     
   fonts:
     - family: Unageo

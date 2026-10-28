@@ -2110,4 +2110,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeMoodParty => '派对';
+
+  @override
+  String get menuRemoveFromQueue => '从队列中移除';
+
+  @override
+  String snackbarRemovedFromQueue(String title) {
+    return '已从队列中移除“$title”';
+  }
+
+  @override
+  String get menuRemoveFromPlaylist => '从歌单中移除';
+
+  @override
+  String get neverSuggestTooltip => '不再推荐这首歌';
+
+  @override
+  String neverSuggestDone(String title) {
+    return '不会再推荐“$title”';
+  }
+
+  @override
+  String get neverSuggestUndo => '撤销';
 }

@@ -2262,4 +2262,26 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get homeMoodParty => 'पार्टी';
+
+  @override
+  String get menuRemoveFromQueue => 'कतार से हटाएँ';
+
+  @override
+  String snackbarRemovedFromQueue(String title) {
+    return '\"$title\" कतार से हटाया गया';
+  }
+
+  @override
+  String get menuRemoveFromPlaylist => 'प्लेलिस्ट से हटाएँ';
+
+  @override
+  String get neverSuggestTooltip => 'यह गाना कभी न सुझाएँ';
+
+  @override
+  String neverSuggestDone(String title) {
+    return '\"$title\" अब नहीं सुझाया जाएगा';
+  }
+
+  @override
+  String get neverSuggestUndo => 'पूर्ववत करें';
 }

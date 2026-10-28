@@ -28,6 +28,8 @@ void showMoreBottomSheet(
   bool showAddToQueue = true,
   bool showPlayNext = true,
   VoidCallback? onDelete,
+  String? deleteLabel,
+  VoidCallback? onRemoveFromQueue,
 }) {
   final playerCubit = context.read<BloomeePlayerCubit>();
   final libraryCubit = context.read<LibraryItemsCubit>();
@@ -61,6 +63,8 @@ void showMoreBottomSheet(
           showAddToQueue: showAddToQueue,
           showPlayNext: showPlayNext,
           onDelete: onDelete,
+          deleteLabel: deleteLabel,
+          onRemoveFromQueue: onRemoveFromQueue,
           parentContext: context,
         ),
       );
@@ -75,6 +79,12 @@ class _TrackOptionsBottomSheet extends StatelessWidget {
   final bool showAddToQueue;
   final bool showPlayNext;
   final VoidCallback? onDelete;
+
+  /// Replaces "Delete" where the item is only removed, not deleted.
+  final String? deleteLabel;
+
+  /// Shows "Remove from queue" (the player's current list).
+  final VoidCallback? onRemoveFromQueue;
   final BuildContext parentContext;
 
   const _TrackOptionsBottomSheet({
@@ -85,6 +95,8 @@ class _TrackOptionsBottomSheet extends StatelessWidget {
     required this.showPlayNext,
     required this.parentContext,
     this.onDelete,
+    this.deleteLabel,
+    this.onRemoveFromQueue,
   });
 
   @override
@@ -324,11 +336,24 @@ class _TrackOptionsBottomSheet extends StatelessWidget {
                               }
                             },
                           ),
+                          if (onRemoveFromQueue != null) ...[
+                            const SizedBox(height: 8),
+                            _CompactTile(
+                              icon: MingCute.minus_circle_line,
+                              title: l10n.menuRemoveFromQueue,
+                              onTap: (ctx) {
+                                Navigator.pop(ctx);
+                                onRemoveFromQueue!();
+                                SnackbarService.showMessage(
+                                    l10n.snackbarRemovedFromQueue(song.title));
+                              },
+                            ),
+                          ],
                           if (showDelete) ...[
                             const SizedBox(height: 8),
                             _CompactTile(
                               icon: MingCute.delete_2_line,
-                              title: l10n.menuDeleteTrack,
+                              title: deleteLabel ?? l10n.menuDeleteTrack,
                               iconColor: Theme.of(context).colorScheme.error,
                               titleColor: Theme.of(context).colorScheme.error,
                               onTap: (ctx) {

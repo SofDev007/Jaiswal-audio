@@ -785,5 +785,11 @@
   "homeMoodFocus": "집중",
   "homeMoodRomance": "로맨스",
   "homeMoodWorkout": "운동",
-  "homeMoodParty": "파티"
+  "homeMoodParty": "파티",
+  "menuRemoveFromQueue": "대기열에서 삭제",
+  "snackbarRemovedFromQueue": "\"{title}\"을(를) 대기열에서 삭제했어요",
+  "menuRemoveFromPlaylist": "플레이리스트에서 삭제",
+  "neverSuggestTooltip": "이 곡 추천 안 함",
+  "neverSuggestDone": "\"{title}\"은(는) 더 이상 추천되지 않아요",
+  "neverSuggestUndo": "실행 취소"
 }

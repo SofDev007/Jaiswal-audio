@@ -293,7 +293,7 @@ fn to_audio_track_item(t: bindgen::TrackItem) -> Track {
     let placeholder = default_artwork();
     Track {
         id: t.id,
-        title: t.title,
+        title: crate::utils::normal_case(t.title),
         // artists is a comma-separated string in the chart WIT; split into minimal ArtistSummary
         artists: t
             .artists

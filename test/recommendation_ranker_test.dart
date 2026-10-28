@@ -183,6 +183,22 @@ void main() {
       expect(r.last.parts['novelty'], 0);
     });
 
+    test('a never-suggest song stays out, from any source or upload', () {
+      final keep = tr('k', 'Keep Me', 'A', sec: 200);
+      final blocked = tr('b1', 'Blocked Song', 'B', sec: 200);
+      final reupload = tr('b2', 'Blocked Song (Official Audio)', 'B', sec: 200);
+      final taste = ranker.buildTaste(
+          signals: const [],
+          liked: const [],
+          history: const [],
+          blocked: {ranker.songKey(blocked)});
+      final r = ranker.rank(
+          seed: tr('s', 'Seed', 'W', sec: 200),
+          candidates: from(RecSource.radio, [keep, blocked, reupload]),
+          taste: taste);
+      expect(titles(r), ['Keep Me']);
+    });
+
     test('one early skip never excludes a track; a repeated one does', () {
       final t = tr('t', 'Maybe', 'A', sec: 200);
       TrackSignal sig(int skips, {int plays = 0}) => TrackSignal(

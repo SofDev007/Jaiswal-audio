@@ -785,5 +785,11 @@
   "homeMoodFocus": "集中",
   "homeMoodRomance": "ロマンス",
   "homeMoodWorkout": "ワークアウト",
-  "homeMoodParty": "パーティー"
+  "homeMoodParty": "パーティー",
+  "menuRemoveFromQueue": "キューから削除",
+  "snackbarRemovedFromQueue": "「{title}」をキューから削除しました",
+  "menuRemoveFromPlaylist": "プレイリストから削除",
+  "neverSuggestTooltip": "この曲をおすすめしない",
+  "neverSuggestDone": "「{title}」は今後おすすめされません",
+  "neverSuggestUndo": "元に戻す"
 }

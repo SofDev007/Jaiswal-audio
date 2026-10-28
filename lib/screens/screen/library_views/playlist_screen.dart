@@ -345,7 +345,7 @@ class _PlaylistViewState extends State<PlaylistView> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: CustomScrollView(
+              child: _withScrollThumb(CustomScrollView(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
@@ -373,7 +373,7 @@ class _PlaylistViewState extends State<PlaylistView> {
                       ),
                     ),
                 ],
-              ),
+              )),
             ),
           ),
         ),
@@ -390,7 +390,7 @@ class _PlaylistViewState extends State<PlaylistView> {
       String imageUrl,
       AppLocalizations l10n,
       BoxConstraints constraints) {
-    return CustomScrollView(
+    return _withScrollThumb(CustomScrollView(
       controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -441,8 +441,27 @@ class _PlaylistViewState extends State<PlaylistView> {
             ),
           ),
       ],
-    );
+    ));
   }
+
+  /// Draggable thumb for jumping through long playlists. Fades in while
+  /// scrolling and out when idle; replaces the platform's default scrollbar.
+  Widget _withScrollThumb(Widget scrollView) => RawScrollbar(
+        controller: _scrollController,
+        interactive: true,
+        thickness: 6,
+        radius: const Radius.circular(3),
+        minThumbLength: 56,
+        mainAxisMargin: 8,
+        crossAxisMargin: 3,
+        thumbColor: Default_Theme.accentColor2.withValues(alpha: 0.85),
+        fadeDuration: const Duration(milliseconds: 250),
+        timeToFade: const Duration(milliseconds: 1200),
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: scrollView,
+        ),
+      );
 
   Widget _buildIntelligentCover(String imageUrl, Color dominantColor) {
     return RepaintBoundary(
@@ -693,6 +712,8 @@ class _PlaylistViewState extends State<PlaylistView> {
                 track,
                 onDelete: () => _removeTrack(context, track),
                 showDelete: true,
+                deleteLabel:
+                    AppLocalizations.of(context)!.menuRemoveFromPlaylist,
                 showSinglePlay: true,
               ),
             ),

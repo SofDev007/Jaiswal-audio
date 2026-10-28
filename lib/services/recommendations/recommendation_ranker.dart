@@ -90,6 +90,9 @@ class UserTaste {
   /// Tracks skipped early at least twice and more often than played.
   final Set<String> dislikedIds;
 
+  /// Song keys the user marked "never suggest" (the minus button).
+  final Set<String> blockedSongKeys;
+
   /// The last 50 plays: not suggested again yet.
   final Set<String> recentIds;
   final Set<String> recentSongKeys;
@@ -105,6 +108,7 @@ class UserTaste {
     this.artistAffinity = const {},
     this.artistSkipPenalty = const {},
     this.dislikedIds = const {},
+    this.blockedSongKeys = const {},
     this.recentIds = const {},
     this.recentSongKeys = const {},
     this.heardIds = const {},
@@ -152,11 +156,13 @@ class RecommendationRanker {
     return '${matcher.simplifyTitle(t.title)}|${matcher.normalized(artist)}';
   }
 
-  /// [signals] from TrackSignalDAO, [liked] tracks, [history] newest first.
+  /// [signals] from TrackSignalDAO, [liked] tracks, [history] newest first,
+  /// [blocked] song keys from the never-suggest list.
   UserTaste buildTaste({
     required List<TrackSignal> signals,
     required List<Track> liked,
     required List<Track> history,
+    Set<String> blocked = const {},
     DateTime? now,
   }) {
     final at = now ?? DateTime.now();
@@ -220,6 +226,7 @@ class RecommendationRanker {
       artistAffinity: affinity,
       artistSkipPenalty: penalty,
       dislikedIds: disliked,
+      blockedSongKeys: blocked,
       recentIds: {for (final t in recent) t.id},
       recentSongKeys: {for (final t in recent) songKey(t)},
       heardIds: {...heardIds, for (final t in history) t.id},
@@ -271,6 +278,7 @@ class RecommendationRanker {
           taste.recentIds.contains(t.id) ||
           taste.recentSongKeys.contains(m.key) ||
           taste.dislikedIds.contains(t.id) ||
+          taste.blockedSongKeys.contains(m.key) ||
           _versions(t).difference(seedVersions).isNotEmpty) {
         continue;
       }

@@ -1,4 +1,5 @@
 import 'package:Bloomee/core/models/exported.dart';
+import 'package:Bloomee/utils/extentions.dart';
 import 'package:Bloomee/services/db/global_db.dart';
 
 /// Maps between [TrackDB] (Isar entity) and [Track] (plugin domain model).
@@ -158,7 +159,7 @@ TrackDB trackToTrackDB(Track track) {
 Track trackDBToTrack(TrackDB trackDB) {
   return Track(
     id: trackDB.mediaId,
-    title: trackDB.title,
+    title: trackDB.title.normalCase(),
     artists: trackDB.artists != null
         ? trackDB.artists!
             .map((a) => artistSummaryDBToArtistSummary(a))

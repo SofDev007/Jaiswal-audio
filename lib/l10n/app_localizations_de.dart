@@ -2267,4 +2267,26 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get homeMoodParty => 'Party';
+
+  @override
+  String get menuRemoveFromQueue => 'Aus der Warteschlange entfernen';
+
+  @override
+  String snackbarRemovedFromQueue(String title) {
+    return '\"$title\" aus der Warteschlange entfernt';
+  }
+
+  @override
+  String get menuRemoveFromPlaylist => 'Aus Playlist entfernen';
+
+  @override
+  String get neverSuggestTooltip => 'Diesen Song nie vorschlagen';
+
+  @override
+  String neverSuggestDone(String title) {
+    return '\"$title\" wird nicht mehr vorgeschlagen';
+  }
+
+  @override
+  String get neverSuggestUndo => 'Rückgängig';
 }

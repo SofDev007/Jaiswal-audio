@@ -8,6 +8,7 @@ import 'package:Bloomee/blocs/player_overlay/player_overlay_cubit.dart';
 import 'package:Bloomee/core/constants/route_paths.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/screens/widgets/media_metadata_links.dart';
+import 'package:Bloomee/screens/widgets/marquee_overflow.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -367,33 +368,37 @@ class _TrackInfo extends StatelessWidget {
               const SizedBox(width: 7),
             ],
             Expanded(
-              child: Text(
-                song.title,
-                style: const TextStyle(
-                  fontFamily: 'Unageo',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: 0.2,
+              child: MarqueeOverflow(
+                key: ValueKey('title-${song.id}'),
+                child: Text(
+                  song.title,
+                  style: const TextStyle(
+                    fontFamily: 'Unageo',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                  maxLines: 1,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
         const SizedBox(height: 2),
-        TrackMetadataLinks(
-          track: song,
-          style: TextStyle(
-            fontFamily: 'Unageo',
-            fontWeight: FontWeight.w600,
-            fontSize: 11.5,
-            color: Colors.white.withValues(alpha: 0.55),
-            letterSpacing: 0.1,
+        MarqueeOverflow(
+          key: ValueKey('meta-${song.id}'),
+          child: TrackMetadataLinks(
+            track: song,
+            style: TextStyle(
+              fontFamily: 'Unageo',
+              fontWeight: FontWeight.w600,
+              fontSize: 11.5,
+              color: Colors.white.withValues(alpha: 0.55),
+              letterSpacing: 0.1,
+            ),
+            maxLines: 1,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

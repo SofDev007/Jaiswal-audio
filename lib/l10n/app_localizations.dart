@@ -3995,6 +3995,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Party'**
   String get homeMoodParty;
+
+  /// No description provided for @menuRemoveFromQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue'**
+  String get menuRemoveFromQueue;
+
+  /// No description provided for @snackbarRemovedFromQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed \"{title}\" from the queue'**
+  String snackbarRemovedFromQueue(String title);
+
+  /// No description provided for @menuRemoveFromPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from playlist'**
+  String get menuRemoveFromPlaylist;
+
+  /// No description provided for @neverSuggestTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Never suggest this song'**
+  String get neverSuggestTooltip;
+
+  /// No description provided for @neverSuggestDone.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" won\'t be suggested again'**
+  String neverSuggestDone(String title);
+
+  /// No description provided for @neverSuggestUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get neverSuggestUndo;
 }
 
 class _AppLocalizationsDelegate

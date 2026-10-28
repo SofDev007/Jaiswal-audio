@@ -785,5 +785,11 @@
   "homeMoodFocus": "Fokus",
   "homeMoodRomance": "Romantik",
   "homeMoodWorkout": "Workout",
-  "homeMoodParty": "Party"
+  "homeMoodParty": "Party",
+  "menuRemoveFromQueue": "Aus der Warteschlange entfernen",
+  "snackbarRemovedFromQueue": "\"{title}\" aus der Warteschlange entfernt",
+  "menuRemoveFromPlaylist": "Aus Playlist entfernen",
+  "neverSuggestTooltip": "Diesen Song nie vorschlagen",
+  "neverSuggestDone": "\"{title}\" wird nicht mehr vorgeschlagen",
+  "neverSuggestUndo": "Rückgängig"
 }

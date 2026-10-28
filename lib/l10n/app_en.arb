@@ -799,5 +799,13 @@
   "homeMoodWorkout": "Workout",
   "homeMoodParty": "Party",
   "@homeLayoutChangeLater": {"placeholders": {"path": {"type": "String"}}},
-  "@homeMixSummary": {"placeholders": {"titles": {"type": "String"}, "count": {"type": "int"}}}
+  "@homeMixSummary": {"placeholders": {"titles": {"type": "String"}, "count": {"type": "int"}}},
+  "menuRemoveFromQueue": "Remove from queue",
+  "snackbarRemovedFromQueue": "Removed \"{title}\" from the queue",
+  "menuRemoveFromPlaylist": "Remove from playlist",
+  "neverSuggestTooltip": "Never suggest this song",
+  "neverSuggestDone": "\"{title}\" won't be suggested again",
+  "neverSuggestUndo": "Undo",
+  "@snackbarRemovedFromQueue": {"placeholders": {"title": {"type": "String"}}},
+  "@neverSuggestDone": {"placeholders": {"title": {"type": "String"}}}
 }

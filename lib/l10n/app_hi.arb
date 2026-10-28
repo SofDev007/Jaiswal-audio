@@ -785,5 +785,11 @@
   "homeMoodFocus": "फ़ोकस",
   "homeMoodRomance": "रोमांस",
   "homeMoodWorkout": "वर्कआउट",
-  "homeMoodParty": "पार्टी"
+  "homeMoodParty": "पार्टी",
+  "menuRemoveFromQueue": "कतार से हटाएँ",
+  "snackbarRemovedFromQueue": "\"{title}\" कतार से हटाया गया",
+  "menuRemoveFromPlaylist": "प्लेलिस्ट से हटाएँ",
+  "neverSuggestTooltip": "यह गाना कभी न सुझाएँ",
+  "neverSuggestDone": "\"{title}\" अब नहीं सुझाया जाएगा",
+  "neverSuggestUndo": "पूर्ववत करें"
 }
