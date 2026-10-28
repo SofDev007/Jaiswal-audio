@@ -44,7 +44,7 @@ class _LegacyMigrationOverlayState extends State<LegacyMigrationOverlay>
   static const _bgBase = Color(0xFF060608); // Ultra deep cinematic dark
   static const _surfaceCol = Color(0xFF14141A);
   static const _errorAccent = Color(0xFFFF4C4C);
-  static const _successAccent = Color(0xFFFF2A5F); // Bloomee Pink/Red
+  static const _successAccent = AppTheme.accentColor2;
 
   // ── State (Isolated for Zero Jank) ─────────────────────────────────────
   final ValueNotifier<_Phase> _phase = ValueNotifier(_Phase.running);

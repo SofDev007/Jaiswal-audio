@@ -35,7 +35,7 @@ class _PluginBootstrapOverlayState extends State<PluginBootstrapOverlay>
   static const _bgBase = Color(0xFF060608);
   static const _surfaceCol = Color(0xFF14141A);
   static const _errorAccent = Color(0xFFFF4C4C);
-  static const _successAccent = Color(0xFFFF2A5F);
+  static const _successAccent = AppTheme.accentColor2;
 
   final ValueNotifier<_Phase> _phase = ValueNotifier(_Phase.running);
   final ValueNotifier<int> _progress = ValueNotifier(0);

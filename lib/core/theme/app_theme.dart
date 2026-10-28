@@ -18,12 +18,13 @@ class AppTheme {
       TextStyle(fontFamily: "FontAwesome-Solids");
 
   // ── Colors ──────────────────────────────────────────────────────────────────
-  static const themeColor = Color(0xFF0A040C);
-  static const primaryColor1 = Color(0xFFDAEAF7);
-  static const primaryColor2 = Color.fromARGB(255, 242, 231, 240);
-  static const accentColor1 = Color(0xFF0EA5E0);
-  static const accentColor1light = Color(0xFF18C9ED);
-  static const accentColor2 = Color(0xFFFE385E);
+  // JARX palette (docs/branding/jarx-j1-refined.html): Ink, Paper, Pulse.
+  static const themeColor = Color(0xFF0E0E10);
+  static const primaryColor1 = Color(0xFFF5F5F5);
+  static const primaryColor2 = Color(0xFFE4E2DC);
+  static const accentColor1 = Color(0xFFFFB547);
+  static const accentColor1light = Color(0xFFFFC978);
+  static const accentColor2 = Color(0xFFFF4D2E);
   static const successColor = Color(0xFF5EFF43);
 
   // ── Theme Data ───────────────────────────────────────────────────────────────
@@ -32,7 +33,7 @@ class AppTheme {
       primary: accentColor2,
       secondary: accentColor1,
       surface: themeColor,
-      surfaceContainerHighest: Color(0xFF1A111B),
+      surfaceContainerHighest: Color(0xFF1C1C20),
       onPrimary: primaryColor1,
       onSecondary: primaryColor1,
       onSurface: primaryColor1,
@@ -99,7 +100,7 @@ class AppTheme {
         backgroundColor: WidgetStatePropertyAll(themeColor),
       ),
       popupMenuTheme: const PopupMenuThemeData(
-        color: Color.fromARGB(255, 23, 18, 25),
+        color: Color(0xFF1A1A1E),
         textStyle: TextStyle(color: primaryColor1),
       ),
       dropdownMenuTheme: const DropdownMenuThemeData(
