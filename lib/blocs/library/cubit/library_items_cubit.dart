@@ -170,6 +170,8 @@ class LibraryItemsCubit extends Cubit<LibraryItemsState> {
     if (playlistName == 'Null' || playlistName.isEmpty) return;
     try {
       await _playlistDao.addTrackToPlaylistByName(playlistName, track);
+      // A suggested song the user keeps in a playlist: a strong "good".
+      await TasteModel.judged(track.id, good: true, how: 'playlist');
       if (showSnackbar) {
         SnackbarService.showMessage('${track.title} added to $playlistName');
       }

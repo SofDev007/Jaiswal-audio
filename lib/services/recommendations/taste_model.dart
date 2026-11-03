@@ -145,6 +145,13 @@ class TasteModel {
     return math.min(1.0, 0.5 + best * 1.5);
   }
 
+  /// Of [moods], the one the listener plays most at [at]'s time of day.
+  Mood? slotMood(Set<Mood> moods, DateTime at) {
+    final m = slotMoods[_slot(at)];
+    if (m == null || moods.isEmpty) return null;
+    return moods.reduce((a, b) => (m[b.name] ?? 0) > (m[a.name] ?? 0) ? b : a);
+  }
+
   // ── Outcomes (called from the player and the menus) ─────────────────────
 
   /// Remember a queued suggestion's score parts until it is played.
@@ -153,21 +160,33 @@ class TasteModel {
     if (_pending.length > 300) _pending.remove(_pending.keys.first);
   }
 
-  static final Set<String> _played = {};
+  /// What each suggestion has already taught, so nothing counts twice.
+  static final Map<String, Set<String>> _taught = {};
 
   /// Learn from how suggestion [trackId] was played: kept past 20 s
-  /// ([good]) or skipped early. Once per suggestion; ignored for songs that
-  /// weren't suggested.
+  /// ([good]) or skipped early, once. Played again later = a replay, which
+  /// counts like a like. Ignored for songs that weren't suggested.
   static Future<void> played(String trackId, {required bool good}) async {
-    if (!_pending.containsKey(trackId) || !_played.add(trackId)) return;
-    await _learn(_pending[trackId]!, good, 1);
+    final x = _pending[trackId];
+    if (x == null) return;
+    final done = _taught.putIfAbsent(trackId, () => {});
+    if (done.contains('kept')) {
+      if (good && done.add('replayed')) await _learn(x, true, 2);
+      return;
+    }
+    if (done.contains('skipped')) return;
+    done.add(good ? 'kept' : 'skipped');
+    await _learn(x, good, 1);
   }
 
-  /// A strong signal about suggestion [trackId]: liked ([good], strength 2)
-  /// or "Do not suggest" (strength 3).
-  static Future<void> judged(String trackId, {required bool good}) async {
-    final x = _pending.remove(trackId);
+  /// A strong signal about suggestion [trackId], each once: liked or added
+  /// to a playlist ([good], strength 2), or "Do not suggest" (strength 3).
+  static Future<void> judged(String trackId,
+      {required bool good, String how = 'liked'}) async {
+    final x = good ? _pending[trackId] : _pending.remove(trackId);
     if (x == null) return;
+    final kind = good ? how : 'blocked';
+    if (!_taught.putIfAbsent(trackId, () => {}).add(kind)) return;
     await _learn(x, good, good ? 2 : 3);
   }
 

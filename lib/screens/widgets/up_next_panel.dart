@@ -763,4 +763,10 @@ String recReasonText(AppLocalizations l10n, RecReason r) => switch (r.kind) {
       RecReasonKind.youOftenPlay => l10n.recReasonYouOftenPlay(r.subject),
       RecReasonKind.foundOnSources =>
         l10n.recReasonFoundOnSources(int.tryParse(r.subject) ?? 2),
+      RecReasonKind.inLanguage => l10n.recReasonInLanguage(_cap(r.subject)),
+      RecReasonKind.sameMood => l10n.recReasonSameMood(r.subject),
+      RecReasonKind.timeOfDay => l10n.recReasonTimeOfDay(r.subject),
     };
+
+String _cap(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

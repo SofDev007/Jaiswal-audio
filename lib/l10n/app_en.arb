@@ -661,6 +661,12 @@
   "@recReasonYouOftenPlay": { "placeholders": { "artist": { "type": "String" } } },
   "recReasonFoundOnSources": "Found on {count} sources",
   "@recReasonFoundOnSources": { "placeholders": { "count": { "type": "int" } } },
+  "recReasonInLanguage": "You play a lot of {language}",
+  "@recReasonInLanguage": { "placeholders": { "language": { "type": "String" } } },
+  "recReasonSameMood": "Same {mood} mood",
+  "@recReasonSameMood": { "placeholders": { "mood": { "type": "String" } } },
+  "recReasonTimeOfDay": "You play {mood} songs at this time",
+  "@recReasonTimeOfDay": { "placeholders": { "mood": { "type": "String" } } },
 
   "playlistPinToTop": "Pin to Top",
   "playlistUnpin": "Unpin",

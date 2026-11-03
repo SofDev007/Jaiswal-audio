@@ -1917,6 +1917,21 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String recReasonInLanguage(String language) {
+    return 'You play a lot of $language';
+  }
+
+  @override
+  String recReasonSameMood(String mood) {
+    return 'Same $mood mood';
+  }
+
+  @override
+  String recReasonTimeOfDay(String mood) {
+    return 'You play $mood songs at this time';
+  }
+
+  @override
   String get playlistPinToTop => 'Oben anheften';
 
   @override

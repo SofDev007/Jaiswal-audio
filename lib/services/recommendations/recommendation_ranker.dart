@@ -49,6 +49,10 @@ enum RecReasonKind {
   similarTo,
   youOftenPlay,
   foundOnSources,
+  // Layer 2: shown when that part of the score mattered most.
+  inLanguage, // subject: language name
+  sameMood, // subject: mood name
+  timeOfDay, // subject: mood name
 }
 
 /// Why a track was suggested; [subject] is the track title, artist name or
@@ -469,19 +473,59 @@ class RecommendationRanker {
       };
       final score = parts.values.fold<double>(0, (a, b) => a + b);
 
-      final RecReason reason;
-      if (affinity >= 0.5) {
-        reason = RecReason(RecReasonKind.youOftenPlay, t.artists.first.name);
-      } else if (sharesSeedArtist) {
-        reason = RecReason(RecReasonKind.moreFrom, seedArtistName);
-      } else if (m.sources.contains(RecSource.relatedArtist) &&
-          seedArtistName.isNotEmpty) {
-        reason = RecReason(RecReasonKind.similarTo, seedArtistName);
-      } else if (m.sources.length >= 2) {
-        reason = RecReason(RecReasonKind.foundOnSources, '${m.sources.length}');
-      } else {
-        reason = RecReason(RecReasonKind.becausePlaying, seed.title);
-      }
+      // The reason shown is the part that lifted this song most, by the
+      // listener's own (learned) weights, so it changes as JARX learns.
+      final options = <(double, RecReason)>[
+        if (affinity >= 0.3 && t.artists.isNotEmpty)
+          (
+            w('affinity') * affinity,
+            RecReason(RecReasonKind.youOftenPlay, t.artists.first.name)
+          ),
+        if (sharesSeedArtist && seedArtistName.isNotEmpty)
+          (
+            w('seedLink') * 0.5,
+            RecReason(RecReasonKind.moreFrom, seedArtistName)
+          ),
+        if (!sharesSeedArtist &&
+            m.sources.contains(RecSource.relatedArtist) &&
+            seedArtistName.isNotEmpty)
+          (
+            w('seedLink') * 0.2,
+            RecReason(RecReasonKind.similarTo, seedArtistName)
+          ),
+        if (m.sources.length >= 2)
+          (
+            w('source') * 0.1,
+            RecReason(RecReasonKind.foundOnSources, '${m.sources.length}')
+          ),
+        // Only worth saying when the listener plays several languages.
+        if (taste.languages.length >= 2 &&
+            lang != null &&
+            lang != SongLanguage.other &&
+            languagePart > 0.5)
+          (
+            w('language') * (languagePart - 0.5),
+            RecReason(RecReasonKind.inLanguage, lang.name)
+          ),
+        if (moodPart == 1.0)
+          (
+            w('mood') * 0.5,
+            RecReason(RecReasonKind.sameMood,
+                seedMoods.intersection(moods).first.name)
+          ),
+        if (timeMood > 0.6)
+          (
+            w('timeMood') * (timeMood - 0.5),
+            RecReason(RecReasonKind.timeOfDay,
+                taste.model?.slotMood(moods, at)?.name ?? moods.first.name)
+          ),
+      ];
+      final best = options.isEmpty
+          ? null
+          : options.reduce((a, b) => b.$1 > a.$1 ? b : a);
+      final reason = best != null && best.$1 > 0.01
+          ? best.$2
+          : RecReason(RecReasonKind.becausePlaying, seed.title);
 
       scored.add(
           _Scored(Recommendation(t, score, reason, parts, features), primary));

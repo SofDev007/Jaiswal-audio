@@ -3414,6 +3414,24 @@ abstract class AppLocalizations {
   /// **'Found on {count} sources'**
   String recReasonFoundOnSources(int count);
 
+  /// No description provided for @recReasonInLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'You play a lot of {language}'**
+  String recReasonInLanguage(String language);
+
+  /// No description provided for @recReasonSameMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {mood} mood'**
+  String recReasonSameMood(String mood);
+
+  /// No description provided for @recReasonTimeOfDay.
+  ///
+  /// In en, this message translates to:
+  /// **'You play {mood} songs at this time'**
+  String recReasonTimeOfDay(String mood);
+
   /// No description provided for @playlistPinToTop.
   ///
   /// In en, this message translates to:
