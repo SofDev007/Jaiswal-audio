@@ -8,14 +8,22 @@ class PlayerOverlayCubit extends Cubit<bool> {
   /// Callback to collapse the UpNext panel, returns true if panel was expanded
   bool Function()? _collapseUpNextPanel;
 
-  /// Register a callback to collapse the UpNext panel
-  void registerUpNextPanelCollapse(bool Function() collapse) {
+  /// Opens the UpNext panel (swipe up on the player).
+  VoidCallback? _openUpNextPanel;
+
+  /// Register callbacks to collapse and open the UpNext panel
+  void registerUpNextPanelCollapse(bool Function() collapse,
+      {VoidCallback? open}) {
     _collapseUpNextPanel = collapse;
+    _openUpNextPanel = open;
   }
+
+  void openUpNextPanel() => _openUpNextPanel?.call();
 
   /// Unregister the UpNext panel collapse callback
   void unregisterUpNextPanelCollapse() {
     _collapseUpNextPanel = null;
+    _openUpNextPanel = null;
   }
 
   /// Try to collapse the UpNext panel if it's expanded

@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -9,11 +10,15 @@ import 'package:Bloomee/core/constants/sentinel_values.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/plugins/utils/media_id.dart';
+import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/core/models/track_signal.dart';
 import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
+import 'package:Bloomee/services/player/fallback_source.dart';
+import 'package:Bloomee/services/player/stream_swaps.dart';
+import 'package:Bloomee/services/recommendations/rec_health.dart';
 import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/player/media_resolver_service.dart';
@@ -367,6 +372,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     // Mark a track as successfully playing only once we see real position
     // advancement — guards circuit breaker against false positives.
     _positionSuccessSub = engine.positionStream.listen((pos) {
+      _maybeStartPreload(pos);
       if (pos > Duration.zero &&
           engine.state == EngineState.ready &&
           engine.playing) {
@@ -380,9 +386,20 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     _errorSub = engine.errorStream.listen((error) {
       log('Engine error: $error', name: 'BloomeeMusicPlayer');
       final track = _queueManager.currentTrack;
-      if (track != null) {
-        _errorHandler.handleError(PlayerErrorType.playbackError, error, track);
+      // Repeats of the same failure while a new source is being opened.
+      if (track == null || isResolving.value) return;
+      // A stream that breaks on its source: switch to another source at
+      // once (spinner, not the error icon), once per track per session.
+      if (!isLocalMediaId(track.id) &&
+          !_isNetworkError(error) &&
+          _swapTried.add(track.id)) {
+        isResolving.add(true);
+        _replaceOnRetry = track.id;
+        unawaited(_enqueuePlayTrack(track,
+            doPlay: true, initialPosition: engine.position));
+        return;
       }
+      _errorHandler.handleError(PlayerErrorType.playbackError, error, track);
     });
 
     _queueSyncSub = _queueManager.tracksStream.listen((tracks) {
@@ -452,6 +469,10 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   Track get currentMedia => _queueManager.currentTrack ?? trackNull;
 
   void _updateCurrentTrack(Track track) {
+    if (track.id != _currentTrack.id &&
+        _relatedSongsManager.reasons.value.containsKey(track.id)) {
+      RecHealth.add(RecHealth.recStarts);
+    }
     _currentTrack = track;
     mediaItem.add(trackToMediaItem(track));
   }
@@ -613,6 +634,12 @@ class BloomeeMusicPlayer extends BaseAudioHandler
 
       EngineResult result;
 
+      // A new attempt: lets the error handler tell this attempt's failure
+      // from repeats of an earlier one (it used to never be told, so after
+      // the first handled error later ones were dropped and a track could
+      // stay "loading" forever).
+      _errorHandler.registerAttempt(track.id);
+
       if (canUsePreloaded) {
         isOffline.add(_preloadedTrackOffline);
         result = engine.crossfadeDuration > Duration.zero
@@ -680,6 +707,24 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   }
 
   Future<(Track, ResolvedMediaSource)> _resolveWithFallback(Track track) async {
+    if (!isLocalMediaId(track.id)) {
+      // Played from another source before because this one broke.
+      final known = await StreamSwaps.lookup(track);
+      if (known != null) {
+        try {
+          return (known, await _resolver.resolve(known));
+        } catch (_) {}
+      }
+    }
+    if (_replaceOnRetry == track.id) {
+      _replaceOnRetry = null;
+      final other = await _findReplacement(track);
+      if (other != null) {
+        final source = await _resolver.resolve(other);
+        unawaited(StreamSwaps.remember(track, other));
+        return (other, source);
+      }
+    }
     try {
       return (track, await _resolver.resolve(track));
     } catch (e) {
@@ -690,18 +735,32 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   }
 
   Future<Track?> _tryAutoReplace(Track track, Object error) async {
-    if (!_isAutoResolvableError(error) || isLocalMediaId(track.id)) return null;
+    if (!_isAutoResolvableError(error)) return null;
+    return _findReplacement(track);
+  }
+
+  /// The same song on another source, when "auto-resolve unavailable
+  /// tracks" is on (the default).
+  Future<Track?> _findReplacement(Track track) async {
+    if (isLocalMediaId(track.id)) return null;
     final enabled = await SettingsDAO(DBProvider.db)
         .getSettingBool(SettingKeys.autoResolveUnavailableTracks);
     if (enabled == false) return null;
-    final candidate =
-        await _smartTrackReplacementService.findBestReplacement(track);
-    if (candidate == null) return null;
+    final pick = await pickFallback(_smartTrackReplacementService, track);
+    if (pick == null) return null;
+    final other = pick.track;
+    final singer = other.artists.length > 1
+        ? other.artists[1].name
+        : (other.artists.isEmpty ? '' : other.artists.first.name);
     SnackbarService.showMessage(
-      'Playing fallback source for ${track.title} from ${candidate.pluginName}.',
-      duration: const Duration(seconds: 3),
+      pick.sameVersion
+          ? 'Playing ${track.title} from ${pick.pluginName}.'
+          : "The ${pick.wanted.join(' ')} version isn't available. Playing "
+              '"${other.title}"${singer.isEmpty ? '' : ' ($singer)'} from '
+              '${pick.pluginName}.',
+      duration: const Duration(seconds: 4),
     );
-    return candidate.track;
+    return other;
   }
 
   bool _isAutoResolvableError(Object error) {
@@ -717,6 +776,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   // ─── Preload ───────────────────────────────────────────────────────────────
 
   void _preResolveNextTrack() {
+    _pendingPreload = null;
     final next = _queueManager.peekNext(loopMode: loopMode.value);
     if (next == null) {
       _clearPreloadedMarker();
@@ -734,16 +794,50 @@ class BloomeeMusicPlayer extends BaseAudioHandler
         engine.clearPreload(); // ignore: discarded_futures
         return;
       }
+      // Data saver: the next song's stream is found now (a small request,
+      // so it still starts at once), but it is only downloaded during the
+      // last [_preloadLead] of this one: skipping early no longer wastes a
+      // whole download. Songs on the phone cost no data and load at once.
+      _pendingPreload = (expectedId, resolved);
+      if (resolved.isOffline) await _startPendingPreload();
+    }).catchError((Object _) {
+      _pendingPreload = null;
+      _clearPreloadedMarker();
+      engine.clearPreload(); // ignore: discarded_futures
+    });
+  }
+
+  static const _preloadLead = Duration(seconds: 30);
+  (String, ResolvedMediaSource)? _pendingPreload;
+
+  /// Starts the waiting preload when this song is near its end.
+  void _maybeStartPreload(Duration pos) {
+    if (_pendingPreload == null) return;
+    final total = engine.duration;
+    final lead = _preloadLead + engine.crossfadeDuration;
+    if (total > Duration.zero && total - pos > lead) return;
+    unawaited(_startPendingPreload());
+  }
+
+  Future<void> _startPendingPreload() async {
+    final pending = _pendingPreload;
+    _pendingPreload = null;
+    if (pending == null || _isDisposed) return;
+    final (expectedId, resolved) = pending;
+    if (_queueManager.peekNext(loopMode: loopMode.value)?.id != expectedId) {
+      return;
+    }
+    try {
       final ok =
           await engine.preloadNext(resolved.uri, httpHeaders: resolved.headers);
       if (!_isDisposed && ok) {
         _preloadedTrackId = expectedId;
         _preloadedTrackOffline = resolved.isOffline;
       }
-    }).catchError((Object _) {
+    } catch (_) {
       _clearPreloadedMarker();
       engine.clearPreload(); // ignore: discarded_futures
-    });
+    }
   }
 
   // ─── Completion / Auto-Next ────────────────────────────────────────────────
@@ -770,9 +864,31 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     });
   }
 
+  /// Tracks already switched to another source this session (so a second
+  /// failure goes to the normal retry/skip handling instead of looping).
+  final Set<String> _swapTried = {};
+
+  static bool _isNetworkError(Object error) {
+    final m = error.toString().toLowerCase();
+    // Not "connection dropped": that is the source cutting the stream.
+    return m.contains('network') ||
+        m.contains('timeout') ||
+        m.contains('timed out') ||
+        m.contains('unreachable') ||
+        m.contains('resolve host');
+  }
+
+  /// Set when a track's stream broke while playing (YouTube now cuts some
+  /// songs off after a few seconds, e.g. "Mauja Hi Mauja"): the retry plays
+  /// the same song from another source instead of the same broken stream.
+  String? _replaceOnRetry;
+
   Future<void> _retryCurrentTrack() async {
     final track = _queueManager.currentTrack;
     if (track == null) return;
+    if (_errorHandler.lastError.value?.type != PlayerErrorType.networkDropped) {
+      _replaceOnRetry = track.id;
+    }
     _errorHandler.clearError();
     await _enqueuePlayTrack(track,
         doPlay: true, initialPosition: engine.position);
@@ -904,6 +1020,10 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     if (skipped != null &&
         isEarlySkip(engine.position, skipped.durationMs?.toInt())) {
       _recordSignal((dao) => dao.recordEarlySkip(skipped));
+      if (_relatedSongsManager.reasons.value.containsKey(skipped.id)) {
+        RecHealth.add(RecHealth.recEarlySkips);
+        unawaited(TasteModel.played(skipped.id, good: false));
+      }
     }
     await _internalSkipToNext();
   }
@@ -1035,9 +1155,14 @@ class BloomeeMusicPlayer extends BaseAudioHandler
           {bool atLast = false}) async =>
       _queueManager.addTracks(tracks, atLast: atLast);
 
+  /// [title] is shown as "Enjoying From …"; without one (search, a single
+  /// song) it's the source of the first track ("YouTube Music", "JioSaavn").
   Future<void> updateQueueTracks(List<Track> tracks,
-      {bool doPlay = false, int startIndex = 0}) async {
+      {bool doPlay = false, int startIndex = 0, String? title}) async {
     _queueManager.updateQueue(tracks, startIndex: startIndex);
+    if (tracks.isNotEmpty) {
+      queueTitle.add(title ?? sourceNameOfTrack(tracks.first.id));
+    }
     if (doPlay) {
       final t = _queueManager.currentTrack;
       if (t != null) await _enqueuePlayTrack(t, doPlay: true);
@@ -1055,6 +1180,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
       _queueManager.insertTrack(index, mediaItemToTrack(mi));
 
   @override
+
   /// Removes the queue item at [index]. Removing the playing track starts
   /// the one that takes its place (or stops after the last one) instead of
   /// letting the removed track play on.
@@ -1087,9 +1213,6 @@ class BloomeeMusicPlayer extends BaseAudioHandler
 
   void setRecentlyPlayedThresholdSeconds(int s) =>
       _recentlyPlayedTracker.setThresholdSeconds(s);
-
-  void setRecentlyPlayedPercentThreshold(double p) =>
-      _recentlyPlayedTracker.setPercentThreshold(p);
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 

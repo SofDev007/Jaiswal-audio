@@ -185,6 +185,10 @@ class PlayerEngine {
           'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5');
       native.setProperty('cache', 'yes');
       native.setProperty('demuxer-max-bytes', '134217728'); // 128 MB
+      // Buffer 45 s ahead, not the whole song: a skipped song (and the next
+      // one preloaded in the background) then costs ~1-2 MB, not 5-10 MB.
+      // 45 s still rides out short mobile-data drops.
+      native.setProperty('cache-secs', '45');
       native.setProperty('network-timeout', '15');
       // ponytail: temporary EQ diagnostic, mpv warnings to logcat; remove
       // once the equalizer investigation is done.

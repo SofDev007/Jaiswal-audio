@@ -423,7 +423,7 @@ abstract class AppLocalizations {
   /// No description provided for @dialogDownloadPlaylistMessage.
   ///
   /// In en, this message translates to:
-  /// **'Do you want to download {count} songs from \"{title}\"? This will add them to the download queue.'**
+  /// **'Do you want to download {count, plural, =1{1 song} other{{count} songs}} from \"{title}\"? This will add them to the download queue.'**
   String dialogDownloadPlaylistMessage(int count, String title);
 
   /// No description provided for @dialogDownloadAll.
@@ -1307,6 +1307,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UI & Services'**
   String get appuiTitle;
+
+  /// No description provided for @appuiTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get appuiTheme;
+
+  /// No description provided for @appuiThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appuiThemeDark;
+
+  /// No description provided for @appuiThemeDarkSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy on the eyes, day and night'**
+  String get appuiThemeDarkSubtitle;
+
+  /// No description provided for @appuiThemeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appuiThemeLight;
+
+  /// No description provided for @appuiThemeLightSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming in V2'**
+  String get appuiThemeLightSoon;
+
+  /// No description provided for @appuiThemeLightSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'The light theme is coming in V2'**
+  String get appuiThemeLightSnackbar;
 
   /// No description provided for @appuiAutoSlideCharts.
   ///
@@ -3714,6 +3750,30 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get playerLoopOff;
 
+  /// No description provided for @playerShuffleOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle on'**
+  String get playerShuffleOn;
+
+  /// No description provided for @playerShuffleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle off'**
+  String get playerShuffleOff;
+
+  /// No description provided for @playerSleepTimerSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep timer: {time}'**
+  String playerSleepTimerSet(String time);
+
+  /// No description provided for @playerSleepTimerOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep timer off'**
+  String get playerSleepTimerOff;
+
   /// No description provided for @playerLoopOne.
   ///
   /// In en, this message translates to:
@@ -4031,6 +4091,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get neverSuggestUndo;
+
+  /// No description provided for @menuNeverSuggest.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not suggest this song'**
+  String get menuNeverSuggest;
+
+  /// No description provided for @menuSuggestAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest this song again'**
+  String get menuSuggestAgain;
+
+  /// No description provided for @neverSuggestLifted.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" can be suggested again'**
+  String neverSuggestLifted(String title);
 }
 
 class _AppLocalizationsDelegate

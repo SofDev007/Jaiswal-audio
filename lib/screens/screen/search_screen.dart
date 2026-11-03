@@ -2,6 +2,7 @@
 import 'dart:ui';
 import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -27,6 +28,8 @@ import 'package:Bloomee/screens/widgets/playlist_card.dart';
 import 'package:Bloomee/screens/widgets/sign_board_widget.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:Bloomee/src/rust/api/plugin/commands.dart';
+import 'package:Bloomee/services/db/legacy/legacy_media_id_mapper.dart'
+    show pluginYtMusicId;
 import 'package:Bloomee/src/rust/api/plugin/plugin_info.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart' as plugin_models;
 import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
@@ -78,11 +81,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final pluginState = context.read<PluginBloc>().state;
     final resolvers = pluginState.loadedContentResolvers;
     if (resolvers.isNotEmpty) {
-      final persistedId = context.read<SettingsCubit>().state.searchPluginId;
-      final hasPersistedPlugin = persistedId.isNotEmpty &&
-          resolvers.any((p) => p.manifest.id == persistedId);
-      final activeId =
-          hasPersistedPlugin ? persistedId : resolvers.first.manifest.id;
+      final activeId = _startPluginId(resolvers);
 
       _activePluginIdNotifier.value = activeId;
       _contentBloc.add(SetActiveContentPlugin(pluginId: activeId));
@@ -122,6 +121,16 @@ class _SearchScreenState extends State<SearchScreen> {
     if (remaining <= 400) {
       _contentBloc.add(LoadMoreSearchContent(pageToken: nextPageToken));
     }
+  }
+
+  /// The provider a search starts on: the one of the last search, or
+  /// YouTube Music before the user has picked one.
+  String _startPluginId(List<PluginInfo> resolvers) {
+    final saved = context.read<SettingsCubit>().state.searchPluginId;
+    for (final id in [saved, pluginYtMusicId]) {
+      if (resolvers.any((p) => p.manifest.id == id)) return id;
+    }
+    return resolvers.first.manifest.id;
   }
 
   String _normalizeSearchQuery(String query) =>
@@ -204,11 +213,7 @@ class _SearchScreenState extends State<SearchScreen> {
           _activePluginIdNotifier.value == null,
       listener: (context, pluginState) {
         final resolvers = pluginState.loadedContentResolvers;
-        final persistedId = context.read<SettingsCubit>().state.searchPluginId;
-        final hasPersistedPlugin = persistedId.isNotEmpty &&
-            resolvers.any((p) => p.manifest.id == persistedId);
-        final activeId =
-            hasPersistedPlugin ? persistedId : resolvers.first.manifest.id;
+        final activeId = _startPluginId(resolvers);
 
         _activePluginIdNotifier.value = activeId;
         _contentBloc.add(SetActiveContentPlugin(pluginId: activeId));
@@ -764,17 +769,10 @@ class _SuggestionsSliver extends StatelessWidget {
         _ => ContentSearchFilter.all,
       };
 
-  String _buildEntitySearchQuery(plugin_models.EntitySuggestion entity) {
-    final parts = <String>[entity.title.trim()];
-    if (entity.subtitle != null && entity.subtitle!.isNotEmpty) {
-      parts.add(entity.subtitle!
-          .toLowerCase()
-          .replaceAll(RegExp(r'\s+'), " ")
-          .replaceAll(RegExp(r'[^\w\s]+', unicode: true), "")
-          .replaceAll(entity.title.toLowerCase().trim(), ""));
-    }
-    return _normalize(parts.where((p) => p.isNotEmpty).join(' '));
-  }
+  /// Only the title: the subtitle (artist, album) shown under a suggestion is
+  /// not part of what the user was looking for.
+  String _buildEntitySearchQuery(plugin_models.EntitySuggestion entity) =>
+      _normalize(entity.title);
 
   @override
   Widget build(BuildContext context) {
@@ -812,19 +810,7 @@ class _SuggestionsSliver extends StatelessWidget {
               .addPostFrameCallback((_) => onSuggestionsGenerated(combined));
 
           if (combined.isEmpty && isPluginLoading) {
-            return const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: JarxLoadingIndicator(
-                    strokeWidth: 2,
-                    color: Default_Theme.accentColor2,
-                  ),
-                ),
-              ),
-            );
+            return const SliverToBoxAdapter(child: SkeletonSongList());
           }
           if (combined.isEmpty && textEditingController.text.isEmpty) {
             return SliverFillRemaining(

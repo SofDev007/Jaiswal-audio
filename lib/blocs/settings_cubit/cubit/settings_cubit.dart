@@ -207,7 +207,8 @@ class SettingsCubit extends Cubit<SettingsState> {
 
     // Normalize crossfade duration.
     final cfStr = results[17] as String?;
-    final crossfadeSeconds = int.tryParse((cfStr ?? '').trim()) ?? 2;
+    // Off (0) on a new install; a value already saved is kept.
+    final crossfadeSeconds = int.tryParse((cfStr ?? '').trim()) ?? 0;
     if (cfStr != crossfadeSeconds.toString()) {
       _settingsRepo.putSettingStr(
           SettingKeys.crossfadeDuration, crossfadeSeconds.toString());
@@ -270,7 +271,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       strmQuality: normalizedStrmQ,
       backupPath: results[10] as String,
       autoBackup: (results[11] as bool?) ?? false,
-      historyClearTime: (results[5] as String?) ?? '30',
+      historyClearTime: (results[5] as String?) ?? '0',
       autoGetCountry: (results[12] as bool?) ?? true,
       languageCode: (results[13] as String?) ?? '',
       countryCode: resolvedCountry,

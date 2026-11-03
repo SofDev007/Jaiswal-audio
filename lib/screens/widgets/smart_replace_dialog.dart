@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/screens/screen/library_views/cubit/current_playlist_cubit.dart';
@@ -75,7 +76,8 @@ class _SmartReplaceDialogState extends State<_SmartReplaceDialog> {
             return _SmartReplaceEmptyState(
               icon: MingCute.alert_fill,
               title: l10n.smartReplaceSearchFailed,
-              subtitle: snapshot.error.toString(),
+              subtitle:
+                  friendlyError(snapshot.error, fallback: 'Try again later.'),
             );
           }
 
@@ -169,6 +171,7 @@ class _SmartReplaceDialogState extends State<_SmartReplaceDialog> {
           updatedQueue,
           startIndex: player.currentQueueIndex,
           doPlay: player.currentTrackInfo.id == widget.track.id,
+          title: player.queueTitle.value,
         );
       }
 
@@ -197,7 +200,8 @@ class _SmartReplaceDialogState extends State<_SmartReplaceDialog> {
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        SnackbarService.showMessage(l10n.smartReplaceApplyFailed(e.toString()));
+        SnackbarService.showMessage(l10n
+            .smartReplaceApplyFailed(friendlyError(e, fallback: 'Try again.')));
         setState(() => _applyingTrackId = null);
       }
     }

@@ -2,12 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/adapters/track_adapter.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart' hide Lyrics;
 import 'package:Bloomee/core/models/lyrics_models.dart';
+import 'package:Bloomee/services/db/dao/download_dao.dart';
 import 'package:Bloomee/services/db/dao/lyrics_dao.dart';
+import 'package:Bloomee/services/db/dao/playlist_dao.dart';
+import 'package:Bloomee/services/db/dao/track_dao.dart';
+import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/meta_resolver/cross_plugin_resolver.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
@@ -24,7 +29,10 @@ class LyricsCubit extends Cubit<LyricsState> {
   final SettingsDAO _settingsDao;
   final PluginService _pluginService;
   final CrossPluginResolver _resolver;
+  final DownloadDAO _downloadDao;
   StreamSubscription? _mediaItemSubscription;
+  StreamSubscription? _downloadedSubscription;
+  Future<void> _offlineQueue = Future.value();
 
   static const double _kLyricsSearchMinConfidence = 0.56;
   int _requestSerial = 0;
@@ -37,6 +45,8 @@ class LyricsCubit extends Cubit<LyricsState> {
   })  : _lyricsDao = lyricsDao,
         _settingsDao = settingsDao,
         _pluginService = pluginService,
+        _downloadDao = DownloadDAO(DBProvider.db, TrackDAO(DBProvider.db),
+            PlaylistDAO(DBProvider.db, TrackDAO(DBProvider.db))),
         _resolver = CrossPluginResolver(
           pluginService: pluginService,
           pluginTimeout: const Duration(seconds: 10),
@@ -49,6 +59,9 @@ class LyricsCubit extends Cubit<LyricsState> {
         getLyrics(mediaItemToTrack(item));
       }
     });
+    // One at a time: a playlist download finishes many songs at once.
+    _downloadedSubscription = DownloaderCubit.downloadedTracks.listen(
+        (t) => _offlineQueue = _offlineQueue.then((_) => saveForOffline(t)));
   }
 
   String _artistStr(Track track) =>
@@ -82,52 +95,81 @@ class LyricsCubit extends Cubit<LyricsState> {
       return;
     }
 
+    final found = await _fetch(track, priority, () => _isStale(requestId));
+    if (_isStale(requestId)) return;
+    if (found != null) {
+      emit(LyricsLoaded(found, track));
+      _autoSave(found);
+      return;
+    }
+    emit(LyricsError(track));
+  }
+
+  /// Lyrics for [track] from the lyrics plugins in [priority] order, or
+  /// null. Stops early when [stale] says the answer is no longer wanted.
+  Future<Lyrics?> _fetch(
+      Track track, List<String> priority, bool Function() stale) async {
     final profile = _buildTrackProfile(track);
-
     for (final pluginId in priority) {
-      if (_isStale(requestId)) return;
-
+      if (stale()) return null;
       try {
         final direct = await _tryGetLyricsByMetadataVariants(
           pluginId: pluginId,
           profile: profile,
           track: track,
         );
-        if (_isStale(requestId)) return;
-
         if (direct != null) {
-          emit(LyricsLoaded(direct, track));
-          _autoSave(direct);
-          log(
-            'Lyrics loaded for ID: ${track.id} [Plugin: $pluginId/direct]',
-            name: 'LyricsCubit',
-          );
-          return;
+          log('Lyrics loaded for ID: ${track.id} [Plugin: $pluginId/direct]',
+              name: 'LyricsCubit');
+          return direct;
         }
-
+        if (stale()) return null;
         final searched = await _tryGetLyricsViaSearchFallback(
           pluginId: pluginId,
           profile: profile,
           track: track,
         );
-        if (_isStale(requestId)) return;
-
         if (searched != null) {
-          emit(LyricsLoaded(searched, track));
-          _autoSave(searched);
-          log(
-            'Lyrics loaded for ID: ${track.id} [Plugin: $pluginId/search]',
-            name: 'LyricsCubit',
-          );
-          return;
+          log('Lyrics loaded for ID: ${track.id} [Plugin: $pluginId/search]',
+              name: 'LyricsCubit');
+          return searched;
         }
       } catch (e) {
         log('Plugin $pluginId failed: $e', name: 'LyricsCubit');
       }
     }
+    return null;
+  }
 
-    if (_isStale(requestId)) return;
-    emit(LyricsError(track));
+  /// Saves the lyrics of a just-downloaded song, so they show offline too.
+  /// Runs in the background and never changes what the player shows.
+  Future<void> saveForOffline(Track track) async {
+    try {
+      if (await _lyricsDao.getLyrics(track.id) != null) return;
+      final priority = await _loadPriority();
+      if (priority.isEmpty) return;
+      final found = await _fetch(track, priority, () => isClosed);
+      if (found != null) await _lyricsDao.putLyrics(found);
+    } catch (e) {
+      log('Offline lyrics failed for ${track.id}: $e', name: 'LyricsCubit');
+    }
+  }
+
+  /// Runs a lyrics request, trying once more after a short wait when it
+  /// fails: LRCLIB often answers 503 for a moment, and one failure used to
+  /// mean no lyrics for the song.
+  Future<PluginResponse> _execute(
+      String pluginId, LyricsProviderCommand c) async {
+    try {
+      return await _pluginService.execute(
+          pluginId: pluginId, request: PluginRequest.lyricsProvider(c));
+    } catch (e) {
+      // A 4xx answer (bad request, not found) won't change on a retry.
+      if (RegExp(r'Status 4\d\d').hasMatch('$e')) rethrow;
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      return _pluginService.execute(
+          pluginId: pluginId, request: PluginRequest.lyricsProvider(c));
+    }
   }
 
   Future<Lyrics?> _tryGetLyricsByMetadataVariants({
@@ -136,12 +178,14 @@ class LyricsCubit extends Cubit<LyricsState> {
     required Track track,
   }) async {
     for (final metadata in profile.metadataVariants) {
-      final response = await _pluginService.execute(
-        pluginId: pluginId,
-        request: PluginRequest.lyricsProvider(
-          LyricsProviderCommand.getLyrics(metadata: metadata),
-        ),
-      );
+      final PluginResponse response;
+      try {
+        response = await _execute(
+            pluginId, LyricsProviderCommand.getLyrics(metadata: metadata));
+      } catch (e) {
+        log('Lyrics lookup failed for $pluginId: $e', name: 'LyricsCubit');
+        continue;
+      }
 
       if (response is PluginResponse_LyricsResult && response.field0 != null) {
         final result = response.field0!;
@@ -169,12 +213,8 @@ class LyricsCubit extends Cubit<LyricsState> {
     for (final query in profile.searchQueries) {
       PluginResponse response;
       try {
-        response = await _pluginService.execute(
-          pluginId: pluginId,
-          request: PluginRequest.lyricsProvider(
-            LyricsProviderCommand.search(query: query),
-          ),
-        );
+        response = await _execute(
+            pluginId, LyricsProviderCommand.search(query: query));
       } catch (e) {
         log(
           'Lyrics search failed for $pluginId query "$query": $e',
@@ -205,25 +245,29 @@ class LyricsCubit extends Cubit<LyricsState> {
 
     final sorted = candidatesById.values.toList(growable: false)
       ..sort((a, b) => b.confidence.compareTo(a.confidence));
-    final winner = sorted.first;
-
-    final byIdResponse = await _pluginService.execute(
-      pluginId: pluginId,
-      request: PluginRequest.lyricsProvider(
-        LyricsProviderCommand.getLyricsById(id: winner.match.id),
-      ),
-    );
-
-    if (byIdResponse is! PluginResponse_LyricsById) return null;
-
-    return pluginLyricsToLyrics(
-      byIdResponse.field0,
-      artist: _artistStr(track),
-      title: track.title,
-      album: track.album?.title,
-      durationMs: track.durationMs,
-      mediaID: track.id,
-    );
+    // The best match, or the next ones when fetching it fails (LRCLIB
+    // answers 503 now and then).
+    for (final candidate in sorted.take(3)) {
+      final PluginResponse byIdResponse;
+      try {
+        byIdResponse = await _execute(pluginId,
+            LyricsProviderCommand.getLyricsById(id: candidate.match.id));
+      } catch (e) {
+        log('Lyrics by id failed for ${candidate.match.id}: $e',
+            name: 'LyricsCubit');
+        continue;
+      }
+      if (byIdResponse is! PluginResponse_LyricsById) continue;
+      return pluginLyricsToLyrics(
+        byIdResponse.field0,
+        artist: _artistStr(track),
+        title: track.title,
+        album: track.album?.title,
+        durationMs: track.durationMs,
+        mediaID: track.id,
+      );
+    }
+    return null;
   }
 
   double _scoreLyricsMatch(
@@ -298,27 +342,33 @@ class LyricsCubit extends Cubit<LyricsState> {
     final primaryArtist =
         normalizedArtists.isEmpty ? '' : normalizedArtists.first;
 
+    // LRCLIB's exact lookup needs the duration (without it: "400 Bad
+    // Request"); songs from search often come without one, so then only
+    // the search below is used.
+    final hasDuration = (track.durationMs?.toInt() ?? 0) > 0;
     final metadataVariants = <plugin_models.TrackMetadata>[
-      plugin_models.TrackMetadata(
-        title: sanitizedTitle,
-        artist: normalizedArtists.join(', '),
-        album: track.album?.title,
-        durationMs: track.durationMs,
-      ),
-      if (primaryArtist.isNotEmpty)
+      if (hasDuration) ...[
         plugin_models.TrackMetadata(
           title: sanitizedTitle,
-          artist: primaryArtist,
-          album: track.album?.title,
-          durationMs: track.durationMs,
-        ),
-      if (simplifiedTitle.isNotEmpty)
-        plugin_models.TrackMetadata(
-          title: simplifiedTitle,
           artist: normalizedArtists.join(', '),
           album: track.album?.title,
           durationMs: track.durationMs,
         ),
+        if (primaryArtist.isNotEmpty)
+          plugin_models.TrackMetadata(
+            title: sanitizedTitle,
+            artist: primaryArtist,
+            album: track.album?.title,
+            durationMs: track.durationMs,
+          ),
+        if (simplifiedTitle.isNotEmpty)
+          plugin_models.TrackMetadata(
+            title: simplifiedTitle,
+            artist: normalizedArtists.join(', '),
+            album: track.album?.title,
+            durationMs: track.durationMs,
+          ),
+      ],
     ];
 
     final searchQueries = _resolver.uniqueQueries([
@@ -371,6 +421,21 @@ class LyricsCubit extends Cubit<LyricsState> {
   }) {
     var title = rawTitle.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (title.isEmpty) return rawTitle;
+
+    // YouTube video titles: "Tose Naina - Official Video | Film | Singer",
+    // "Song (Lyrical)", "Song [Full Video]". Keep "(From "Film")".
+    title = title.split(RegExp(r'\s[|｜]\s')).first;
+    title = title.replaceAll(
+        RegExp(
+            r'[\(\[][^\)\]]*\b(official|video|lyrics?|lyrical|audio|full song|hd|4k|visualizer)\b[^\)\]]*[\)\]]',
+            caseSensitive: false),
+        '');
+    title = title.replaceAll(
+        RegExp(r'\s[-–]\s*(official|full|lyrical|lyrics?|video|audio)\b.*$',
+            caseSensitive: false),
+        '');
+    title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (title.isEmpty) return rawTitle.trim();
 
     final parts = title
         .split(',')
@@ -460,7 +525,10 @@ class LyricsCubit extends Cubit<LyricsState> {
   Future<void> _autoSave(Lyrics lyrics) async {
     final enabled =
         await _settingsDao.getSettingBool(SettingKeys.autoSaveLyrics);
-    if ((enabled ?? false)) {
+    // Downloaded songs always keep their lyrics, for offline play.
+    final downloaded = lyrics.mediaID != null &&
+        await _downloadDao.isDownloaded(lyrics.mediaID!);
+    if ((enabled ?? false) || downloaded) {
       await _lyricsDao.putLyrics(lyrics);
       log('Lyrics saved for ID: ${lyrics.mediaID}', name: 'LyricsCubit');
     }
@@ -489,6 +557,7 @@ class LyricsCubit extends Cubit<LyricsState> {
   @override
   Future<void> close() {
     _mediaItemSubscription?.cancel();
+    _downloadedSubscription?.cancel();
     return super.close();
   }
 }

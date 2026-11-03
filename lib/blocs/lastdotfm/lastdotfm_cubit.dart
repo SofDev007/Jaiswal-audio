@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -283,7 +284,9 @@ class LastdotfmCubit extends Cubit<LastdotfmState> {
       }
     } catch (e) {
       log('Error: $e', name: 'Last.FM');
-      emit(LastdotfmFailed(message: e.toString()));
+      emit(LastdotfmFailed(
+          message: friendlyError(e,
+              fallback: 'Check your username, password and API keys.')));
     }
   }
 

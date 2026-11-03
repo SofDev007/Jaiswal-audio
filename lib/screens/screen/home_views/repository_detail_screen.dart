@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:developer';
 import 'dart:io';
 
@@ -100,10 +101,12 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen> {
       setState(() {
         _phaseByPlugin[plugin.id] = _RemoteInstallPhase.failed;
         _pendingInstallIds.remove(plugin.id);
-        _errorByPlugin[plugin.id] = e.toString();
+        _errorByPlugin[plugin.id] =
+            friendlyError(e, fallback: 'Download failed. Try again later.');
       });
       SnackbarService.showMessage(
-        l10n.pluginRepositoryDownloadFailed(pluginDisplayName(plugin.id, plugin.name)),
+        l10n.pluginRepositoryDownloadFailed(
+            pluginDisplayName(plugin.id, plugin.name)),
       );
     }
   }
@@ -547,8 +550,7 @@ class _AestheticButton extends StatelessWidget {
               ? SizedBox(
                   width: 16,
                   height: 16,
-                  child:
-                      JarxLoadingIndicator(strokeWidth: 2.5, color: color),
+                  child: JarxLoadingIndicator(strokeWidth: 2.5, color: color),
                 )
               : Text(
                   text,

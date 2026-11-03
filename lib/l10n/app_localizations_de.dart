@@ -696,6 +696,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appuiTitle => 'UI & Dienste';
 
   @override
+  String get appuiTheme => 'Theme';
+
+  @override
+  String get appuiThemeDark => 'Dark';
+
+  @override
+  String get appuiThemeDarkSubtitle => 'Easy on the eyes, day and night';
+
+  @override
+  String get appuiThemeLight => 'Light';
+
+  @override
+  String get appuiThemeLightSoon => 'Coming in V2';
+
+  @override
+  String get appuiThemeLightSnackbar => 'The light theme is coming in V2';
+
+  @override
   String get appuiAutoSlideCharts => 'Charts automatisch wechseln';
 
   @override
@@ -2108,6 +2126,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get playerLoopOff => 'Aus';
 
   @override
+  String get playerShuffleOn => 'Shuffle on';
+
+  @override
+  String get playerShuffleOff => 'Shuffle off';
+
+  @override
+  String playerSleepTimerSet(String time) {
+    return 'Sleep timer: $time';
+  }
+
+  @override
+  String get playerSleepTimerOff => 'Sleep timer off';
+
+  @override
   String get playerLoopOne => 'Titel wiederholen';
 
   @override
@@ -2289,4 +2321,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get neverSuggestUndo => 'Rückgängig';
+
+  @override
+  String get menuNeverSuggest => 'Do not suggest this song';
+
+  @override
+  String get menuSuggestAgain => 'Suggest this song again';
+
+  @override
+  String neverSuggestLifted(String title) {
+    return '\"$title\" can be suggested again';
+  }
 }

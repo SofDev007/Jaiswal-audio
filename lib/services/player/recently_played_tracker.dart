@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'dart:developer';
 
 import 'package:Bloomee/core/models/exported.dart';
@@ -8,15 +9,15 @@ import 'package:Bloomee/services/db/dao/history_dao.dart';
 import 'package:Bloomee/services/db/dao/track_dao.dart';
 import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
 
-/// Tracks continuous playback of the current track and pushes it to
-/// the playback history DB only when the item has been played continuously
-/// for at least [_thresholdSeconds]. Default threshold is 15 seconds.
+/// Tracks continuous playback of the current track and pushes it to the
+/// playback history DB and the recommendation signals only once it has played
+/// for more than [_thresholdSeconds] (20). Shorter plays don't count, however
+/// short the song.
 class RecentlyPlayedTracker {
   final PlayerEngine _engine;
   final Track? Function() _getCurrentTrack;
 
   int _thresholdSeconds;
-  double _percentThreshold;
   StreamSubscription<EngineState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
 
@@ -30,10 +31,8 @@ class RecentlyPlayedTracker {
   RecentlyPlayedTracker(
     this._engine,
     this._getCurrentTrack, {
-    int thresholdSeconds = 15,
-    double percentThreshold = 0.4,
-  })  : _thresholdSeconds = thresholdSeconds,
-        _percentThreshold = percentThreshold {
+    int thresholdSeconds = 20,
+  }) : _thresholdSeconds = thresholdSeconds {
     _stateSub = _engine.stateStream.listen(_onEngineState);
     _positionSub = _engine.positionStream.listen(_onPosition);
   }
@@ -97,18 +96,17 @@ class RecentlyPlayedTracker {
 
     final elapsedMs = currMs - startMs;
 
-    final bool reachedTimeThreshold = elapsedMs >= _thresholdSeconds * 1000;
-    final durationMs = track.durationMs?.toInt();
-    final bool reachedPercentThreshold =
-        durationMs != null ? currMs >= (durationMs * _percentThreshold) : false;
-
-    if (reachedTimeThreshold || reachedPercentThreshold) {
+    if (elapsedMs > _thresholdSeconds * 1000) {
       _recordedForCurrent = true;
       try {
         final trackDao = TrackDAO(DBProvider.db);
         final historyDao = HistoryDAO(DBProvider.db, trackDao);
         await historyDao.recordPlay(track);
         await TrackSignalDAO(DBProvider.db).recordPlay(track);
+        // Kept past 20 s: a good suggestion, if it was one; and its moods
+        // count for this time of day.
+        await TasteModel.played(track.id, good: true);
+        await TasteModel.notePlay(track);
         log('Tracked play for ${track.id}', name: 'RecentlyPlayedTracker');
       } catch (e) {
         log('Failed to record play: $e', name: 'RecentlyPlayedTracker');
@@ -119,11 +117,6 @@ class RecentlyPlayedTracker {
   void setThresholdSeconds(int seconds) {
     if (seconds <= 0) return;
     _thresholdSeconds = seconds;
-  }
-
-  void setPercentThreshold(double percent) {
-    if (percent <= 0 || percent > 1) return;
-    _percentThreshold = percent;
   }
 
   Future<void> dispose() async {

@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:developer';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -122,7 +123,8 @@ class ChartBloc extends Bloc<ChartEvent, ChartState> {
       if (!hasCache) {
         emit(state.copyWith(
           chartsStatus: ChartStatus.error,
-          error: 'Failed to load charts: $e',
+          error: friendlyError(e,
+              fallback: 'Failed to load charts. Try again later.'),
         ));
       }
     }
@@ -217,7 +219,8 @@ class ChartBloc extends Bloc<ChartEvent, ChartState> {
       if (!hasCache) {
         emit(state.copyWith(
           chartDetailStatus: ChartStatus.error,
-          error: 'Failed to load chart details: $e',
+          error: friendlyError(e,
+              fallback: 'Failed to load chart details. Try again later.'),
         ));
       }
     }
@@ -298,7 +301,8 @@ class ChartBloc extends Bloc<ChartEvent, ChartState> {
           error: e, stackTrace: stack, name: 'ChartBloc');
       emit(state.copyWith(
         chartDetailStatus: ChartStatus.error,
-        error: 'Failed to refresh chart: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to refresh chart. Try again later.'),
       ));
     }
   }
@@ -424,7 +428,10 @@ class ChartBloc extends Bloc<ChartEvent, ChartState> {
     emit(state.copyWith(
       chartsStatus: chartDetail ? null : ChartStatus.error,
       chartDetailStatus: chartDetail ? ChartStatus.error : null,
-      error: e.message,
+      // Raw plugin failure stays in the log only.
+      error: friendlyError(e.message,
+          fallback: "Couldn't load charts right now. Try again later."),
     ));
+    log('Chart plugin error: ${e.message}', name: 'ChartBloc');
   }
 }

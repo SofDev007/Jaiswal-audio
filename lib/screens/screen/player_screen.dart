@@ -4,8 +4,8 @@ import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
 import 'package:Bloomee/blocs/library/cubit/library_items_cubit.dart';
 import 'package:Bloomee/blocs/player_overlay/player_overlay_cubit.dart';
 import 'package:Bloomee/core/adapters/track_adapter.dart';
-import 'package:Bloomee/screens/screen/home_views/timer_view.dart';
-import 'package:Bloomee/screens/screen/home_views/setting_views/player_setting.dart';
+import 'package:Bloomee/screens/widgets/player_lyric_line.dart';
+import 'package:Bloomee/screens/widgets/player_option_buttons.dart';
 import 'package:Bloomee/screens/widgets/gradient_progress_bar.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/up_next_panel.dart';
@@ -15,18 +15,20 @@ import 'package:Bloomee/screens/screen/player_views/segments_sheet.dart';
 import 'package:Bloomee/services/bloomee_player.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
+import 'package:Bloomee/screens/widgets/player_overlay_wrapper.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/screens/widgets/like_widget.dart';
 import 'package:Bloomee/screens/widgets/play_pause_widget.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
+import 'package:Bloomee/utils/download_types.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:Bloomee/utils/pallete_generator.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../blocs/media_player/bloomee_player_cubit.dart';
 import '../../blocs/mini_player/mini_player_cubit.dart';
 import 'player_views/fullscreen_lyrics_view.dart';
@@ -52,6 +54,11 @@ class _AudioPlayerViewState extends State<AudioPlayerView>
       if (mounted) {
         context.read<PlayerOverlayCubit>().registerUpNextPanelCollapse(
               () => _upNextPanelController.collapse(),
+              open: () {
+                if (!_upNextPanelController.isExpanded) {
+                  _upNextPanelController.toggle();
+                }
+              },
             );
       }
     });
@@ -233,14 +240,25 @@ class _PlayerUI extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              const SizedBox(height: 60),
+              // Shuffle / sleep-timer messages pop up just above the cover.
+              const SizedBox(
+                height: 60,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: PlayerFlash(),
+                ),
+              ),
               const Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   child: CoverImageVolSlider(),
                 ),
               ),
-              const SizedBox(height: 15),
+              // The line being sung (none without synced lyrics).
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: PlayerLyricLine(),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: PlayerCtrlWidgets(musicPlayer: musicPlayer),
@@ -254,14 +272,83 @@ class _PlayerUI extends StatelessWidget {
   }
 }
 
-class CoverImageVolSlider extends StatelessWidget {
+/// Which way the last skip went (1 = next, -1 = previous), so the title
+/// slides in from the same side as the cover.
+final ValueNotifier<int> _skipDirection = ValueNotifier(1);
+
+/// The cover: drag it sideways to skip (it tilts, flies off and the next
+/// cover comes in from the other side), shrinks a little while paused, and
+/// grows out of the mini player as the player opens.
+class CoverImageVolSlider extends StatefulWidget {
   const CoverImageVolSlider({super.key});
+
+  @override
+  State<CoverImageVolSlider> createState() => _CoverImageVolSliderState();
+}
+
+class _CoverImageVolSliderState extends State<CoverImageVolSlider>
+    with SingleTickerProviderStateMixin {
+  /// Sideways offset of the cover in pixels.
+  late final AnimationController _dx =
+      AnimationController.unbounded(vsync: this);
+  bool _armed = false;
+  bool _swiping = false;
+
+  /// Share of the cover's width to drag before letting go skips.
+  static const double _skipFraction = 0.28;
+
+  /// Tilt at a full cover-width drag (0.14 rad ≈ 8°).
+  static const double _maxTilt = 0.14;
+
+  @override
+  void dispose() {
+    _dx.dispose();
+    super.dispose();
+  }
+
+  void _onDragUpdate(DragUpdateDetails d, double width) {
+    _dx.stop();
+    _dx.value += d.delta.dx;
+    final armed = _dx.value.abs() > width * _skipFraction;
+    if (armed != _armed) {
+      _armed = armed;
+      if (armed) HapticFeedback.selectionClick(); // letting go now skips
+    }
+  }
+
+  Future<void> _onDragEnd(DragEndDetails d, double width) async {
+    final v = d.primaryVelocity ?? 0;
+    final flung = v.abs() > 700;
+    _armed = false;
+    if (!flung && _dx.value.abs() <= width * _skipFraction) {
+      _dx.animateTo(0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutBack);
+      return;
+    }
+    final next = flung ? v < 0 : _dx.value < 0;
+    final out = (next ? -1.0 : 1.0) * width * 1.2;
+    HapticFeedback.mediumImpact();
+    _skipDirection.value = next ? 1 : -1;
+    setState(() => _swiping = true);
+    await _dx.animateTo(out,
+        duration: const Duration(milliseconds: 160), curve: Curves.easeIn);
+    if (!mounted) return;
+    final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+    next ? player.skipToNext() : player.skipToPrevious();
+    _dx.value = -out;
+    await _dx.animateTo(0,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic);
+    if (mounted) setState(() => _swiping = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final bloomeePlayerCubit = context.read<BloomeePlayerCubit>();
+    final open = PlayerOpenAnimation.maybeOf(context);
 
-    return StreamBuilder<MediaItem?>(
+    final cover = StreamBuilder<MediaItem?>(
       stream: bloomeePlayerCubit.bloomeePlayer.mediaItem,
       builder: (context, snapshot) {
         final currentTrack = bloomeePlayerCubit.bloomeePlayer.currentTrackInfo;
@@ -270,23 +357,83 @@ class CoverImageVolSlider extends StatelessWidget {
         final lowResUrl =
             currentTrack.thumbnail.urlLow ?? currentTrack.thumbnail.url;
 
-        return SizedBox.expand(
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: 1.0,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: LoadImageCached(
-                  imageUrl: highResUrl,
-                  fallbackUrl: lowResUrl,
-                  fit: BoxFit.contain,
-                ),
-              ),
+        // A new song's cover fades and settles in (a swipe brings it in
+        // from the side instead).
+        return AnimatedSwitcher(
+          duration:
+              _swiping ? Duration.zero : const Duration(milliseconds: 350),
+          switchInCurve: Curves.easeOutCubic,
+          // Fill the square: the default Stack lets a small (offline,
+          // low-res) thumbnail shrink to its own size.
+          layoutBuilder: (current, previous) => Stack(
+            fit: StackFit.expand,
+            children: [...previous, if (current != null) current],
+          ),
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.95, end: 1).animate(anim),
+              child: child,
+            ),
+          ),
+          child: ClipRRect(
+            key: ValueKey(highResUrl),
+            borderRadius: BorderRadius.circular(20),
+            child: LoadImageCached(
+              imageUrl: highResUrl,
+              fallbackUrl: lowResUrl,
+              fit: BoxFit.contain,
             ),
           ),
         );
       },
     );
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      Widget art = Center(
+        child: AspectRatio(
+          aspectRatio: 1.0,
+          child: BlocSelector<MiniPlayerCubit, MiniPlayerState, bool>(
+            // Loading between songs doesn't count as paused.
+            selector: (s) => s.isPlaying || s.isLoading || s.isResolving,
+            builder: (context, playing) => AnimatedScale(
+              scale: playing ? 1 : 0.92,
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeOutBack,
+              child: cover,
+            ),
+          ),
+        ),
+      );
+      if (open != null) {
+        art = AnimatedBuilder(
+          animation: open,
+          builder: (context, child) => Transform.scale(
+            scale: 0.5 + 0.5 * Curves.easeOutCubic.transform(open.value),
+            alignment: Alignment.bottomLeft,
+            child: child,
+          ),
+          child: art,
+        );
+      }
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (d) => _onDragUpdate(d, width),
+        onHorizontalDragEnd: (d) => _onDragEnd(d, width),
+        child: AnimatedBuilder(
+          animation: _dx,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(_dx.value, 0),
+            child: Transform.rotate(
+              angle: (_dx.value / width).clamp(-1.0, 1.0) * _maxTilt,
+              child: child,
+            ),
+          ),
+          child: SizedBox.expand(child: art),
+        ),
+      );
+    });
   }
 }
 
@@ -325,38 +472,62 @@ class _SongInfoRow extends StatelessWidget {
             stream: player.mediaItem,
             builder: (context, snapshot) {
               final currentTrack = player.currentTrackInfo;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  MarqueeOverflow(
-                    key: ValueKey('title-${currentTrack.id}'),
-                    child: Text(
-                      currentTrack.title,
-                      maxLines: 1,
-                      style: Default_Theme.secondoryTextStyle
-                          .merge(const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Default_Theme.primaryColor1,
-                      )),
+              // Title and artist slide in from the side the cover came from.
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 320),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [...previous, if (current != null) current],
+                ),
+                transitionBuilder: (child, anim) {
+                  final incoming =
+                      child.key == ValueKey('info-${currentTrack.id}');
+                  final side = _skipDirection.value * (incoming ? 1 : -1);
+                  return ClipRect(
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                              begin: Offset(0.35 * side, 0), end: Offset.zero)
+                          .animate(anim),
+                      child: FadeTransition(opacity: anim, child: child),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  MarqueeOverflow(
-                    key: ValueKey('meta-${currentTrack.id}'),
-                    child: TrackMetadataLinks(
-                      track: currentTrack,
-                      showAlbum: currentTrack.album != null,
-                      maxLines: 1,
-                      style: Default_Theme.secondoryTextStyle.merge(TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color:
-                            Default_Theme.primaryColor1.withValues(alpha: 0.7),
-                      )),
+                  );
+                },
+                child: Column(
+                  key: ValueKey('info-${currentTrack.id}'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MarqueeOverflow(
+                      key: ValueKey('title-${currentTrack.id}'),
+                      child: Text(
+                        currentTrack.title,
+                        maxLines: 1,
+                        style: Default_Theme.secondoryTextStyle
+                            .merge(const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Default_Theme.primaryColor1,
+                        )),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    MarqueeOverflow(
+                      key: ValueKey('meta-${currentTrack.id}'),
+                      child: TrackMetadataLinks(
+                        track: currentTrack,
+                        showAlbum: currentTrack.album != null,
+                        maxLines: 1,
+                        style: Default_Theme.secondoryTextStyle.merge(TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Default_Theme.primaryColor1
+                              .withValues(alpha: 0.7),
+                        )),
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -419,19 +590,73 @@ class _DownloadButtonState extends State<_DownloadButton> {
     super.dispose();
   }
 
+  static const _over = {
+    DownloadState.completed,
+    DownloadState.failed,
+    DownloadState.cancelled,
+  };
+
   @override
   Widget build(BuildContext context) {
-    if (!_isDownloaded) return const SizedBox.shrink();
-    return Tooltip(
-      message: AppLocalizations.of(context)!.tooltipAvailableOffline,
-      child: IconButton(
-        iconSize: 25,
-        icon: Icon(
-          Icons.offline_pin_rounded,
-          color: Default_Theme.primaryColor1.withValues(alpha: 0.5),
-        ),
-        onPressed: () {},
-      ),
+    // While the current song downloads: a ring that fills up; when it's
+    // done the ring pops into the offline tick.
+    return BlocBuilder<DownloaderCubit, DownloaderState>(
+      builder: (context, state) {
+        final id = _lastTrackId;
+        final active = state.downloads
+            .where(
+                (d) => d.task.song.id == id && !_over.contains(d.status.state))
+            .firstOrNull;
+        final done = _isDownloaded ||
+            (id != null && context.read<DownloaderCubit>().isDownloaded(id));
+        final progress = active?.status.progress ?? 0;
+
+        final Widget child;
+        if (active != null) {
+          child = SizedBox.square(
+            key: const ValueKey('dl-active'),
+            dimension: 48,
+            child: Center(
+              child: SizedBox.square(
+                dimension: 22,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: progress),
+                  duration: const Duration(milliseconds: 300),
+                  builder: (context, value, _) => CircularProgressIndicator(
+                    value: progress > 0 ? value : null,
+                    strokeWidth: 2.5,
+                    color: Default_Theme.accentColor2,
+                    backgroundColor:
+                        Default_Theme.primaryColor1.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else if (done) {
+          child = Tooltip(
+            key: const ValueKey('dl-done'),
+            message: AppLocalizations.of(context)!.tooltipAvailableOffline,
+            child: IconButton(
+              iconSize: 25,
+              icon: Icon(
+                Icons.offline_pin_rounded,
+                color: Default_Theme.primaryColor1.withValues(alpha: 0.5),
+              ),
+              onPressed: () {},
+            ),
+          );
+        } else {
+          child = const SizedBox.shrink(key: ValueKey('dl-none'));
+        }
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          switchInCurve: Curves.easeOutBack,
+          transitionBuilder: (child, anim) =>
+              ScaleTransition(scale: anim, child: child),
+          child: child,
+        );
+      },
     );
   }
 }
@@ -581,20 +806,37 @@ class _PlayerControlsRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildControlColumn(
-          top: IconButton(
-            icon: const Icon(MingCute.alarm_1_line,
-                color: Default_Theme.primaryColor1, size: 28),
-            onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const TimerView())),
-          ),
+          top: const SleepTimerButton(),
           bottom: const _LoopControl(),
         ),
         _buildControlColumn(
           top: IconButton(
             icon: const Icon(MingCute.skip_previous_fill,
                 color: Default_Theme.primaryColor1, size: 35),
-            onPressed: musicPlayer.skipToPrevious,
+            onPressed: () {
+              _skipDirection.value = -1;
+              musicPlayer.skipToPrevious();
+            },
           ),
+          bottom: const SizedBox(height: 40),
+        ),
+        _buildControlColumn(
+          top: const _PlayPauseButton(),
+          bottom: const SizedBox(height: 40),
+        ),
+        _buildControlColumn(
+          top: IconButton(
+            icon: const Icon(MingCute.skip_forward_fill,
+                color: Default_Theme.primaryColor1, size: 35),
+            onPressed: () {
+              _skipDirection.value = 1;
+              musicPlayer.skipToNext();
+            },
+          ),
+          bottom: const SizedBox(height: 40),
+        ),
+        _buildControlColumn(
+          top: const ShuffleButton(),
           bottom: IconButton(
             icon: const Icon(MingCute.align_center_line,
                 color: Default_Theme.primaryColor1, size: 24),
@@ -607,27 +849,6 @@ class _PlayerControlsRow extends StatelessWidget {
               ));
             },
           ),
-        ),
-        _buildControlColumn(
-          top: const _PlayPauseButton(),
-          bottom: const SizedBox(height: 40),
-        ),
-        _buildControlColumn(
-          top: IconButton(
-            icon: const Icon(MingCute.skip_forward_fill,
-                color: Default_Theme.primaryColor1, size: 35),
-            onPressed: musicPlayer.skipToNext,
-          ),
-          bottom: IconButton(
-            icon: const Icon(MingCute.settings_6_line,
-                color: Default_Theme.primaryColor1, size: 24),
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const PlayerSettings())),
-          ),
-        ),
-        _buildControlColumn(
-          top: const _ShuffleControl(),
-          bottom: const _ExternalLinkControl(),
         ),
       ],
     );
@@ -668,53 +889,6 @@ class _LoopControl extends StatelessWidget {
             if (value == 2) player.setLoopMode(LoopMode.all);
           },
         );
-      },
-    );
-  }
-}
-
-class _ShuffleControl extends StatelessWidget {
-  const _ShuffleControl();
-
-  @override
-  Widget build(BuildContext context) {
-    final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
-    return StreamBuilder<bool>(
-      stream: player.shuffleMode,
-      builder: (context, snapshot) {
-        final isShuffle = snapshot.data ?? false;
-        return IconButton(
-          icon: Icon(
-            MingCute.shuffle_2_fill,
-            color: isShuffle
-                ? Default_Theme.accentColor1
-                : Default_Theme.primaryColor1,
-            size: 28,
-          ),
-          onPressed: () => player.shuffle(!isShuffle),
-        );
-      },
-    );
-  }
-}
-
-class _ExternalLinkControl extends StatelessWidget {
-  const _ExternalLinkControl();
-
-  @override
-  Widget build(BuildContext context) {
-    final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
-    return IconButton(
-      icon: const Icon(MingCute.external_link_line,
-          color: Default_Theme.primaryColor1, size: 24),
-      onPressed: () async {
-        final url = player.currentTrackInfo.url;
-        if (url != null) {
-          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        } else {
-          SnackbarService.showMessage(
-              AppLocalizations.of(context)!.snackbarCouldNotOpenLink);
-        }
       },
     );
   }

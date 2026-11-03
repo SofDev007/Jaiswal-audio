@@ -170,12 +170,24 @@ class DownloadDAO {
         await _playlistDAO.getPlaylistByName(downloadsPlaylistName);
     if (downloadsPlaylist != null) {
       for (final mediaId in mediaIds) {
-        await _playlistDAO.removeTrackFromPlaylist(downloadsPlaylist.id, mediaId);
+        await _playlistDAO.removeTrackFromPlaylist(
+            downloadsPlaylist.id, mediaId);
       }
     }
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
+
+  /// Point [mediaId]'s record at [fileName] in the same folder (used when a
+  /// download is replaced by its encrypted copy).
+  Future<void> setDownloadFileName(String mediaId, String fileName) async {
+    final isar = await _db;
+    final record =
+        await isar.downloadDBs.filter().mediaIdEqualTo(mediaId).findFirst();
+    if (record == null) return;
+    await isar
+        .writeTxn(() => isar.downloadDBs.put(record..fileName = fileName));
+  }
 
   /// Return the [DownloadDB] record for [mediaId], or null if not found or the
   /// file no longer exists on disk.
@@ -208,7 +220,8 @@ class DownloadDAO {
     final stale = <DownloadDB>[];
 
     final existences = await Future.wait(
-      all.map((record) => File('${record.filePath}/${record.fileName}').exists()),
+      all.map(
+          (record) => File('${record.filePath}/${record.fileName}').exists()),
     );
 
     for (var i = 0; i < all.length; i++) {

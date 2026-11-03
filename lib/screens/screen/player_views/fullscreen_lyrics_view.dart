@@ -833,48 +833,55 @@ class _KaraokeLyricLine extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              opacity: isActive ? 1.0 : (isPast ? 0.25 : 0.4),
-              child: isActive
-                  ? ValueListenableBuilder<Duration>(
-                      valueListenable: positionNotifier,
-                      builder: (context, currentPosition, child) {
-                        final elapsed = currentPosition.inMilliseconds -
-                            startTime.inMilliseconds;
-                        final total =
-                            endTime.inMilliseconds - startTime.inMilliseconds;
-                        final double progress =
-                            total > 0 ? (elapsed / total).clamp(0.0, 1.0) : 1.0;
+            child: AnimatedScale(
+              // The line being sung grows a little; the others step back.
+              scale: isActive ? 1.0 : 0.92,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: isActive ? 1.0 : (isPast ? 0.25 : 0.4),
+                child: isActive
+                    ? ValueListenableBuilder<Duration>(
+                        valueListenable: positionNotifier,
+                        builder: (context, currentPosition, child) {
+                          final elapsed = currentPosition.inMilliseconds -
+                              startTime.inMilliseconds;
+                          final total =
+                              endTime.inMilliseconds - startTime.inMilliseconds;
+                          final double progress = total > 0
+                              ? (elapsed / total).clamp(0.0, 1.0)
+                              : 1.0;
 
-                        // FIX M-08: Direct ShaderMask with current progress.
-                        // No TweenAnimationBuilder needed — positionNotifier
-                        // already provides smooth sub-second updates.
-                        return ShaderMask(
-                          shaderCallback: (Rect bounds) {
-                            return LinearGradient(
-                              colors: [
-                                Colors.white,
-                                Colors.white.withValues(alpha: 0.35)
-                              ],
-                              stops: [
-                                progress,
-                                (progress + 0.05).clamp(0.0, 1.0)
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ).createShader(bounds);
-                          },
-                          blendMode: BlendMode.srcIn,
-                          child: child!,
-                        );
-                      },
-                      child: Text(text,
-                          textAlign: TextAlign.center, style: textStyle),
-                    )
-                  : Text(text,
-                      textAlign: TextAlign.center,
-                      style: textStyle.copyWith(color: Colors.white)),
+                          // FIX M-08: Direct ShaderMask with current progress.
+                          // No TweenAnimationBuilder needed — positionNotifier
+                          // already provides smooth sub-second updates.
+                          return ShaderMask(
+                            shaderCallback: (Rect bounds) {
+                              return LinearGradient(
+                                colors: [
+                                  Colors.white,
+                                  Colors.white.withValues(alpha: 0.35)
+                                ],
+                                stops: [
+                                  progress,
+                                  (progress + 0.05).clamp(0.0, 1.0)
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ).createShader(bounds);
+                            },
+                            blendMode: BlendMode.srcIn,
+                            child: child!,
+                          );
+                        },
+                        child: Text(text,
+                            textAlign: TextAlign.center, style: textStyle),
+                      )
+                    : Text(text,
+                        textAlign: TextAlign.center,
+                        style: textStyle.copyWith(color: Colors.white)),
+              ),
             ),
           ),
         ),

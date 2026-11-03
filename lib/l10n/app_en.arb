@@ -61,7 +61,7 @@
   "dialogUpdateAvailable": "Update Available",
   "dialogUpdateNow": "Update Now",
   "dialogDownloadPlaylist": "Download playlist",
-  "dialogDownloadPlaylistMessage": "Do you want to download {count} songs from \"{title}\"? This will add them to the download queue.",
+  "dialogDownloadPlaylistMessage": "Do you want to download {count, plural, =1{1 song} other{{count} songs}} from \"{title}\"? This will add them to the download queue.",
   "@dialogDownloadPlaylistMessage": { "placeholders": { "count": { "type": "int" }, "title": { "type": "String" } } },
   "dialogDownloadAll": "Download All",
 
@@ -238,6 +238,12 @@
   "tooltipInfo": "Info",
 
   "appuiTitle": "UI & Services",
+  "appuiTheme": "Theme",
+  "appuiThemeDark": "Dark",
+  "appuiThemeDarkSubtitle": "Easy on the eyes, day and night",
+  "appuiThemeLight": "Light",
+  "appuiThemeLightSoon": "Coming in V2",
+  "appuiThemeLightSnackbar": "The light theme is coming in V2",
   "appuiAutoSlideCharts": "Auto Slide Charts",
   "appuiAutoSlideChartsSubtitle": "Slide charts automatically in home screen.",
   "appuiLastFmPicksSubtitle": "Show suggestions from Last.FM. Login & restart required.",
@@ -742,6 +748,11 @@
   "snackbarCannotDeletePlayingSong": "Cannot delete currently playing song",
 
   "playerLoopOff": "Off",
+  "playerShuffleOn": "Shuffle on",
+  "playerShuffleOff": "Shuffle off",
+  "playerSleepTimerSet": "Sleep timer: {time}",
+  "@playerSleepTimerSet": {"placeholders": {"time": {"type": "String"}}},
+  "playerSleepTimerOff": "Sleep timer off",
   "playerLoopOne": "Loop One",
   "playerLoopAll": "Loop All",
 
@@ -806,6 +817,10 @@
   "neverSuggestTooltip": "Never suggest this song",
   "neverSuggestDone": "\"{title}\" won't be suggested again",
   "neverSuggestUndo": "Undo",
+  "menuNeverSuggest": "Do not suggest this song",
+  "menuSuggestAgain": "Suggest this song again",
+  "neverSuggestLifted": "\"{title}\" can be suggested again",
   "@snackbarRemovedFromQueue": {"placeholders": {"title": {"type": "String"}}},
-  "@neverSuggestDone": {"placeholders": {"title": {"type": "String"}}}
+  "@neverSuggestDone": {"placeholders": {"title": {"type": "String"}}},
+  "@neverSuggestLifted": {"placeholders": {"title": {"type": "String"}}}
 }

@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:async';
 import 'dart:developer';
 
@@ -187,7 +188,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
           error: e, stackTrace: stack, name: 'PluginBloc');
       emit(state.copyWith(
         isLoading: false,
-        error: 'Failed to initialize plugin system: $e',
+        error: friendlyError(e,
+            fallback: 'Could not start plugins. Restart JARX and try again.'),
       ));
     }
   }
@@ -216,7 +218,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       // State update happens via PluginSystemEvent (pluginLoaded).
     } on PluginException catch (e) {
       emit(state.copyWith(
-        error: e.message,
+        error:
+            'Could not load ${event.pluginId}. ${friendlyError(e.message, fallback: 'Try again later.')}',
         pluginOperations: (Map<String, PluginOperation>.from(
           state.pluginOperations,
         )..remove(event.pluginId)),
@@ -260,7 +263,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       // State update happens via PluginSystemEvent (pluginUnloaded).
     } on PluginException catch (e) {
       emit(state.copyWith(
-        error: e.message,
+        error:
+            'Could not unload ${event.pluginId}. ${friendlyError(e.message, fallback: 'Try again.')}',
         pluginOperations: (Map<String, PluginOperation>.from(
           state.pluginOperations,
         )..remove(event.pluginId)),
@@ -368,8 +372,14 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       }
 
       if (event.shouldLoad && isSuccess) {
-        await _persistAutoLoadSafe(
-            {..._preferredAutoLoadIds, result.pluginId});
+        await _persistAutoLoadSafe({..._preferredAutoLoadIds, result.pluginId});
+      }
+
+      // An update must run the new code at once. Users saw the old plugin
+      // keep running until JARX restarted, so load the new files explicitly.
+      if (result.status == PluginInstallStatus.updated ||
+          result.status == PluginInstallStatus.downgraded) {
+        await _reloadFromDisk(result.pluginId);
       }
 
       emit(state.copyWith(successMessage: message));
@@ -379,12 +389,34 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
     } on PluginException catch (e) {
       emit(state.copyWith(
         isLoading: false,
-        error: e.message,
+        error: friendlyError(e.message,
+            fallback:
+                'Could not install the plugin. The file may be damaged or not made for this version of JARX.'),
       ));
     }
   }
 
   // ── Refresh Available Plugins ──────────────────────────────────────────────
+
+  /// Unloads [pluginId] if it is loaded and loads it again from its files.
+  Future<void> _reloadFromDisk(String pluginId) async {
+    final info = state.availablePlugins
+        .where((p) => p.manifest.id == pluginId)
+        .firstOrNull;
+    if (info == null) return;
+    try {
+      final loaded = await _pluginService.isPluginLoaded(
+          pluginId: pluginId, pluginType: info.pluginType);
+      if (!loaded) return;
+      await _pluginService.unloadPlugin(
+          pluginId: pluginId, pluginType: info.pluginType);
+      await _pluginService.loadPlugin(
+          pluginId: pluginId, pluginType: info.pluginType);
+      log('Reloaded $pluginId after update', name: 'PluginBloc');
+    } catch (e) {
+      log('Reload after update failed for $pluginId: $e', name: 'PluginBloc');
+    }
+  }
 
   // ── Delete Plugin ──────────────────────────────────────────────────────────
 
@@ -418,7 +450,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       // State update happens via pluginListRefreshed event from Rust.
     } on PluginException catch (e) {
       emit(state.copyWith(
-        error: e.message,
+        error:
+            'Delete failed for ${event.pluginId}. ${friendlyError(e.message, fallback: 'Try again.')}',
         pluginOperations: (Map<String, PluginOperation>.from(
           state.pluginOperations,
         )..remove(event.pluginId)),
@@ -427,7 +460,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
     } catch (e) {
       log('Delete failed for ${event.pluginId}: $e', name: 'PluginBloc');
       emit(state.copyWith(
-        error: 'Failed to delete plugin: $e',
+        error: friendlyError(e,
+            fallback: 'Could not delete the plugin. Try again.'),
         pluginOperations: (Map<String, PluginOperation>.from(
           state.pluginOperations,
         )..remove(event.pluginId)),
@@ -514,7 +548,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       pluginLoadFailed: (pluginId, error) {
         _autoLoadAttemptIds.remove(pluginId);
         emit(_clearPluginOperation(state, pluginId).copyWith(
-          error: 'Failed to load $pluginId: $error',
+          error:
+              'Could not load $pluginId. ${friendlyError(error, fallback: 'Try again later.')}',
         ));
       },
       pluginUnloading: (pluginId) {
@@ -542,7 +577,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       },
       pluginUnloadFailed: (pluginId, error) {
         emit(_clearPluginOperation(state, pluginId).copyWith(
-          error: 'Failed to unload $pluginId: $error',
+          error:
+              'Could not unload $pluginId. ${friendlyError(error, fallback: 'Try again.')}',
         ));
       },
       pluginInstalling: (pluginId) {
@@ -553,7 +589,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       },
       pluginInstallFailed: (pluginId, error) {
         emit(_clearPluginOperation(state, pluginId).copyWith(
-          error: 'Install failed for $pluginId: $error',
+          error:
+              'Install failed for $pluginId. ${friendlyError(error, fallback: 'The file may be damaged or not made for this version of JARX.')}',
         ));
       },
       pluginDeleting: (pluginId) {
@@ -572,7 +609,8 @@ class PluginBloc extends Bloc<PluginEvent, PluginState> {
       },
       pluginDeleteFailed: (pluginId, error) {
         emit(_clearPluginOperation(state, pluginId).copyWith(
-          error: 'Delete failed for $pluginId: $error',
+          error:
+              'Delete failed for $pluginId. ${friendlyError(error, fallback: 'Try again.')}',
         ));
       },
       pluginListRefreshed: (plugins) {

@@ -208,7 +208,8 @@ class PluginDefaultsSettings extends StatelessWidget {
     ];
 
     final nameMap = {
-      for (final r in resolvers) r.manifest.id: pluginDisplayName(r.manifest.id, r.name),
+      for (final r in resolvers)
+        r.manifest.id: pluginDisplayName(r.manifest.id, r.name),
     };
 
     return Column(
@@ -285,7 +286,8 @@ class PluginDefaultsSettings extends StatelessWidget {
     ];
 
     final nameMap = {
-      for (final p in lyricsProviders) p.manifest.id: pluginDisplayName(p.manifest.id, p.name),
+      for (final p in lyricsProviders)
+        p.manifest.id: pluginDisplayName(p.manifest.id, p.name),
     };
 
     return Column(

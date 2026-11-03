@@ -10,6 +10,8 @@ import 'dart:math' as math;
 
 import 'package:Bloomee/core/models/track_signal.dart';
 import 'package:Bloomee/services/meta_resolver/cross_plugin_resolver.dart';
+import 'package:Bloomee/services/recommendations/song_card.dart';
+import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart';
 
 /// Where a candidate came from.
@@ -25,6 +27,10 @@ enum RecSource {
 
   /// Radio for the same song on another loaded plugin.
   otherPlugin,
+
+  /// The user's own liked and playlist songs: the fallback when every
+  /// plugin source failed, so autoplay never just stops.
+  library,
 }
 
 class RecCandidate {
@@ -71,7 +77,11 @@ class Recommendation {
   /// The weighted parts of [score], by name, for tests and debugging.
   final Map<String, double> parts;
 
-  const Recommendation(this.track, this.score, this.reason, this.parts);
+  /// The unweighted parts: what [TasteModel] learns from.
+  final Map<String, double> features;
+
+  const Recommendation(this.track, this.score, this.reason, this.parts,
+      [this.features = const {}]);
 
   @override
   String toString() =>
@@ -104,6 +114,26 @@ class UserTaste {
   /// The writing system of at least 70% of recent titles (min. 5), if any.
   final String? dominantScript;
 
+  /// Languages learned from what the user plays; empty = no preference
+  /// (script is used).
+  final Set<SongLanguage> languages;
+
+  /// Share of each language in the user's songs (developer page).
+  final Map<SongLanguage, double> languageShares;
+
+  /// Language and mood of a track (see song_card.dart).
+  final SongCardReader? cards;
+
+  /// The user plays devotional songs themselves, so they may be suggested
+  /// after other songs too.
+  final bool devotionalOk;
+
+  /// Liked songs, then the user's playlists: autoplay's last resort.
+  final List<Track> library;
+
+  /// Weights learned from this listener (Layer 2); null = Layer 1's.
+  final TasteModel? model;
+
   const UserTaste({
     this.artistAffinity = const {},
     this.artistSkipPenalty = const {},
@@ -114,20 +144,25 @@ class UserTaste {
     this.heardIds = const {},
     this.heardSongKeys = const {},
     this.dominantScript,
+    this.languages = const {},
+    this.languageShares = const {},
+    this.cards,
+    this.devotionalOk = false,
+    this.library = const [],
+    this.model,
   });
 
   static const empty = UserTaste();
 }
 
-// Weights of the score parts. They sum to 1 before the skip penalty.
-const double _wSource = 0.30;
-const double _wAffinity = 0.25;
-const double _wSeedLink = 0.15;
-const double _wDuration = 0.10;
-const double _wScript = 0.10;
-const double _wNovelty = 0.10;
+// The weights of the score parts are TasteModel.prior until the listener's
+// own are learned (taste.model).
 
 const int kMaxPerArtist = 2;
+
+/// When the pool can't fill a batch at [kMaxPerArtist] (e.g. a JioSaavn
+/// radio that is mostly one composer), allow this many rather than starve.
+const int kMaxPerArtistThin = 3;
 const int kRecentPlays = 50;
 const Duration _affinityHalfLife = Duration(days: 30);
 
@@ -150,6 +185,13 @@ class RecommendationRanker {
 
   const RecommendationRanker(this.matcher);
 
+  static final _dashSuffix = RegExp(r'\s[-\u2013\u2014]\s.*$');
+
+  /// The title without version noise: "(From ...)", "feat.", and anything
+  /// after " - " ("Tera Mera Rishta - New Version").
+  String titleKey(Track t) =>
+      matcher.simplifyTitle(t.title.replaceFirst(_dashSuffix, ''));
+
   /// Same song across plugins and versions: simplified title + primary artist.
   String songKey(Track t) {
     final artist = t.artists.isEmpty ? '' : t.artists.first.name;
@@ -157,12 +199,17 @@ class RecommendationRanker {
   }
 
   /// [signals] from TrackSignalDAO, [liked] tracks, [history] newest first,
-  /// [blocked] song keys from the never-suggest list.
+  /// [blocked] song keys from the never-suggest list, [playlists] the user's
+  /// own playlists by name. [languages] is learned from all of these unless
+  /// given (tests).
   UserTaste buildTaste({
     required List<TrackSignal> signals,
     required List<Track> liked,
     required List<Track> history,
     Set<String> blocked = const {},
+    Set<SongLanguage> languages = const {},
+    Map<String, List<Track>> playlists = const {},
+    TasteModel? model,
     DateTime? now,
   }) {
     final at = now ?? DateTime.now();
@@ -195,6 +242,16 @@ class RecommendationRanker {
         if (k.isNotEmpty) raw[k] = (raw[k] ?? 0) + 3;
       }
     }
+    // Cold start: the artists the user put in their own playlists, so a new
+    // install with imported playlists isn't a blank slate.
+    for (final p in playlists.values) {
+      for (final t in p) {
+        for (final a in t.artists.take(1)) {
+          final k = artistKeyOf(a.name);
+          if (k.isNotEmpty) raw[k] = (raw[k] ?? 0) + 0.25;
+        }
+      }
+    }
 
     final affinity = {
       for (final e in raw.entries) e.key: 1 - math.exp(-e.value / 6),
@@ -222,7 +279,42 @@ class RecommendationRanker {
       if (top.value / scriptTotal >= 0.7) dominant = top.key;
     }
 
+    // Songs inherit the moods of the playlists they are in.
+    final playlistMoods = <String, Set<Mood>>{};
+    for (final e in playlists.entries) {
+      final moods = moodsOfPlaylistName(e.key);
+      if (moods.isEmpty) continue;
+      for (final t in e.value) {
+        playlistMoods.putIfAbsent(songKey(t), () => {}).addAll(moods);
+      }
+    }
+    final own = [
+      ...history,
+      ...liked,
+      for (final p in playlists.values) ...p,
+    ];
+    final devotional = own
+        .where((t) => moodsOfText('${t.title} ${t.album?.title ?? ''}')
+            .contains(Mood.devotional))
+        .length;
+
+    final artistLanguages = learnArtistLanguages(own);
+    // "Punjabi Hits": its artists are Punjabi, whatever their titles say.
+    final strong = strongArtistLanguages(playlists);
     return UserTaste(
+      languages: languages.isNotEmpty
+          ? languages
+          : learnUserLanguages(own, artistLanguages, strongArtists: strong),
+      languageShares:
+          languageShares(own, artistLanguages, strongArtists: strong).shares,
+      cards: SongCardReader(
+        artistLanguages: artistLanguages,
+        strongArtists: strong,
+        playlistMoods: playlistMoods,
+        songKey: songKey,
+      ),
+      devotionalOk: devotional >= 3,
+      library: [...liked, for (final p in playlists.values) ...p],
       artistAffinity: affinity,
       artistSkipPenalty: penalty,
       dislikedIds: disliked,
@@ -232,6 +324,7 @@ class RecommendationRanker {
       heardIds: {...heardIds, for (final t in history) t.id},
       heardSongKeys: {for (final t in history) songKey(t)},
       dominantScript: dominant,
+      model: model,
     );
   }
 
@@ -248,31 +341,55 @@ class RecommendationRanker {
     Set<String> excludeSongKeys = const {},
     String? previousArtistKey,
     int take = 5,
+    DateTime? now,
   }) {
+    final at = now ?? DateTime.now();
+    double w(String part) =>
+        taste.model?.weight(part) ?? TasteModel.prior[part]!;
     final seedKey = songKey(seed);
-    final seedArtists = {for (final a in seed.artists) artistKeyOf(a.name)}
-      ..remove('');
+    final seedArtists = _artistKeys(seed);
     final seedArtistName = seed.artists.isEmpty ? '' : seed.artists.first.name;
     final seedVersions = _versions(seed);
-    final seedTitle = matcher.simplifyTitle(seed.title);
+    final seedTitle = titleKey(seed);
+    final seedCard = taste.cards?.read(seed);
+    final languages = {
+      ...taste.languages,
+      if (taste.languages.isNotEmpty && seedCard?.language != null)
+        seedCard!.language!,
+    };
+    final devotionalOk = taste.devotionalOk ||
+        (seedCard?.moods.contains(Mood.devotional) ?? false);
 
-    // Merge the same song from several sources, keeping first-seen order.
-    final merged = <String, _Merged>{}; // insertion-ordered
+    // Merge the same song from several sources, keeping first-seen order:
+    // same title and at least one shared artist (re-releases list their
+    // artists in a different order).
+    final merged = <_Merged>[];
+    final byTitle = <String, List<_Merged>>{};
     for (final c in candidates) {
       if (c.track.title.trim().isEmpty) continue;
-      final key = songKey(c.track);
-      final m = merged[key];
-      if (m == null) {
-        merged[key] = _Merged(c.track, key)..add(c);
-      } else {
-        m.add(c);
-      }
+      final artists = _artistKeys(c.track);
+      final group = byTitle.putIfAbsent(titleKey(c.track), () => []);
+      final m = group.firstWhere(
+          (g) =>
+              g.artists.isEmpty ||
+              artists.isEmpty ||
+              g.artists.intersection(artists).isNotEmpty, orElse: () {
+        final n = _Merged(c.track, songKey(c.track), artists);
+        group.add(n);
+        merged.add(n);
+        return n;
+      });
+      m.add(c);
     }
 
     final scored = <_Scored>[];
-    for (final m in merged.values) {
+    for (final m in merged) {
       final t = m.track;
+      final card = taste.cards?.read(t);
       if (m.key == seedKey ||
+          // The seed's song again: a re-release, or a cover of it.
+          (seedTitle.isNotEmpty && titleKey(t) == seedTitle) ||
+          (!devotionalOk && (card?.moods.contains(Mood.devotional) ?? false)) ||
           excludeIds.contains(t.id) ||
           excludeSongKeys.contains(m.key) ||
           taste.recentIds.contains(t.id) ||
@@ -283,17 +400,10 @@ class RecommendationRanker {
         continue;
       }
 
-      final artists = {for (final a in t.artists) artistKeyOf(a.name)}
-        ..remove('');
+      final artists = m.artists;
       final primary =
           t.artists.isEmpty ? '' : artistKeyOf(t.artists.first.name);
       final sharesSeedArtist = artists.intersection(seedArtists).isNotEmpty;
-      // The seed's title by none of its artists: an unlabeled cover.
-      if (!sharesSeedArtist &&
-          matcher.simplifyTitle(t.title) == seedTitle &&
-          seedTitle.isNotEmpty) {
-        continue;
-      }
 
       final positional = 1 - math.min(m.bestRank, 20) / 20;
       final source = 0.6 * positional + (m.sources.length >= 2 ? 0.4 : 0);
@@ -307,25 +417,55 @@ class RecommendationRanker {
               : 0.5;
       final duration =
           matcher.durationSimilarity(seed.durationMs, t.durationMs);
-      final dominant = taste.dominantScript;
-      final script = scriptOf(t.title);
-      final scriptPart = dominant == null || script == null
+      // Language: the listener's languages when set and known, else the
+      // script of what they usually play.
+      final lang = card?.language;
+      final double languagePart;
+      var foreign = 0.0;
+      if (languages.isNotEmpty && lang != null) {
+        // Same language: a little extra for the script they usually see
+        // (a Devanagari reader gets "तेरी मिट्टी" before "Teri Mitti").
+        final dominant = taste.dominantScript;
+        final script = scriptOf(t.title);
+        languagePart = !languages.contains(lang)
+            ? 0.0
+            : (dominant != null && script != null && script != dominant
+                ? 0.9
+                : 1.0);
+        if (languagePart == 0) foreign = 1;
+      } else {
+        final dominant = taste.dominantScript;
+        final script = scriptOf(t.title);
+        languagePart = dominant == null || script == null
+            ? 0.5
+            : (script == dominant ? 1.0 : 0.0);
+      }
+      final seedMoods = seedCard?.moods ?? const <Mood>{};
+      final moods = card?.moods ?? const <Mood>{};
+      final moodPart = seedMoods.isEmpty || moods.isEmpty
           ? 0.5
-          : (script == dominant ? 1.0 : 0.0);
+          : (seedMoods.intersection(moods).isNotEmpty ? 1.0 : 0.2);
       final novelty =
           taste.heardIds.contains(t.id) || taste.heardSongKeys.contains(m.key)
               ? 0.0
               : 1.0;
       final penalty = taste.artistSkipPenalty[primary] ?? 0.0;
+      final timeMood = taste.model?.timeMood(moods, at) ?? 0.5;
 
+      final features = {
+        'source': source,
+        'affinity': affinity,
+        'seedLink': seedLink,
+        'duration': duration,
+        'language': languagePart,
+        'mood': moodPart,
+        'novelty': novelty,
+        'timeMood': timeMood,
+        'skipPenalty': penalty,
+        'foreign': foreign,
+      };
       final parts = {
-        'source': _wSource * source,
-        'affinity': _wAffinity * affinity,
-        'seedLink': _wSeedLink * seedLink,
-        'duration': _wDuration * duration,
-        'script': _wScript * scriptPart,
-        'novelty': _wNovelty * novelty,
-        'skipPenalty': -penalty,
+        for (final e in features.entries) e.key: w(e.key) * e.value,
       };
       final score = parts.values.fold<double>(0, (a, b) => a + b);
 
@@ -343,7 +483,8 @@ class RecommendationRanker {
         reason = RecReason(RecReasonKind.becausePlaying, seed.title);
       }
 
-      scored.add(_Scored(Recommendation(t, score, reason, parts), primary));
+      scored.add(
+          _Scored(Recommendation(t, score, reason, parts, features), primary));
     }
 
     // Stable sort: ties keep the sources' order.
@@ -356,20 +497,26 @@ class RecommendationRanker {
     return _diversify(remaining, take, previousArtistKey);
   }
 
-  /// At most [kMaxPerArtist] per artist per batch, and not the same artist
-  /// twice in a row unless nothing else is left.
+  /// At most [kMaxPerArtist] per artist per batch ([kMaxPerArtistThin] when
+  /// the pool can't fill it otherwise), and not the same artist twice in a
+  /// row unless nothing else is left.
   List<Recommendation> _diversify(
       List<_Scored> remaining, int take, String? previousArtistKey) {
     final picked = <Recommendation>[];
     final perArtist = <String, int>{};
     var prev = previousArtistKey;
+    var cap = kMaxPerArtist;
     bool underCap(_Scored s) =>
-        s.artist.isEmpty || (perArtist[s.artist] ?? 0) < kMaxPerArtist;
+        s.artist.isEmpty || (perArtist[s.artist] ?? 0) < cap;
 
     while (picked.length < take && remaining.isNotEmpty) {
       var i = remaining.indexWhere(
           (s) => underCap(s) && (s.artist.isEmpty || s.artist != prev));
       if (i < 0) i = remaining.indexWhere(underCap);
+      if (i < 0 && cap < kMaxPerArtistThin) {
+        cap = kMaxPerArtistThin;
+        continue;
+      }
       if (i < 0) break;
       final s = remaining.removeAt(i);
       picked.add(s.rec);
@@ -390,13 +537,17 @@ class RecommendationRanker {
   }
 }
 
+Set<String> _artistKeys(Track t) =>
+    {for (final a in t.artists) artistKeyOf(a.name)}..remove('');
+
 class _Merged {
   final Track track;
   final String key;
+  final Set<String> artists;
   final Set<RecSource> sources = {};
   int bestRank = 1 << 30;
 
-  _Merged(this.track, this.key);
+  _Merged(this.track, this.key, this.artists);
 
   void add(RecCandidate c) {
     sources.add(c.source);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/screens/screen/library_views/cubit/current_playlist_cubit.dart';
 import 'package:Bloomee/screens/screen/library_views/more_opts_sheet.dart';
 import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
+import 'package:Bloomee/services/downloaded_playlists.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/animated_list_item.dart';
 import 'package:Bloomee/screens/widgets/play_pause_widget.dart';
@@ -147,8 +149,7 @@ class _PlaylistViewState extends State<PlaylistView> {
               state.status == CurrentPlaylistLoadStatus.initial ||
               state.status == CurrentPlaylistLoadStatus.loading) {
             return const Center(
-                child: JarxLoadingIndicator(
-                    color: Default_Theme.accentColor2));
+                child: JarxLoadingIndicator(color: Default_Theme.accentColor2));
           }
 
           if (state.status == CurrentPlaylistLoadStatus.error) {
@@ -436,8 +437,8 @@ class _PlaylistViewState extends State<PlaylistView> {
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                  child: JarxLoadingIndicator(
-                      color: Default_Theme.accentColor2)),
+                  child:
+                      JarxLoadingIndicator(color: Default_Theme.accentColor2)),
             ),
           ),
       ],
@@ -579,22 +580,30 @@ class _PlaylistViewState extends State<PlaylistView> {
 
           Builder(builder: (ctx) {
             final downloaded = ctx.watch<DownloaderCubit>().state.downloaded;
+            // Only once the whole playlist is loaded: a long one is loaded a
+            // page at a time, and the first page can be all downloaded.
             final allDownloaded = !isEmpty &&
+                !state.hasMore &&
                 state.playlist.tracks
                     .every((s) => downloaded.any((d) => d.id == s.id));
 
             if (allDownloaded) {
+              // Tapping it records the playlist as downloaded (so Offline
+              // shows it as a playlist) and says so; nothing to download.
               return Tooltip(
                 message: l10n.playlistAvailableOffline,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color:
-                          Default_Theme.accentColor2.withValues(alpha: 0.15)),
-                  child: const Icon(Icons.offline_pin_rounded,
-                      color: Default_Theme.accentColor2, size: 20),
+                child: GestureDetector(
+                  onTap: () => _handleDownload(context, state, l10n),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:
+                            Default_Theme.accentColor2.withValues(alpha: 0.15)),
+                    child: const Icon(Icons.offline_pin_rounded,
+                        color: Default_Theme.accentColor2, size: 20),
+                  ),
                 ),
               );
             }
@@ -738,7 +747,25 @@ class _PlaylistViewState extends State<PlaylistView> {
     final items =
         (await context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded())
             .tracks;
-    if (items.isEmpty) return;
+    if (items.isEmpty || !context.mounted) return;
+
+    // Only the songs not downloaded (or downloading) yet are asked about and
+    // queued; the playlist is recorded either way, so Offline groups it.
+    final downloader = context.read<DownloaderCubit>();
+    final have = {
+      for (final t in downloader.state.downloaded) t.id,
+      for (final d in downloader.state.downloads) d.task.song.id,
+    };
+    final missing = [
+      for (final t in items)
+        if (!have.contains(t.id)) t
+    ];
+    if (missing.isEmpty) {
+      unawaited(DownloadedPlaylists.add(state.playlist.title, items));
+      SnackbarService.showMessage(
+          'All ${items.length} songs of "${state.playlist.title}" are downloaded');
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -748,7 +775,7 @@ class _PlaylistViewState extends State<PlaylistView> {
             style: const TextStyle(color: Colors.white)),
         content: Text(
             l10n.dialogDownloadPlaylistMessage(
-                items.length, state.playlist.title),
+                missing.length, state.playlist.title),
             style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
@@ -771,84 +798,17 @@ class _PlaylistViewState extends State<PlaylistView> {
       ),
     );
 
-    if (confirmed == true && mounted) {
-      await _showAddToDownloadProgress(context, items, l10n);
-      SnackbarService.showMessage(l10n.snackbarSongsAddedToQueue(items.length));
+    if (confirmed == true && context.mounted) {
+      // Queued in the background, no progress pop-up; the Offline tab shows
+      // the playlist and its progress.
+      unawaited(DownloadedPlaylists.add(state.playlist.title, items));
+      unawaited(() async {
+        for (final song in missing) {
+          try {
+            await downloader.downloadSong(song, showSnackbar: false);
+          } catch (_) {}
+        }
+      }());
     }
-  }
-
-  Future<void> _showAddToDownloadProgress(
-      BuildContext context, List<Track> items, AppLocalizations l10n) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) {
-        int completed = 0;
-        String currentTitle = '';
-        void Function(void Function()) setStateRef = (_) {};
-
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          for (final song in items) {
-            setStateRef(() => currentTitle = song.title);
-            try {
-              context
-                  .read<DownloaderCubit>()
-                  .downloadSong(song, showSnackbar: false);
-            } catch (_) {}
-            await Future.delayed(const Duration(milliseconds: 100));
-            setStateRef(() => completed++);
-          }
-          if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-        });
-
-        return StatefulBuilder(
-          builder: (sbCtx, sbSetState) {
-            setStateRef = sbSetState;
-            return AlertDialog(
-              backgroundColor: Default_Theme.themeColor,
-              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-              content: SizedBox(
-                width: 320,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.dialogAddingToDownloadQueue,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('$completed/${items.length} items',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7))),
-                    const SizedBox(height: 16),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: items.isEmpty
-                            ? 0
-                            : (completed / items.length).clamp(0.0, 1.0),
-                        minHeight: 6,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                            Default_Theme.accentColor2),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(currentTitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 12)),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }

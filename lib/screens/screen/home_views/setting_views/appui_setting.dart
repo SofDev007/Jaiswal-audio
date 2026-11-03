@@ -93,6 +93,29 @@ class _AppUISettingsState extends State<AppUISettings> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
+              // Only Dark for now; Light is shown so users know it's coming.
+              SettingSectionHeader(label: l10n.appuiTheme),
+              SettingCard(
+                children: [
+                  SettingRadioTile<bool>(
+                    title: l10n.appuiThemeDark,
+                    subtitle: l10n.appuiThemeDarkSubtitle,
+                    value: true,
+                    groupValue: true,
+                    onChanged: (_) {},
+                  ),
+                  const SettingDivider(),
+                  SettingRadioTile<bool>(
+                    title: l10n.appuiThemeLight,
+                    subtitle: l10n.appuiThemeLightSoon,
+                    value: false,
+                    groupValue: true,
+                    onChanged: (_) => SnackbarService.showMessage(
+                        l10n.appuiThemeLightSnackbar),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
               SettingSectionHeader(label: l10n.settingsHomeScreen),
               SettingCard(
                 children: [

@@ -9,6 +9,7 @@ import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
@@ -105,25 +106,21 @@ class _DownloadSettingsState extends State<DownloadSettings> {
               SettingSectionHeader(label: l10n.settingsStorage),
               SettingCard(
                 children: [
-                  SettingNavTile(
-                    icon: MingCute.folder_fill,
-                    title: l10n.downloadSettingFolder,
-                    subtitle: state.downPath,
-                    roundBottom: Platform.isAndroid,
-                    onTap: Platform.isAndroid
-                        ? () {}
-                        : () async {
-                            FilePicker.platform
-                                .getDirectoryPath()
-                                .then((value) {
-                              if (value != null) {
-                                context
-                                    .read<SettingsCubit>()
-                                    .setDownPath(value);
-                              }
-                            });
-                          },
-                  ),
+                  if (Platform.isAndroid)
+                    _DownloadLocationRow(downPath: state.downPath)
+                  else
+                    SettingNavTile(
+                      icon: MingCute.folder_fill,
+                      title: l10n.downloadSettingFolder,
+                      subtitle: state.downPath,
+                      onTap: () async {
+                        FilePicker.platform.getDirectoryPath().then((value) {
+                          if (value != null) {
+                            context.read<SettingsCubit>().setDownPath(value);
+                          }
+                        });
+                      },
+                    ),
                   if (!Platform.isAndroid) ...[
                     const SettingDivider(),
                     SettingNavTile(
@@ -142,6 +139,43 @@ class _DownloadSettingsState extends State<DownloadSettings> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Android: save downloads to phone storage or the SD card. Both are JARX's
+/// own folders (no storage permission needed). Chosen once and remembered;
+/// only new downloads go to the new place.
+class _DownloadLocationRow extends StatelessWidget {
+  const _DownloadLocationRow({required this.downPath});
+  final String downPath;
+
+  static const _phone = 'Phone storage', _sd = 'SD card';
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Directory>?>(
+      // [0] is phone storage; a second entry is a removable SD card.
+      future: getExternalStorageDirectories(type: StorageDirectory.downloads),
+      builder: (context, snap) {
+        final dirs = snap.data ?? const <Directory>[];
+        final sd = dirs.length > 1 ? dirs[1].path : null;
+        final onSd = sd != null && downPath.startsWith(sd);
+        return SettingQualityChipRow(
+          icon: MingCute.folder_fill,
+          title: 'Save downloads to',
+          subtitle: sd == null
+              ? 'No SD card found, so downloads go to phone storage.'
+              : 'New downloads are saved here. Songs already downloaded '
+                  'stay where they are.',
+          options: [_phone, if (sd != null) _sd],
+          selected: onSd ? _sd : _phone,
+          onSelected: (v) {
+            final path = v == _sd ? sd : dirs.firstOrNull?.path;
+            if (path != null) context.read<SettingsCubit>().setDownPath(path);
+          },
+        );
+      },
     );
   }
 }

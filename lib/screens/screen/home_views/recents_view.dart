@@ -6,11 +6,11 @@ import 'package:Bloomee/screens/screen/home_views/setting_views/storage_setting.
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class HistoryView extends StatelessWidget {
   const HistoryView({super.key});
@@ -50,8 +50,9 @@ class HistoryView extends StatelessWidget {
         body: BlocBuilder<HistoryCubit, HistoryState>(
           builder: (context, state) {
             return (state is HistoryInitial)
-                ? const Center(
-                    child: JarxLoadingIndicator(),
+                ? const SingleChildScrollView(
+                    physics: NeverScrollableScrollPhysics(),
+                    child: SkeletonSongList(count: 10),
                   )
                 : ListView.builder(
                     itemCount: state.tracks.length,

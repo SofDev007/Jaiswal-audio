@@ -21,6 +21,10 @@ class _TimerViewState extends State<TimerView> {
   int _currentSecond = 0;
   StreamSubscription<TimerState>? _timerBlocSubscription;
 
+  /// Length of the running timer in seconds, for the countdown ring. When
+  /// the screen is reopened mid-timer the first value seen stands in.
+  int _total = 0;
+
   void parseDuration(int duration, int Function(int) hourCallback,
       int Function(int) minuteCallback, int Function(int) secondCallback) {
     final hours = (duration / 3600).floor();
@@ -37,11 +41,13 @@ class _TimerViewState extends State<TimerView> {
     _timerBlocSubscription = context.read<TimerBloc>().stream.listen((event) {
       if (event is TimerRunInProgress) {
         setState(() {
+          if (event.duration > _total) _total = event.duration;
           parseDuration(event.duration, (p0) => _currentHour = p0,
               (p1) => _currentMinute = p1, (p2) => _currentSecond = p2);
         });
       } else if (event is TimerInitial || event is TimerRunComplete) {
         setState(() {
+          _total = 0;
           _currentHour = 0;
           _currentMinute = 0;
           _currentSecond = 0;
@@ -99,6 +105,13 @@ class _TimerViewState extends State<TimerView> {
                                     fontSize: 25,
                                     fontWeight: FontWeight.bold)
                                 .merge(Default_Theme.secondoryTextStyle),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 30),
+                          child: _CountdownRing(
+                            remaining: state.duration,
+                            total: _total,
                           ),
                         ),
                         Row(
@@ -364,6 +377,8 @@ class _TimerViewState extends State<TimerView> {
               if (_currentHour != 0 ||
                   _currentMinute != 0 ||
                   _currentSecond != 0) {
+                _total =
+                    _currentHour * 3600 + _currentMinute * 60 + _currentSecond;
                 context.read<TimerBloc>().add(TimerStarted(
                     duration: (_currentHour * 3600) +
                         (_currentMinute * 60) +
@@ -417,6 +432,42 @@ class _TimerViewState extends State<TimerView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A ring that empties as the sleep timer runs down (eased between the
+/// one-second ticks so it moves smoothly).
+class _CountdownRing extends StatelessWidget {
+  const _CountdownRing({required this.remaining, required this.total});
+  final int remaining;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = total > 0 ? (remaining / total).clamp(0.0, 1.0) : 1.0;
+    return SizedBox.square(
+      dimension: 130,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: fraction),
+        duration: const Duration(seconds: 1),
+        builder: (context, value, child) => Stack(
+          fit: StackFit.expand,
+          children: [
+            CircularProgressIndicator(
+              value: value,
+              strokeWidth: 6,
+              strokeCap: StrokeCap.round,
+              color: Default_Theme.accentColor2,
+              backgroundColor:
+                  Default_Theme.primaryColor2.withValues(alpha: 0.08),
+            ),
+            child!,
+          ],
+        ),
+        child: const Icon(MingCute.moon_line,
+            size: 44, color: Default_Theme.primaryColor2),
       ),
     );
   }

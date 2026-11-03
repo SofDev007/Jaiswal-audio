@@ -73,7 +73,7 @@ Map<String, dynamic> _verifyBackup(String filePath) {
       try {
         jsonDecode(item); // Validate embedded JSON
       } catch (e) {
-        errors.add("Corrupted JSON string in section '$key' at index $i: $e");
+        errors.add("Corrupted JSON string in section '$key' at index $i.");
       }
     }
   });

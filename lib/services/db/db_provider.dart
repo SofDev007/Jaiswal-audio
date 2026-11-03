@@ -6,6 +6,7 @@ import 'package:isar_community/isar.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart' as models;
 import 'package:Bloomee/services/db/global_db.dart';
 import 'package:Bloomee/services/db/dao/cache_dao.dart';
@@ -87,7 +88,8 @@ class DBProvider {
       // Migrate DB from documents dir to support dir if needed
       if (!await dbFile.exists() &&
           await File(p.join(appDocDir, 'dbv3.isar')).exists()) {
-        final tempDb = Isar.openSync(_schemas, directory: appDocDir, name: 'dbv3');
+        final tempDb =
+            Isar.openSync(_schemas, directory: appDocDir, name: 'dbv3');
         tempDb.copyToFile(dbFile.path);
         log("DB Copied to $appSuppDir", name: "DBProvider");
         tempDb.close();
@@ -118,13 +120,14 @@ class DBProvider {
     playlistDAO.ensurePlaylist(localMusicPlaylist);
 
     Future.delayed(const Duration(seconds: 30), () async {
-      // Read configured history retention days.
+      // History retention in days, as set in Settings > Storage. 0 = never
+      // (the default): history is kept forever.
       final daysStr = await settingsDAO.getSettingStr(
-            'historyClearTime',
-            defaultValue: '7',
+            SettingKeys.historyClearTime,
+            defaultValue: '0',
           ) ??
-          '7';
-      final days = int.tryParse(daysStr) ?? 7;
+          '0';
+      final days = int.tryParse(daysStr) ?? 0;
 
       await historyDAO.purgeOldHistory(days);
       await trackDAO.purgeOrphanTracks();
@@ -378,7 +381,7 @@ class DBProvider {
 
       return {
         'success': false,
-        'error': 'Failed to restore binary backup: $e',
+        'error': 'This backup file could not be restored. It may be damaged.',
       };
     } finally {
       if (rollbackFile.existsSync()) {
@@ -488,7 +491,8 @@ class DBProvider {
       log('Failed to restore legacy JSON backup', error: e, name: 'DBProvider');
       return {
         'success': false,
-        'error': 'Failed to restore legacy JSON backup: $e',
+        'error':
+            'This old backup file could not be restored. It may be damaged.',
       };
     }
   }

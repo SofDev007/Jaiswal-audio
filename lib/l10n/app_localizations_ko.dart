@@ -652,6 +652,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appuiTitle => 'UI 및 서비스';
 
   @override
+  String get appuiTheme => 'Theme';
+
+  @override
+  String get appuiThemeDark => 'Dark';
+
+  @override
+  String get appuiThemeDarkSubtitle => 'Easy on the eyes, day and night';
+
+  @override
+  String get appuiThemeLight => 'Light';
+
+  @override
+  String get appuiThemeLightSoon => 'Coming in V2';
+
+  @override
+  String get appuiThemeLightSnackbar => 'The light theme is coming in V2';
+
+  @override
   String get appuiAutoSlideCharts => '차트 자동 슬라이드';
 
   @override
@@ -1971,6 +1989,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get playerLoopOff => '반복 안 함';
 
   @override
+  String get playerShuffleOn => 'Shuffle on';
+
+  @override
+  String get playerShuffleOff => 'Shuffle off';
+
+  @override
+  String playerSleepTimerSet(String time) {
+    return 'Sleep timer: $time';
+  }
+
+  @override
+  String get playerSleepTimerOff => 'Sleep timer off';
+
+  @override
   String get playerLoopOne => '한 곡 반복';
 
   @override
@@ -2147,4 +2179,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get neverSuggestUndo => '실행 취소';
+
+  @override
+  String get menuNeverSuggest => 'Do not suggest this song';
+
+  @override
+  String get menuSuggestAgain => 'Suggest this song again';
+
+  @override
+  String neverSuggestLifted(String title) {
+    return '\"$title\" can be suggested again';
+  }
 }

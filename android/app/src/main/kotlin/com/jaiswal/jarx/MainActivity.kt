@@ -29,7 +29,28 @@ class MainActivity : AudioServiceActivity() {
                 }
                 android.os.Process.killProcess(android.os.Process.myPid())
             }
-        // Live visualizer: waveform and FFT of JARX's own audio session, ~20 per
+        // Encrypted downloads (DownloadCrypto). Runs off the main thread;
+        // uses the application context so it outlives this activity.
+        val app = applicationContext
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "jarx/crypto")
+            .setMethodCallHandler { call, result ->
+                val src = call.argument<String>("src")!!
+                val dst = call.argument<String>("dst")!!
+                Thread {
+                    try {
+                        when (call.method) {
+                            "encrypt" -> DownloadCrypto.encrypt(app, src, dst)
+                            "decrypt" -> DownloadCrypto.decrypt(app, src, dst)
+                            else -> throw IllegalArgumentException(call.method)
+                        }
+                        main.post { result.success(null) }
+                    } catch (e: Exception) {
+                        main.post { result.error("crypto", e.message, null) }
+                    }
+                }.start()
+            }
+        // Live visualizer: waveform of JARX's own audio session, ~20 per
         // second. The argument is the session id. Needs RECORD_AUDIO.
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, "jarx/visualizer")
             .setStreamHandler(object : EventChannel.StreamHandler {
@@ -42,10 +63,8 @@ class MainActivity : AudioServiceActivity() {
                             override fun onWaveFormDataCapture(vis: Visualizer, wave: ByteArray, rate: Int) {
                                 events.success(mapOf("wave" to wave))
                             }
-                            override fun onFftDataCapture(vis: Visualizer, fft: ByteArray, rate: Int) {
-                                events.success(mapOf("fft" to fft))
-                            }
-                        }, Visualizer.getMaxCaptureRate(), true, true)
+                            override fun onFftDataCapture(vis: Visualizer, fft: ByteArray, rate: Int) {}
+                        }, Visualizer.getMaxCaptureRate(), true, false)
                         v.enabled = true
                         visualizer = v
                     } catch (e: Exception) {

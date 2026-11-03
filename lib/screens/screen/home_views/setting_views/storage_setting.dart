@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:developer';
 import 'dart:io';
 import 'package:Bloomee/blocs/settings_cubit/cubit/settings_cubit.dart';
@@ -54,10 +55,13 @@ class BackupSettings extends StatelessWidget {
                     title: l10n.storageClearHistoryEvery,
                     subtitle: l10n.storageClearHistorySubtitle,
                     value: state.historyClearTime,
-                    items: ['3', '7', '14', '30', '60', '90', '180', '365']
+                    // '0' = never clear (the default).
+                    items: ['0', '3', '7', '14', '30', '60', '90', '180', '365']
                         .map((v) => SettingDropdownItem<String>(
                               value: v,
-                              label: l10n.storageDays(int.parse(v)),
+                              label: v == '0'
+                                  ? l10n.localSettingNeverScanned
+                                  : l10n.storageDays(int.parse(v)),
                             ))
                         .toList(),
                     onChanged: (newValue) {
@@ -112,12 +116,14 @@ class BackupSettings extends StatelessWidget {
                                       .catchError((e) {
                                     SnackbarService.showMessage(
                                         l10n.storageBackupShareFailed(
-                                            e.toString()));
+                                            friendlyError(e,
+                                                fallback: 'Try again.')));
                                     return ShareResult.unavailable;
                                   });
                                 } catch (e) {
                                   SnackbarService.showMessage(l10n
-                                      .storageBackupShareFailed(e.toString()));
+                                      .storageBackupShareFailed(friendlyError(e,
+                                          fallback: 'Try again.')));
                                 }
                               }
                             } else {
@@ -149,12 +155,14 @@ class BackupSettings extends StatelessWidget {
                                       .catchError((e) {
                                     SnackbarService.showMessage(
                                         l10n.storageBackupShareFailed(
-                                            e.toString()));
+                                            friendlyError(e,
+                                                fallback: 'Try again.')));
                                     return ShareResult.unavailable;
                                   });
                                 } catch (e) {
                                   SnackbarService.showMessage(l10n
-                                      .storageBackupShareFailed(e.toString()));
+                                      .storageBackupShareFailed(friendlyError(e,
+                                          fallback: 'Try again.')));
                                 }
                               }
                             } else {
@@ -523,7 +531,7 @@ Future<void> _onRestoreTap(BuildContext context) async {
       log("restoreDB threw: $e\n$st", name: "DBProvider");
       restoreResult = {
         "success": false,
-        "error": "Exception during restore: $e"
+        "error": "The backup could not be restored. The file may be damaged."
       };
     } finally {
       // Always attempt to close the progress dialog using captured context

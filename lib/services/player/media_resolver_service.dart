@@ -6,12 +6,14 @@ import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
 import 'package:Bloomee/plugins/utils/media_id.dart';
 import 'package:Bloomee/services/db/dao/download_dao.dart';
+import 'package:Bloomee/services/download_crypto.dart';
 import 'package:Bloomee/services/db/dao/playlist_dao.dart';
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/db/dao/track_dao.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/services/player/stream_quality_selector.dart';
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'package:Bloomee/src/rust/api/plugin/commands.dart';
 
 class ResolvedMediaSource {
@@ -62,8 +64,11 @@ class MediaResolverService {
       final down = await _downloadDao.getDownloadRecord(track.id);
       if (down != null) {
         log('Playing Offline: ${track.title}', name: 'MediaResolverService');
+        final file = '${down.filePath}/${down.fileName}';
         return ResolvedMediaSource(
-          uri: Uri.file('${down.filePath}/${down.fileName}'),
+          uri: Uri.file(DownloadCrypto.isEncrypted(down.fileName)
+              ? await DownloadCrypto.playableCopy(file)
+              : file),
           isOffline: true,
         );
       }
@@ -105,6 +110,7 @@ class MediaResolverService {
         ),
       );
     } on PluginException catch (e) {
+      log('getStreams failed: ${e.message}', name: 'MediaResolverService');
       if (e is PluginNotLoadedException) {
         GlobalEventBus.instance.emitError(
           AppError.pluginNotLoaded(pluginId: parts.pluginId, mediaId: track.id),
@@ -113,7 +119,10 @@ class MediaResolverService {
         GlobalEventBus.instance.emitError(
           AppError.pluginError(
             pluginId: parts.pluginId,
-            message: e.message,
+            // e.message is the source's raw reply; it stays in the log.
+            message: friendlyError(e.message,
+                fallback: "Couldn't play this song from its source right now. "
+                    'Try again later.'),
           ),
         );
       }

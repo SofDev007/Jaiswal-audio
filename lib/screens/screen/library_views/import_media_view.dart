@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/core/constants/route_paths.dart';
 import 'package:Bloomee/services/csv_playlist_parser.dart';
+import 'package:Bloomee/utils/pick_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:Bloomee/plugins/blocs/import/content_import_cubit.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
@@ -217,12 +218,13 @@ class _ImportMediaFromPlatformsViewState
   // ─── Import M3U playlist ──────────────────────────────────────────────────
 
   Future<void> _importM3UFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['m3u', 'm3u8'],
-    );
-    if (result == null || result.files.isEmpty) return;
-    final filePath = result.files.first.path;
+    final String? filePath;
+    try {
+      filePath = await pickFileWithExtension(const ['m3u', 'm3u8']);
+    } on WrongFileType catch (e) {
+      SnackbarService.showMessage(e.message);
+      return;
+    }
     if (filePath == null) return;
 
     if (!context.mounted) return;
@@ -303,12 +305,13 @@ class _ImportMediaFromPlatformsViewState
   // ─── Import CSV playlist (Spotify / Exportify export) ─────────────────────
 
   Future<void> _importCsvFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['csv'],
-    );
-    if (result == null || result.files.isEmpty) return;
-    final filePath = result.files.first.path;
+    final String? filePath;
+    try {
+      filePath = await pickFileWithExtension(const ['csv']);
+    } on WrongFileType catch (e) {
+      SnackbarService.showMessage(e.message);
+      return;
+    }
     if (filePath == null || !context.mounted) return;
     final l10n = AppLocalizations.of(context)!;
 

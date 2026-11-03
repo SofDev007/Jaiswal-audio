@@ -20,6 +20,7 @@ import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -343,12 +344,7 @@ class _AlbumViewState extends State<AlbumView> {
                   ),
                 )
               else
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                      child: JarxLoadingIndicator(
-                          color: Default_Theme.accentColor2)),
-                ),
+                const SliverToBoxAdapter(child: SkeletonSongList()),
 
               if (status == DetailStatus.loadingMore)
                 const SliverToBoxAdapter(

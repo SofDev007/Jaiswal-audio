@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/about_photos.dart';
+import 'package:Bloomee/screens/screen/home_views/setting_views/recommendation_health_view.dart';
 import 'package:Bloomee/screens/widgets/round_carousel.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -76,8 +77,8 @@ class About extends StatelessWidget {
                   const BoxConstraints(maxWidth: 480), // Responsive constraint
               // Scrolls on short screens; centred when everything fits.
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                    20, MediaQuery.paddingOf(context).top + kToolbarHeight, 20, 12),
+                padding: EdgeInsets.fromLTRB(20,
+                    MediaQuery.paddingOf(context).top + kToolbarHeight, 20, 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -235,11 +236,13 @@ class About extends StatelessWidget {
                 final ver = snapshot.hasData
                     ? 'v${snapshot.data!.version}+${snapshot.data!.buildNumber}'
                     : 'Not able to retrieve version';
-                return Text(ver,
-                    style: const TextStyle(
-                        color: kSecondaryTextColor,
-                        fontSize: 12,
-                        fontFamily: 'Gilroy'));
+                return _DeveloperTap(
+                  child: Text(ver,
+                      style: const TextStyle(
+                          color: kSecondaryTextColor,
+                          fontSize: 12,
+                          fontFamily: 'Gilroy')),
+                );
               },
             ),
           ],
@@ -462,4 +465,33 @@ class Particle {
       required this.lifespan,
       required this.maxLifespan,
       required this.isSharp});
+}
+
+/// Seven quick taps on the version open the developer page (recommendation
+/// health). Hidden on purpose: it is for the developer, not a user setting.
+class _DeveloperTap extends StatefulWidget {
+  const _DeveloperTap({required this.child});
+  final Widget child;
+
+  @override
+  State<_DeveloperTap> createState() => _DeveloperTapState();
+}
+
+class _DeveloperTapState extends State<_DeveloperTap> {
+  int _taps = 0;
+  DateTime _last = DateTime(0);
+
+  void _onTap() {
+    final now = DateTime.now();
+    _taps = now.difference(_last) < const Duration(seconds: 1) ? _taps + 1 : 1;
+    _last = now;
+    if (_taps < 7) return;
+    _taps = 0;
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => const RecommendationHealthView()));
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+      behavior: HitTestBehavior.opaque, onTap: _onTap, child: widget.child);
 }

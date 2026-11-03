@@ -6,12 +6,14 @@ import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:Bloomee/screens/widgets/animated_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'song_tile.dart';
 import 'more_bottom_sheet.dart';
 import 'never_suggest_button.dart';
+import 'snackbar.dart';
 import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class _UpNextStyles {
@@ -481,8 +483,7 @@ class _DesktopSongListState extends State<_DesktopSongList> {
       builder: (context, queueSnapshot) {
         if (!queueSnapshot.hasData) {
           return const Center(
-              child: JarxLoadingIndicator(
-                  color: Default_Theme.primaryColor2));
+              child: JarxLoadingIndicator(color: Default_Theme.primaryColor2));
         }
         final queue = queueSnapshot.data!;
 
@@ -591,16 +592,28 @@ class _SongListSliverState extends State<_SongListSliver> {
             final uniqueQueue =
                 queue.where((m) => seenIds.add(m.id)).toList(growable: false);
 
-            return SliverReorderableList(
-              itemCount: uniqueQueue.length,
-              onReorder: widget.playerCubit.bloomeePlayer.moveQueueItem,
-              itemBuilder: (context, index) {
-                return _QueueItem(
-                  key: ValueKey('mobile_${uniqueQueue[index].id}'),
-                  mediaItem: uniqueQueue[index],
-                  index: index,
-                  playerCubit: widget.playerCubit,
-                  isDesktop: false,
+            // Turning shuffle on or off gives every row a new key, so the
+            // rows slide in again one after another: the reshuffle shows.
+            return StreamBuilder<bool>(
+              stream: widget.playerCubit.bloomeePlayer.shuffleMode,
+              builder: (context, shuffleSnap) {
+                final shuffle = shuffleSnap.data ?? false;
+                return SliverReorderableList(
+                  itemCount: uniqueQueue.length,
+                  onReorder: widget.playerCubit.bloomeePlayer.moveQueueItem,
+                  itemBuilder: (context, index) {
+                    return AnimatedListItem(
+                      key: ValueKey(
+                          'mobile_${shuffle}_${uniqueQueue[index].id}'),
+                      index: index,
+                      child: _QueueItem(
+                        mediaItem: uniqueQueue[index],
+                        index: index,
+                        playerCubit: widget.playerCubit,
+                        isDesktop: false,
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -638,7 +651,21 @@ class _QueueItem extends StatelessWidget {
         color: Colors.red.withValues(alpha: 0.8),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => playerCubit.bloomeePlayer.removeQueueItemAt(index),
+      // The rows below slide up into the gap (Dismissible's resize); Undo
+      // puts the song back where it was.
+      onDismissed: (_) {
+        final player = playerCubit.bloomeePlayer;
+        player.removeQueueItemAt(index);
+        SnackbarService.showMessage(
+          AppLocalizations.of(context)!
+              .snackbarRemovedFromQueue(mediaItem.title),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: AppLocalizations.of(context)!.neverSuggestUndo,
+            onPressed: () => player.insertQueueItem(index, mediaItem),
+          ),
+        );
+      },
       child: Material(
         color: Colors.transparent,
         child: Padding(
@@ -653,14 +680,17 @@ class _QueueItem extends StatelessWidget {
                     final reason = snap.data?[mediaItem.id];
                     return SongCardWidget(
                       showOptions: false,
-                      onTap: () => playerCubit.bloomeePlayer.skipToQueueItem(index),
+                      swipeToQueue: false, // swiping here removes it
+                      onTap: () =>
+                          playerCubit.bloomeePlayer.skipToQueueItem(index),
                       song: songModel,
                       // Auto-queued: say why, on the same single line.
                       subtitleOverride: reason == null
                           ? null
                           : [
                               songModel.artists.map((a) => a.name).join(', '),
-                              recReasonText(AppLocalizations.of(context)!, reason),
+                              recReasonText(
+                                  AppLocalizations.of(context)!, reason),
                             ].where((s) => s.isNotEmpty).join(' · '),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,

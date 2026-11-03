@@ -1,4 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:developer';
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/core/models/media_playlist_model.dart';
 import 'package:Bloomee/services/db/dao/playlist_dao.dart';
@@ -139,11 +141,13 @@ class CurrentPlaylistCubit extends Cubit<CurrentPlaylistState> {
         _generatePalette(merged.first.thumbnail.url);
       }
     } catch (error) {
+      log('load failed: $error', name: 'CurrentPlaylistCubit');
       emit(
         state.copyWith(
           isLoadingMore: false,
           status: CurrentPlaylistLoadStatus.error,
-          errorMessage: error.toString(),
+          errorMessage: friendlyError(error,
+              fallback: 'Could not load this playlist. Try again later.'),
         ),
       );
     } finally {

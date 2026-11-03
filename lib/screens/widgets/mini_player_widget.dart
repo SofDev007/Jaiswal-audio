@@ -63,9 +63,9 @@ class MiniPlayerCard extends StatefulWidget {
 
 class _MiniPlayerCardState extends State<MiniPlayerCard>
     with TickerProviderStateMixin {
-  double _dragOffset = 0;
-  double _snapStartOffset = 0;
-  late final AnimationController _snapController;
+  /// Sideways offset of the card in pixels (drag, fly-off, come back).
+  late final AnimationController _dx =
+      AnimationController.unbounded(vsync: this);
   late final AnimationController _waveController;
 
   static const double _cardHeight = 72;
@@ -75,11 +75,6 @@ class _MiniPlayerCardState extends State<MiniPlayerCard>
   @override
   void initState() {
     super.initState();
-    _snapController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    )..addListener(_onSnapTick);
-
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -104,46 +99,42 @@ class _MiniPlayerCardState extends State<MiniPlayerCard>
     }
   }
 
-  void _onSnapTick() {
-    setState(() {
-      _dragOffset = lerpDouble(
-        _snapStartOffset,
-        0,
-        Curves.easeOutCubic.transform(_snapController.value),
-      )!;
-    });
-  }
-
   @override
   void dispose() {
-    _snapController
-      ..removeListener(_onSnapTick)
-      ..dispose();
+    _dx.dispose();
     _waveController.dispose();
     super.dispose();
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    if (_snapController.isAnimating) _snapController.stop();
-    setState(() {
-      _dragOffset += details.delta.dx * 0.85;
-    });
+    _dx.stop();
+    _dx.value += details.delta.dx * 0.85;
   }
 
-  void _onHorizontalDragEnd(DragEndDetails details) {
+  /// Past the threshold the card keeps going off screen in the swipe
+  /// direction, the song skips, and the card comes back from the other side.
+  Future<void> _onHorizontalDragEnd(DragEndDetails details) async {
     final velocity = details.primaryVelocity ?? 0;
     final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+    final next = _dx.value < -_swipeThreshold || velocity < -600;
+    final previous = !next && (_dx.value > _swipeThreshold || velocity > 600);
 
-    if (_dragOffset < -_swipeThreshold || velocity < -600) {
-      HapticFeedback.mediumImpact();
-      player.skipToNext();
-    } else if (_dragOffset > _swipeThreshold || velocity > 600) {
-      HapticFeedback.mediumImpact();
-      player.skipToPrevious();
+    if (!next && !previous) {
+      _dx.animateTo(0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic);
+      return;
     }
-
-    _snapStartOffset = _dragOffset;
-    _snapController.forward(from: 0);
+    HapticFeedback.mediumImpact();
+    final out = (next ? -1.0 : 1.0) * MediaQuery.sizeOf(context).width;
+    await _dx.animateTo(out,
+        duration: const Duration(milliseconds: 150), curve: Curves.easeIn);
+    if (!mounted) return;
+    next ? player.skipToNext() : player.skipToPrevious();
+    _dx.value = -out;
+    _dx.animateTo(0,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic);
   }
 
   void _onVerticalDragEnd(DragEndDetails details) {
@@ -167,8 +158,10 @@ class _MiniPlayerCardState extends State<MiniPlayerCard>
       onHorizontalDragUpdate: _onHorizontalDragUpdate,
       onHorizontalDragEnd: _onHorizontalDragEnd,
       onVerticalDragEnd: _onVerticalDragEnd,
-      child: Transform.translate(
-        offset: Offset(_dragOffset, 0),
+      child: AnimatedBuilder(
+        animation: _dx,
+        builder: (context, child) =>
+            Transform.translate(offset: Offset(_dx.value, 0), child: child),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: ClipRRect(

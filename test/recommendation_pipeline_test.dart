@@ -57,7 +57,8 @@ class _Matcher extends CrossPluginResolver {
     return [
       ScoredTrackCandidate(
         track: tr(target.title.toLowerCase().replaceAll(' ', ''), target.title,
-            target.primaryArtist, plugin: p, sec: 200),
+            target.primaryArtist,
+            plugin: p, sec: 200),
         pluginId: p,
         confidence: 0.95,
       ),
@@ -73,7 +74,8 @@ final _lev = tr('lev', 'Levitating', 'Dua Lipa', sec: 203, plugin: 'js');
 final _shape = tr('shape', 'Shape of You', 'Ed Sheeran', sec: 233);
 
 /// yt: radio (2 pages) and artist details; js: radio.
-Future<PluginResponse> _plugins(String plugin, ContentResolverCommand cmd) async {
+Future<PluginResponse> _plugins(
+    String plugin, ContentResolverCommand cmd) async {
   if (cmd is ContentResolverCommand_GetRadioTracks) {
     if (plugin == 'js') return _radio([_lev]);
     return cmd.pageToken == null
@@ -104,7 +106,8 @@ Future<PluginResponse> _plugins(String plugin, ContentResolverCommand cmd) async
 /// Scripted gatherer for manager tests: counts calls.
 class _ScriptedGatherer extends CandidateGatherer {
   _ScriptedGatherer(this.first, [this.pages = const {}])
-      : super(PluginService(), CrossPluginResolver(pluginService: PluginService()));
+      : super(PluginService(),
+            CrossPluginResolver(pluginService: PluginService()));
   final GatherResult first;
   final Map<String, GatherResult> pages;
   final seeds = <String>[];
@@ -121,14 +124,16 @@ class _ScriptedGatherer extends CandidateGatherer {
   }
 }
 
-RelatedSongsManager _manager(CandidateGatherer g, {bool autoPlay = true}) {
+RelatedSongsManager _manager(CandidateGatherer g,
+    {bool autoPlay = true, UserTaste taste = UserTaste.empty}) {
   final plugins = PluginService();
   return RelatedSongsManager(
     plugins,
     gatherer: g,
     ranker: RecommendationRanker(CrossPluginResolver(pluginService: plugins)),
-    loadTaste: (_) async => UserTaste.empty,
+    loadTaste: (_) async => taste,
     autoPlayEnabled: () async => autoPlay,
+    health: (_, [__ = 1]) {},
   );
 }
 
@@ -138,7 +143,9 @@ void main() {
         () async {
       final s = _gatherSetup();
       final r = await s.gatherer.gather(_seed);
-      expect([for (final c in r.candidates) '${c.source.name}:${c.track.title}'], [
+      expect([
+        for (final c in r.candidates) '${c.source.name}:${c.track.title}'
+      ], [
         'radio:Save Your Tears',
         'radio:Shape of You',
         'seedArtist:Starboy',
@@ -147,9 +154,14 @@ void main() {
       ]);
       expect(r.nextRadioPage, 'p2');
       // Budget: 4 plugin calls here + 1 match on the other plugin.
-      expect(s.svc.calls, unorderedEquals([
-        'yt:radio', 'yt:artist:the weeknd', 'yt:artist:dua lipa', 'js:radio',
-      ]));
+      expect(
+          s.svc.calls,
+          unorderedEquals([
+            'yt:radio',
+            'yt:artist:the weeknd',
+            'yt:artist:dua lipa',
+            'js:radio',
+          ]));
       expect(s.matcher.asked, [
         ['js']
       ]);
@@ -237,7 +249,7 @@ void main() {
       m.onAddQueueItems = (items, {bool atLast = false}) => added++;
       await m.checkForRelatedSongs(
           currentMedia: _seed,
-          queue: [_seed, _syt, _shape],
+          queue: [_seed, _syt, _shape, _seed, _syt, _shape],
           currentPlayingIdx: 0,
           loopMode: LoopMode.off);
       await m.checkForRelatedSongs(
@@ -247,6 +259,48 @@ void main() {
           loopMode: LoopMode.all);
       expect(added, 0);
       expect(g.seeds, isEmpty);
+    });
+
+    test("when every source fails, the user's own songs keep it going",
+        () async {
+      final g = _ScriptedGatherer(GatherResult.empty);
+      final mine = [
+        for (var i = 0; i < 4; i++)
+          tr('m$i', 'Mine $i', 'Artist M$i', sec: 200),
+      ];
+      final m = _manager(g, taste: UserTaste(library: mine));
+      List<Track>? added;
+      m.onAddQueueItems = (items, {bool atLast = false}) => added = items;
+      await m.checkForRelatedSongs(
+          currentMedia: _seed,
+          queue: [_seed],
+          currentPlayingIdx: 0,
+          loopMode: LoopMode.off);
+      expect(added, isNotNull);
+      expect(added!.every((t) => t.title.startsWith('Mine')), isTrue);
+    });
+
+    test('gathers while a few songs are left, queues only at the last',
+        () async {
+      final g = _ScriptedGatherer(pool);
+      final m = _manager(g);
+      var added = 0;
+      m.onAddQueueItems = (items, {bool atLast = false}) => added++;
+      await m.checkForRelatedSongs(
+          currentMedia: _seed,
+          queue: [_seed, _syt, _shape],
+          currentPlayingIdx: 0,
+          loopMode: LoopMode.off);
+      expect(g.seeds, hasLength(1), reason: 'gathered early');
+      expect(added, 0, reason: 'nothing queued yet');
+
+      await m.checkForRelatedSongs(
+          currentMedia: _shape,
+          queue: [_seed, _syt, _shape],
+          currentPlayingIdx: 2,
+          loopMode: LoopMode.off);
+      expect(added, 1);
+      expect(g.seeds, hasLength(1), reason: 'the early pool is reused');
     });
 
     test('stays anchored to the user\'s track and never repeats itself',

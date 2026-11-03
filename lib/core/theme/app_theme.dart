@@ -64,6 +64,10 @@ class AppTheme {
         secondary: accentColor2,
       ),
       iconTheme: const IconThemeData(color: primaryColor1),
+      // New pages fade and slide in over the old one (Android 15 style).
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+      }),
       scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.all(accentColor2),
         interactive: true,

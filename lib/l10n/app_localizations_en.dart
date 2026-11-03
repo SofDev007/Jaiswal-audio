@@ -183,7 +183,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dialogDownloadPlaylistMessage(int count, String title) {
-    return 'Do you want to download $count songs from \"$title\"? This will add them to the download queue.';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return 'Do you want to download $_temp0 from \"$title\"? This will add them to the download queue.';
   }
 
   @override
@@ -686,6 +692,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appuiTitle => 'UI & Services';
+
+  @override
+  String get appuiTheme => 'Theme';
+
+  @override
+  String get appuiThemeDark => 'Dark';
+
+  @override
+  String get appuiThemeDarkSubtitle => 'Easy on the eyes, day and night';
+
+  @override
+  String get appuiThemeLight => 'Light';
+
+  @override
+  String get appuiThemeLightSoon => 'Coming in V2';
+
+  @override
+  String get appuiThemeLightSnackbar => 'The light theme is coming in V2';
 
   @override
   String get appuiAutoSlideCharts => 'Auto Slide Charts';
@@ -2093,6 +2117,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerLoopOff => 'Off';
 
   @override
+  String get playerShuffleOn => 'Shuffle on';
+
+  @override
+  String get playerShuffleOff => 'Shuffle off';
+
+  @override
+  String playerSleepTimerSet(String time) {
+    return 'Sleep timer: $time';
+  }
+
+  @override
+  String get playerSleepTimerOff => 'Sleep timer off';
+
+  @override
   String get playerLoopOne => 'Loop One';
 
   @override
@@ -2271,4 +2309,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get neverSuggestUndo => 'Undo';
+
+  @override
+  String get menuNeverSuggest => 'Do not suggest this song';
+
+  @override
+  String get menuSuggestAgain => 'Suggest this song again';
+
+  @override
+  String neverSuggestLifted(String title) {
+    return '\"$title\" can be suggested again';
+  }
 }

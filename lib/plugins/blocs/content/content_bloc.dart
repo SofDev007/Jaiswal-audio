@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:async';
 import 'dart:developer';
 
@@ -145,7 +146,7 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       log('Search error', error: e, stackTrace: stack, name: 'ContentBloc');
       emit(state.copyWith(
         searchStatus: SearchStatus.error,
-        error: 'Search failed: $e',
+        error: friendlyError(e, fallback: 'Search failed. Try again later.'),
       ));
     }
   }
@@ -224,7 +225,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       );
       emit(state.copyWith(
         searchStatus: SearchStatus.loaded,
-        error: 'Failed to load more search results: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load more search results. Try again later.'),
       ));
     }
   }
@@ -293,7 +295,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
           error: e, stackTrace: stack, name: 'ContentBloc');
       emit(state.copyWith(
         albumDetailStatus: DetailStatus.error,
-        error: 'Failed to load album: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load album. Try again later.'),
       ));
     }
   }
@@ -359,7 +362,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
     } catch (e) {
       emit(state.copyWith(
         albumDetailStatus: DetailStatus.loaded,
-        error: 'Failed to load more tracks: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load more tracks. Try again later.'),
       ));
     }
   }
@@ -419,7 +423,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
           error: e, stackTrace: stack, name: 'ContentBloc');
       emit(state.copyWith(
         artistDetailStatus: DetailStatus.error,
-        error: 'Failed to load artist: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load artist. Try again later.'),
       ));
     }
   }
@@ -489,7 +494,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
     } catch (e) {
       emit(state.copyWith(
         artistDetailStatus: DetailStatus.loaded,
-        error: 'Failed to load more albums: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load more albums. Try again later.'),
       ));
     }
   }
@@ -551,7 +557,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
           error: e, stackTrace: stack, name: 'ContentBloc');
       emit(state.copyWith(
         playlistDetailStatus: DetailStatus.error,
-        error: 'Failed to load playlist: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load playlist. Try again later.'),
       ));
     }
   }
@@ -620,7 +627,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
     } catch (e) {
       emit(state.copyWith(
         playlistDetailStatus: DetailStatus.loaded,
-        error: 'Failed to load more tracks: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to load more tracks. Try again later.'),
       ));
     }
   }
@@ -680,7 +688,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       log('GetStreams error', error: e, stackTrace: stack, name: 'ContentBloc');
       emit(state.copyWith(
         streamStatus: DetailStatus.error,
-        error: 'Failed to get streams: $e',
+        error: friendlyError(e,
+            fallback: 'Failed to get streams. Try again later.'),
       ));
     }
   }
@@ -788,7 +797,8 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       if (!hasCache) {
         emit(state.copyWith(
           homeSectionsStatus: DetailStatus.error,
-          error: 'Failed to load home sections: $e',
+          error: friendlyError(e,
+              fallback: 'Failed to load home sections. Try again later.'),
         ));
       }
     }
@@ -1042,7 +1052,12 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       playlistDetailStatus: playlistDetailStatus,
       streamStatus: streamStatus,
       homeSectionsStatus: homeSectionsStatus,
-      error: e.message,
+      // e.message is the plugin's raw failure (e.g. "WASM execution error:
+      // HTTP request failed: error sending request for url ..."): log it,
+      // show plain words.
+      error: friendlyError(e.message,
+          fallback: "Couldn't load this right now. Try again later."),
     ));
+    log('Plugin error: ${e.message}', name: 'ContentBloc');
   }
 }

@@ -1,9 +1,23 @@
+import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
+import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/recommendations/suggestion_blocklist.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+/// Never suggest [track] again; if it is the song playing now, skip it at
+/// once (the user doesn't want to hear it).
+Future<void> blockSuggestion(BuildContext context, Track track) async {
+  final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+  if (player.mediaItem.valueOrNull?.id == track.id) {
+    await player.skipToNext();
+  }
+  await SuggestionBlocklist.block(track);
+  await TasteModel.judged(track.id, good: false);
+}
 
 /// The minus button on a suggested song: never suggest [track] again, then
 /// [onBlocked] (e.g. take it out of the queue). Undo only lifts the block.
@@ -26,7 +40,7 @@ class NeverSuggestButton extends StatelessWidget {
       color: Default_Theme.primaryColor2.withValues(alpha: 0.65),
       icon: const Icon(Icons.remove_circle_outline_rounded),
       onPressed: () async {
-        await SuggestionBlocklist.block(track);
+        await blockSuggestion(context, track);
         onBlocked?.call();
         SnackbarService.showMessage(
           l10n.neverSuggestDone(track.title),

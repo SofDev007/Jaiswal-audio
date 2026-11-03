@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:developer';
 import 'dart:io';
 
@@ -36,7 +37,8 @@ class LocalMusicCubit extends Cubit<LocalMusicState> {
       if (tracks.isEmpty) scan();
     } catch (e, stack) {
       log('load failed: $e\n$stack', name: 'LocalMusicCubit');
-      emit(LocalMusicError(e.toString()));
+      emit(LocalMusicError(
+          friendlyError(e, fallback: 'Could not read your music files.')));
     }
   }
 
@@ -60,7 +62,8 @@ class LocalMusicCubit extends Cubit<LocalMusicState> {
       ));
     } catch (e, stack) {
       log('scan failed: $e\n$stack', name: 'LocalMusicCubit');
-      emit(LocalMusicError(e.toString()));
+      emit(LocalMusicError(
+          friendlyError(e, fallback: 'Could not read your music files.')));
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:Bloomee/core/models/track_signal.dart';
 import 'package:Bloomee/services/meta_resolver/cross_plugin_resolver.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
+import 'package:Bloomee/services/recommendations/song_card.dart';
 import 'package:Bloomee/src/rust/api/plugin/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -40,7 +41,8 @@ int maxPerArtist(List<Track> picked) {
   return n.values.fold(0, (a, b) => a > b ? a : b);
 }
 
-List<String> titles(List<Recommendation> r) => [for (final x in r) x.track.title];
+List<String> titles(List<Recommendation> r) =>
+    [for (final x in r) x.track.title];
 
 void main() {
   group('quality on the dataset (vs today\'s radio order)', () {
@@ -71,7 +73,8 @@ void main() {
       newP /= 3;
       oldP /= 3;
       // ignore: avoid_print
-      print([...rows,
+      print([
+        ...rows,
         'mean precision@5 ${oldP.toStringAsFixed(2)} → ${newP.toStringAsFixed(2)}; '
             'traps $oldTraps → $newTraps'
       ].join('\n'));
@@ -84,8 +87,7 @@ void main() {
   });
 
   group('duplicates and versions', () {
-    test('the seed under another ID, version or plugin is never suggested',
-        () {
+    test('the seed under another ID, version or plugin is never suggested', () {
       final picked = titles(rankScenario(pop, take: 20));
       expect(picked.where((t) => t.contains('Blinding Lights')), isEmpty);
     });
@@ -100,10 +102,12 @@ void main() {
 
     test('a remix is allowed when the seed is a remix', () {
       final seed = tr('s', 'Song (Remix)', 'A', sec: 200);
-      final r = ranker.rank(seed: seed, candidates: from(RecSource.radio, [
-        tr('x', 'Other Song (Remix)', 'B', sec: 200),
-        tr('y', 'Other Song (Live)', 'C', sec: 200),
-      ]));
+      final r = ranker.rank(
+          seed: seed,
+          candidates: from(RecSource.radio, [
+            tr('x', 'Other Song (Remix)', 'B', sec: 200),
+            tr('y', 'Other Song (Live)', 'C', sec: 200),
+          ]));
       expect(titles(r), ['Other Song (Remix)']);
     });
 
@@ -136,14 +140,14 @@ void main() {
       expect(r.first.track.artists.first.name, isNot('BTS'));
     });
 
-    test('a single-artist pool still fills up to the cap', () {
+    test('a single-artist pool fills up to the thin-pool cap, not more', () {
       final r = ranker.rank(
         seed: tr('s', 'Seed', 'Solo', sec: 200),
         candidates: from(RecSource.seedArtist, [
           for (var i = 0; i < 6; i++) tr('t$i', 'Song $i', 'Solo', sec: 200),
         ]),
       );
-      expect(r, hasLength(kMaxPerArtist));
+      expect(r, hasLength(kMaxPerArtistThin));
     });
   });
 
@@ -159,13 +163,14 @@ void main() {
       expect(lover, anyOf(-1, greaterThan(atif)), reason: '$order');
 
       // Same pool, no history: radio order decides instead.
-      final cold = ranker.rank(
-          seed: hindi.seed, candidates: hindi.pool, take: 10);
+      final cold =
+          ranker.rank(seed: hindi.seed, candidates: hindi.pool, take: 10);
       expect(titles(cold).indexOf('Jeene Laga Hoon'), greaterThan(atif));
     });
 
     test('recently played is excluded; heard long ago loses the new bonus', () {
-      expect(titles(rankScenario(hindi, take: 10)), isNot(contains('Tum Hi Ho')));
+      expect(
+          titles(rankScenario(hindi, take: 10)), isNot(contains('Tum Hi Ho')));
 
       final old = tr('old', 'Old Favourite', 'X', sec: 200);
       final fresh = tr('fresh', 'Fresh One', 'Y', sec: 200);
@@ -173,8 +178,8 @@ void main() {
         for (var i = 0; i < kRecentPlays; i++) tr('h$i', 'Filler $i', 'Z'),
         old, // play #51: no longer "recent"
       ];
-      final taste =
-          ranker.buildTaste(signals: const [], liked: const [], history: history);
+      final taste = ranker
+          .buildTaste(signals: const [], liked: const [], history: history);
       final r = ranker.rank(
           seed: tr('s', 'Seed', 'W', sec: 200),
           candidates: from(RecSource.radio, [old, fresh]),
@@ -238,8 +243,8 @@ void main() {
     test('recently played on another plugin still counts as recent', () {
       final heardOnJs = tr('x', 'Same Song', 'Singer', plugin: 'js');
       final onYt = tr('x', 'Same Song', 'Singer', plugin: 'yt', sec: 200);
-      final taste = ranker.buildTaste(
-          signals: const [], liked: const [], history: [heardOnJs]);
+      final taste = ranker
+          .buildTaste(signals: const [], liked: const [], history: [heardOnJs]);
       expect(
           ranker.rank(
               seed: tr('s', 'Seed', 'A', sec: 200),
@@ -251,8 +256,8 @@ void main() {
     test('artist skip penalty needs a pattern across tracks', () {
       TrackSignal s(String id, int skips) => TrackSignal(
           mediaId: id, artistKey: 'a', artistName: 'A', earlySkips: skips);
-      final oneTrack = ranker.buildTaste(
-          signals: [s('1', 3)], liked: const [], history: const []);
+      final oneTrack = ranker
+          .buildTaste(signals: [s('1', 3)], liked: const [], history: const []);
       final twoTracks = ranker.buildTaste(
           signals: [s('1', 2), s('2', 1)], liked: const [], history: const []);
       expect(oneTrack.artistSkipPenalty['a'], isNull);
@@ -271,7 +276,8 @@ void main() {
           liked: const [],
           history: const [],
           now: now);
-      expect(t.artistAffinity['recent']!, greaterThan(t.artistAffinity['old']!));
+      expect(
+          t.artistAffinity['recent']!, greaterThan(t.artistAffinity['old']!));
     });
   });
 
@@ -279,8 +285,13 @@ void main() {
     test('no artists, no duration, blank titles: no crash, blanks dropped', () {
       final r = rankScenario(lofi, take: 10);
       expect(titles(r), isNot(contains('   ')));
-      expect(titles(r).toSet(),
-          {'Snowman', 'Cafe Study', 'Rainy Days', 'Night Walk', 'Lofi Rain Sounds'});
+      expect(titles(r).toSet(), {
+        'Snowman',
+        'Cafe Study',
+        'Rainy Days',
+        'Night Walk',
+        'Lofi Rain Sounds'
+      });
     });
 
     test('artist-less tracks are not capped together', () {
@@ -315,8 +326,8 @@ void main() {
     List<String> run(List<Track> history) => titles(ranker.rank(
           seed: tr('s', 'Seed', 'A', sec: 200),
           candidates: from(RecSource.radio, [latinTitle, hindiTitle]),
-          taste: ranker.buildTaste(
-              signals: const [], liked: const [], history: history),
+          taste: ranker
+              .buildTaste(signals: const [], liked: const [], history: history),
         ));
 
     test('a mostly-Devanagari history prefers Devanagari titles', () {
@@ -377,5 +388,91 @@ void main() {
     expect(isEarlySkip(const Duration(seconds: 40), 200000), isFalse);
     expect(isEarlySkip(const Duration(seconds: 20), 60000), isFalse); // >25%
     expect(isEarlySkip(const Duration(seconds: 20), null), isTrue);
+  });
+
+  group('Layer 1: JioSaavn radio as seen on the phone (2026-10-29)', () {
+    // reco.getreco for "Tum Hi Ho" (Mithoon): mostly Mithoon, plus the
+    // seed itself re-released with the artists in another order.
+    final seed = tr('s', 'Tum Hi Ho', 'Mithoon', sec: 262, plugin: 'js');
+    final reco = from(RecSource.radio, [
+      tr('a', 'Tera Mera Rishta - New Version (From "Awarapan 2")', '',
+          artists: ['Mithoon', 'Pritam'], sec: 300, plugin: 'js'),
+      tr('b', 'Tum Hi Ho (From "Aashiqui 2")', '',
+          artists: ['Arijit Singh', 'Mithoon'], sec: 262, plugin: 'js'),
+      tr('c', 'Darkhaast', '', artists: ['Mithoon', 'Arijit Singh'], sec: 270),
+      tr('d', 'Sanam Re', '', artists: ['Mithoon', 'Arijit Singh'], sec: 290),
+      tr('e', 'Humdard', '', artists: ['Mithoon', 'Arijit Singh'], sec: 280),
+      tr('f', 'Jaan Ban Gaye', '', artists: ['Vishal Mishra', 'Mithoon']),
+      tr('g', 'Kinna Sona', '', artists: ['Sunil Kamath', 'Mithoon']),
+      tr('h', 'Sawan Aaya Hai', '', artists: ['Tony Kakkar', 'Mithoon']),
+    ]);
+
+    test('the seed re-released under another artist is not suggested', () {
+      final r = ranker.rank(seed: seed, candidates: reco, take: 8);
+      expect(titles(r).where((t) => t.startsWith('Tum Hi Ho')), isEmpty);
+    });
+
+    test('a one-composer radio still fills a batch of 5', () {
+      expect(ranker.rank(seed: seed, candidates: reco), hasLength(5));
+    });
+
+    test('devotional songs stay out after a ghazal, unless the user plays them',
+        () {
+      final ghazal = tr('g0', 'Kal Chaudhvin Ki Raat Thi', 'Jagjit Singh');
+      final pool = from(RecSource.radio, [
+        tr('g1', 'Hoshwalon Ko Khabar Kya', 'Jagjit Singh'),
+        tr('g2', 'Shree Ram Dhun', 'Jagjit Singh'),
+        tr('g3', 'Jai Radha Madhav', 'Jagjit Singh'),
+        tr('g4', 'Tum Ko Dekha To Yeh Khayal Aaya', 'Jagjit Singh'),
+      ]);
+      UserTaste taste(List<Track> history) => ranker
+          .buildTaste(signals: const [], liked: const [], history: history);
+
+      final plain = titles(
+          ranker.rank(seed: ghazal, candidates: pool, taste: taste(const [])));
+      expect(plain, isNot(contains('Shree Ram Dhun')));
+      expect(plain, isNot(contains('Jai Radha Madhav')));
+
+      final devotee = titles(ranker.rank(
+          seed: ghazal,
+          candidates: pool,
+          taste: taste([
+            for (var i = 0; i < 3; i++) tr('b$i', 'Hanuman Chalisa $i', 'X'),
+          ])));
+      expect(devotee, contains('Shree Ram Dhun'));
+    });
+
+    test('songs outside the chosen languages sink below the rest', () {
+      final s = tr('s2', 'Tera Hone Laga Hoon', 'Atif Aslam');
+      final pool = from(RecSource.radio, [
+        tr('t1', 'நீ கவிதைகளா', 'Tamil Artist'),
+        tr('t2', 'Pehli Nazar Mein', 'Atif Aslam'),
+        tr('t3', 'Shape of You', 'Ed Sheeran'),
+      ]);
+      final r = titles(ranker.rank(
+        seed: s,
+        candidates: pool,
+        taste: ranker.buildTaste(
+          signals: const [],
+          liked: const [],
+          history: const [],
+          languages: {SongLanguage.hindi, SongLanguage.english},
+        ),
+      ));
+      expect(r.last, 'நீ கவிதைகளா');
+    });
+
+    test('a song in a "Soothing" playlist counts as cozy', () {
+      final kinna = tr('k', 'Kinna Sona', 'Sunil Kamath');
+      final taste = ranker.buildTaste(
+        signals: const [],
+        liked: const [],
+        history: const [],
+        playlists: {
+          'Soothing': [kinna]
+        },
+      );
+      expect(taste.cards!.read(kinna).moods, contains(Mood.cozy));
+    });
   });
 }

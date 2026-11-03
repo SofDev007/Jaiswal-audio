@@ -1,3 +1,4 @@
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
@@ -15,6 +16,11 @@ import 'package:Bloomee/repository/bloomee/download_repository.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/db/global_db.dart';
 import 'package:Bloomee/services/db/dao/settings_dao.dart';
+import 'package:Bloomee/plugins/utils/media_id.dart';
+import 'package:Bloomee/services/download_crypto.dart';
+import 'package:Bloomee/services/meta_resolver/smart_track_replacement_service.dart';
+import 'package:Bloomee/services/player/fallback_source.dart';
+import 'package:Bloomee/services/player/stream_swaps.dart';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:path_provider/path_provider.dart';
@@ -38,6 +44,10 @@ class DownloaderCubit extends Cubit<DownloaderState> {
   final Set<String> _persistingTaskIds = <String>{};
   bool _restoredSnapshots = false;
   Future<void>? _activeLoadFuture;
+
+  /// False until the downloaded songs have been read once (with hundreds of
+  /// files on an SD card this takes a while; Offline shows a spinner).
+  bool get initialLoadDone => _initialLoadCompleter.isCompleted;
   bool _needsReload = false;
   // Tracks completion of initial downloaded songs load (prevents playback race)
   final CancelableCompleter<void> _initialLoadCompleter =
@@ -55,6 +65,9 @@ class DownloaderCubit extends Cubit<DownloaderState> {
         super(DownloaderInitial()) {
     _setupLibrarySubscription();
     _loadDownloadedSongs();
+    unawaited(_downloadRepo
+        .encryptExistingDownloads()
+        .then((_) => _loadDownloadedSongs()));
     unawaited(_warmUpDownloadService());
   }
 
@@ -101,17 +114,25 @@ class DownloaderCubit extends Cubit<DownloaderState> {
     return _serviceInitialization!;
   }
 
+  /// The folder chosen in Download settings (on Android: phone storage or
+  /// SD card). Falls back to the default when it can't be used, e.g. the SD
+  /// card was taken out.
   Future<Directory> _getDownloadDirectory() async {
-    if (Platform.isAndroid || Platform.isIOS) {
-      final directory = (await getDownloadsDirectory()) ??
-          await getApplicationDocumentsDirectory();
-      return directory;
-    }
+    final fallback = Platform.isAndroid || Platform.isIOS
+        ? (await getDownloadsDirectory()) ??
+            await getApplicationDocumentsDirectory()
+        : await getApplicationDocumentsDirectory();
+    // iOS moves the app's folders between installs, so a saved path goes stale.
+    if (Platform.isIOS) return fallback;
     final p = await _settingsDao.getSettingStr(SettingKeys.downPathSetting);
-    if (p != null) {
-      return Directory(p);
+    if (p == null || p.isEmpty) return fallback;
+    try {
+      return await Directory(p).create(recursive: true);
+    } catch (e) {
+      log('Download folder $p unavailable, using ${fallback.path}: $e',
+          name: 'DownloaderCubit');
+      return fallback;
     }
-    return await getApplicationDocumentsDirectory();
   }
 
   void _setupLibrarySubscription() {
@@ -217,7 +238,8 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       taskUpdated: (value) {
         final snapshot = value.field0;
         _upsertSnapshot(snapshot);
-        if (snapshot.state == DownloadTaskState.failed) {
+        if (snapshot.state == DownloadTaskState.failed &&
+            !_downloadFromOtherSource(snapshot)) {
           SnackbarService.showMessage(
             snapshot.lastError ?? 'Failed to download ${snapshot.track.title}',
           );
@@ -244,9 +266,65 @@ class DownloaderCubit extends Cubit<DownloaderState> {
     );
   }
 
+  static final _downloaded = StreamController<Track>.broadcast();
+
+  /// Songs as their download is saved (e.g. to fetch their lyrics for
+  /// offline use).
+  static Stream<Track> get downloadedTracks => _downloaded.stream;
+
+  /// The song asked for, by the id of the other-source copy downloaded for it.
+  final Map<String, Track> _fallbackFor = {};
+  final Set<String> _fallbackTried = {};
+
+  /// When [failed] can't be downloaded from its own source (YouTube now
+  /// blocks some songs), downloads the same song from another source
+  /// instead, once per song. Returns false when it won't try.
+  bool _downloadFromOtherSource(DownloadTaskSnapshot failed) {
+    final original = failed.track;
+    if (isLocalMediaId(original.id) ||
+        _fallbackFor.containsKey(original.id) ||
+        !_fallbackTried.add(original.id)) {
+      return false;
+    }
+    unawaited(() async {
+      try {
+        Track? other = await StreamSwaps.lookup(original);
+        if (other == null) {
+          final pick = await pickFallback(
+              SmartTrackReplacementService.create(_pluginService), original);
+          other = pick?.track;
+        }
+        if (other == null) {
+          // Nothing found (e.g. right after start, before the plugins have
+          // loaded): let the next retry look again.
+          _fallbackTried.remove(original.id);
+          SnackbarService.showMessage(
+              failed.lastError ?? 'Failed to download ${original.title}');
+          return;
+        }
+        _fallbackFor[other.id] = original;
+        await cancelDownload(failed.taskId);
+        SnackbarService.showMessage(
+            'Downloading ${original.title} from another source');
+        await downloadSong(other, showSnackbar: false);
+      } catch (e, s) {
+        _fallbackTried.remove(original.id);
+        log('Download fallback failed',
+            name: 'DownloaderCubit', error: e, stackTrace: s);
+        SnackbarService.showMessage(
+            failed.lastError ?? 'Failed to download ${original.title}');
+      }
+    }());
+    return true;
+  }
+
   Future<void> _persistCompletedSnapshot(DownloadTaskSnapshot snapshot) async {
     if (!_persistingTaskIds.add(snapshot.taskId)) {
       return;
+    }
+    final original = _fallbackFor.remove(snapshot.track.id);
+    if (original != null) {
+      unawaited(StreamSwaps.remember(original, snapshot.track));
     }
 
     try {
@@ -264,10 +342,24 @@ class DownloaderCubit extends Cubit<DownloaderState> {
         fileName: fileName,
         filePath: downloadDirectory,
         lastDownloaded: DateTime.now(),
-        track: snapshot.track,
+        // A copy from another source is saved as the song that was asked
+        // for, so its playlist and playback see it as downloaded.
+        track: original ?? snapshot.track,
       );
       await _downloadService.acknowledgePersisted(snapshot.taskId);
+      if (DownloadCrypto.supported) {
+        // After the record is saved, so a failure leaves a playable plain
+        // file that encryptExistingDownloads picks up on the next start.
+        try {
+          await _downloadRepo.encryptDownload(
+              (original ?? snapshot.track).id, filePath);
+        } catch (e) {
+          log('Could not encrypt ${snapshot.track.title}: $e',
+              name: 'DownloaderCubit');
+        }
+      }
       SnackbarService.showMessage('Downloaded ${snapshot.track.title}');
+      _downloaded.add(original ?? snapshot.track);
       await _loadDownloadedSongs();
     } catch (error, stackTrace) {
       log(
@@ -324,7 +416,11 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       status: DownloadStatus(
         state: _mapDownloadState(snapshot.state),
         progress: snapshot.progress.clamp(0.0, 1.0),
-        message: snapshot.message,
+        // A failed task can carry a raw engine error; show plain words.
+        message: snapshot.state == DownloadTaskState.failed
+            ? friendlyError(snapshot.message,
+                fallback: 'Download failed. Try again.')
+            : snapshot.message,
         filePath: snapshot.targetPath.isNotEmpty ? snapshot.targetPath : null,
       ),
     );

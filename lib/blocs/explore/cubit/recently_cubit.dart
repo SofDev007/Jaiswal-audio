@@ -37,7 +37,9 @@ class RecentlyCubit extends Cubit<RecentlyCubitState> {
   }
 
   Future<void> _fetchHistory() async {
-    final tracks = await _historyDao.getHistory(limit: 15);
+    // Rows are per play, deduplicated after the limit: read enough for ~15
+    // different songs.
+    final tracks = await _historyDao.getHistory(limit: 80);
     emit(state.copyWith(tracks: tracks));
   }
 }

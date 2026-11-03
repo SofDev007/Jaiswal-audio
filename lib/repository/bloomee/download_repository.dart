@@ -1,6 +1,7 @@
 import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/services/db/global_db.dart';
 import 'package:Bloomee/services/db/dao/download_dao.dart';
+import 'package:Bloomee/services/download_crypto.dart';
 
 /// Repository for download operations — wraps [DownloadDAO].
 class DownloadRepository {
@@ -35,6 +36,14 @@ class DownloadRepository {
 
   Future<List<Track>> getDownloadedTracks() =>
       _downloadDao.getValidDownloadedTracks();
+
+  /// See [DownloadCrypto.encryptDownload].
+  Future<void> encryptDownload(String mediaId, String plainPath) =>
+      DownloadCrypto.encryptDownload(_downloadDao, mediaId, plainPath);
+
+  /// See [DownloadCrypto.encryptExisting].
+  Future<void> encryptExistingDownloads() =>
+      DownloadCrypto.encryptExisting(_downloadDao);
 
   Future<bool> isDownloaded(String mediaId) =>
       _downloadDao.isDownloaded(mediaId);

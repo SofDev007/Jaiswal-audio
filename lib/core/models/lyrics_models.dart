@@ -122,15 +122,18 @@ class ParsedLyrics {
   }
 
   void parseLyrics(String syncedLyrics) {
-    //LRC fromat is [mm:ss.xx] lyrics
-    final regex = RegExp(r'\[(\d+):(\d+)\.(\d+)\] (.+)');
+    // LRC: "[mm:ss.xx] text". LRCLIB writes no space after the tag
+    // ("[00:11.20]Hum tere bin"), which this used to require, so most songs
+    // parsed to no lines at all. ".xx" is hundredths, ".xxx" thousandths.
+    final regex = RegExp(r'^\[(\d+):(\d+)[.:](\d+)\] ?(.*)$', multiLine: true);
     final matches = regex.allMatches(syncedLyrics);
 
     for (var match in matches) {
       final min = int.parse(match.group(1)!);
       final sec = int.parse(match.group(2)!);
-      final milli = int.parse(match.group(3)!);
-      final text = match.group(4)!;
+      final frac = match.group(3)!;
+      final milli = int.parse(frac.padRight(3, '0').substring(0, 3));
+      final text = match.group(4)!.trim();
       lyrics.add(
         ParsedLyric(
           text: text,

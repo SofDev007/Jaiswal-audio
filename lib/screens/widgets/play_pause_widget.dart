@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:Bloomee/core/theme/app_theme.dart';
-import 'package:icons_plus/icons_plus.dart';
 
 class PlayPauseButton extends StatefulWidget {
   final double size;
@@ -109,38 +108,14 @@ class _PlayPauseButtonState extends State<PlayPauseButton>
             ),
             width: size,
             height: size,
+            // The play triangle morphs into the pause bars (and back),
+            // driven by the same 0→1 "playing" animation as the colour.
             child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  return RotationTransition(
-                    turns: Tween<double>(begin: 0.5, end: 1.0).animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      ),
-                    ),
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
-                  );
-                },
-                child: widget.isPlaying
-                    ? Icon(
-                        FontAwesome.pause_solid,
-                        key: const ValueKey('pause'),
-                        size: size * 0.5,
-                        color: Default_Theme.primaryColor1,
-                      )
-                    : Icon(
-                        MingCute.play_fill,
-                        key: const ValueKey('play'),
-                        size: size * 0.5,
-                        color: Default_Theme.primaryColor1,
-                      ),
+              child: AnimatedIcon(
+                icon: AnimatedIcons.play_pause,
+                progress: _colorController,
+                size: size * 0.5,
+                color: Default_Theme.primaryColor1,
               ),
             ),
           );

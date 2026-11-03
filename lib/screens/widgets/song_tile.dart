@@ -32,6 +32,10 @@ class SongCardWidget extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? trailing;
 
+  /// Swipe the row to the right to add the song to the queue. Off where
+  /// the row sits in a sideways pager or already swipes for something else.
+  final bool swipeToQueue;
+
   const SongCardWidget({
     super.key,
     required this.song,
@@ -49,13 +53,14 @@ class SongCardWidget extends StatelessWidget {
     this.isWide = false,
     this.subtitleOverride,
     this.trailing,
+    this.swipeToQueue = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final playerCubit = context.read<BloomeePlayerCubit>();
 
-    return StreamBuilder<MediaItem?>(
+    final tile = StreamBuilder<MediaItem?>(
       stream: playerCubit.bloomeePlayer.mediaItem,
       builder: (context, snapshot) {
         final isPlaying = snapshot.data?.id == song.id;
@@ -269,6 +274,103 @@ class SongCardWidget extends StatelessWidget {
           ),
         );
       },
+    );
+    return swipeToQueue ? _SwipeToQueue(song: song, child: tile) : tile;
+  }
+}
+
+/// Drag the row right: a queue icon shows behind it; let go past the
+/// threshold to add the song to the end of the queue. The row springs back.
+class _SwipeToQueue extends StatefulWidget {
+  const _SwipeToQueue({required this.song, required this.child});
+  final Track song;
+  final Widget child;
+
+  @override
+  State<_SwipeToQueue> createState() => _SwipeToQueueState();
+}
+
+class _SwipeToQueueState extends State<_SwipeToQueue>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _dx =
+      AnimationController.unbounded(vsync: this);
+  bool _armed = false;
+
+  static const double _threshold = 90;
+  static const double _max = 140;
+
+  @override
+  void dispose() {
+    _dx.dispose();
+    super.dispose();
+  }
+
+  void _onUpdate(DragUpdateDetails d) {
+    _dx.stop();
+    // Right only; gets heavier past the threshold.
+    final next = (_dx.value + d.delta.dx * (_dx.value > _threshold ? 0.4 : 1))
+        .clamp(0.0, _max);
+    _dx.value = next;
+    final armed = next > _threshold;
+    if (armed != _armed) {
+      _armed = armed;
+      if (armed) HapticFeedback.selectionClick();
+    }
+  }
+
+  void _onEnd(DragEndDetails d) {
+    if (_armed) {
+      HapticFeedback.mediumImpact();
+      context
+          .read<BloomeePlayerCubit>()
+          .bloomeePlayer
+          .addQueueTracks([widget.song]);
+      SnackbarService.showMessage(
+          AppLocalizations.of(context)!.snackbarAddedToQueue);
+    }
+    _armed = false;
+    _dx.animateTo(0,
+        duration: const Duration(milliseconds: 300), curve: Curves.easeOutBack);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onHorizontalDragUpdate: _onUpdate,
+      onHorizontalDragEnd: _onEnd,
+      onHorizontalDragCancel: () =>
+          _dx.animateTo(0, duration: const Duration(milliseconds: 200)),
+      child: AnimatedBuilder(
+        animation: _dx,
+        builder: (context, child) {
+          final t = (_dx.value / _threshold).clamp(0.0, 1.0);
+          return Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              if (_dx.value > 0)
+                Positioned.fill(
+                  child: Container(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.only(left: 18),
+                    decoration: BoxDecoration(
+                      color: Default_Theme.accentColor2
+                          .withValues(alpha: 0.08 + 0.17 * t),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Transform.scale(
+                      scale: 0.6 + 0.4 * t + (_armed ? 0.15 : 0),
+                      child: Icon(MingCute.playlist_2_line,
+                          color: Default_Theme.primaryColor1
+                              .withValues(alpha: 0.4 + 0.6 * t)),
+                    ),
+                  ),
+                ),
+              Transform.translate(offset: Offset(_dx.value, 0), child: child),
+            ],
+          );
+        },
+        child: widget.child,
+      ),
     );
   }
 }

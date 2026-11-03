@@ -19,8 +19,10 @@ import 'package:Bloomee/screens/widgets/sign_board_widget.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'package:Bloomee/utils/load_image.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -70,7 +72,8 @@ class _ArtistViewState extends State<ArtistView> {
   String _sourceName(BuildContext context) {
     final plugins = context.read<PluginBloc>().state.availablePlugins;
     for (final plugin in plugins) {
-      if (plugin.manifest.id == widget.pluginId) return pluginDisplayName(plugin.manifest.id, plugin.manifest.name);
+      if (plugin.manifest.id == widget.pluginId)
+        return pluginDisplayName(plugin.manifest.id, plugin.manifest.name);
     }
     return widget.pluginId;
   }
@@ -319,18 +322,26 @@ class _ArtistViewState extends State<ArtistView> {
       bloc: _contentBloc,
       builder: (context, state) {
         if (state.artistDetailStatus == DetailStatus.error) {
-          return Center(
-            child: Text(
-              state.error ?? 'Failed to load artist',
-              style: const TextStyle(color: Default_Theme.primaryColor1),
+          // state.error is already plain text (see friendlyError).
+          final message = state.error ?? 'Failed to load artist.';
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: SignBoardWidget(
+              message: message,
+              icon: message == noInternetMessage
+                  ? MingCute.wifi_off_line
+                  : MingCute.alert_line,
             ),
           );
         }
 
         if (state.artistDetailStatus != DetailStatus.loaded &&
             state.artistDetailStatus != DetailStatus.loadingMore) {
-          return const Center(
-            child: JarxLoadingIndicator(color: Default_Theme.accentColor2),
+          return const SafeArea(
+            child: SingleChildScrollView(
+              physics: NeverScrollableScrollPhysics(),
+              child: SkeletonSongList(count: 10),
+            ),
           );
         }
 

@@ -11,6 +11,7 @@ import 'package:Bloomee/src/rust/api/plugin/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:Bloomee/utils/friendly_error.dart';
 
 Future<void> openURL(String url) async {
   launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -66,8 +67,8 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
     switch (error) {
       case PluginNotLoadedError(:final pluginId):
         _throttledSnackbar('Plugin "$pluginId" is not loaded.');
-      case MalformedMediaIdError(:final rawId):
-        _throttledSnackbar('Malformed media ID: $rawId');
+      case MalformedMediaIdError():
+        _throttledSnackbar("This song's link is damaged and can't be opened.");
       case PluginErrorEvent(:final message):
         _throttledSnackbar(message);
       case NetworkFailureError(:final message):
@@ -79,19 +80,25 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
     switch (event) {
       case PluginManagerEvent_PluginLoadFailed(:final id, :final error):
         log('Plugin load failed: $id — $error', name: 'GlobalEventListener');
-        _throttledSnackbar('Plugin "$id" failed to load: $error');
+        // Raw reasons stay in the log; the snackbar gets plain words.
+        _throttledSnackbar('Plugin "$id" failed to load. '
+            '${friendlyError(error, fallback: 'Try again later.')}');
       case PluginManagerEvent_PluginUnloadFailed(:final id, :final error):
         log('Plugin unload failed: $id — $error', name: 'GlobalEventListener');
-        _throttledSnackbar('Plugin "$id" failed to unload: $error');
+        _throttledSnackbar('Plugin "$id" failed to unload. '
+            '${friendlyError(error, fallback: 'Try again.')}');
       case PluginManagerEvent_PluginInstallFailed(:final id, :final error):
         log('Plugin install failed: $id — $error', name: 'GlobalEventListener');
-        _throttledSnackbar('Plugin "$id" install failed: $error');
+        _throttledSnackbar('Plugin "$id" could not be installed. '
+            '${friendlyError(error, fallback: 'The file may be damaged or not made for this version of JARX.')}');
       case PluginManagerEvent_PluginDeleteFailed(:final id, :final error):
         log('Plugin delete failed: $id — $error', name: 'GlobalEventListener');
-        _throttledSnackbar('Plugin "$id" delete failed: $error');
+        _throttledSnackbar('Plugin "$id" could not be deleted. '
+            '${friendlyError(error, fallback: 'Try again.')}');
       case PluginManagerEvent_Error(:final message):
         log('Plugin system error: $message', name: 'GlobalEventListener');
-        _throttledSnackbar('Plugin error: $message');
+        _throttledSnackbar(friendlyError(message,
+            fallback: 'Something went wrong with a plugin. Try again.'));
       case PluginManagerEvent_PluginInstalled(:final id):
         if (mounted) {
           _throttledSnackbar(

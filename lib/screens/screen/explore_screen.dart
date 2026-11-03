@@ -16,6 +16,7 @@ import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/sign_board_widget.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
 import 'package:Bloomee/screens/screen/home_views/home_rows.dart';
 import 'package:Bloomee/screens/screen/home_views/notification_view.dart';
@@ -28,7 +29,6 @@ import 'package:icons_plus/icons_plus.dart';
 import '../widgets/horizontal_card_view.dart';
 import '../widgets/tab_list_widget.dart';
 import 'package:badges/badges.dart' as badges;
-import 'package:Bloomee/screens/widgets/jarx_loading_indicator.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -180,6 +180,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ],
         child: Scaffold(
           body: RefreshIndicator(
+            color: Default_Theme.accentColor2,
+            backgroundColor: Default_Theme.themeColor,
+            strokeWidth: 2.5,
+            displacement: 56,
             onRefresh: () async {
               final pluginId = _effectiveHomePluginId(
                 context.read<PluginBloc>().state.loadedContentResolvers,
@@ -228,6 +232,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       list: snapshot.data!.map((e) {
                                         return SongCardWidget(
                                           song: e,
+                                          // Sits in a sideways pager.
+                                          swipeToQueue: false,
                                           onTap: () {
                                             context
                                                 .read<BloomeePlayerCubit>()
@@ -322,14 +328,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   );
                                 }
 
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 40),
-                                  child: Center(
-                                    child: JarxLoadingIndicator(
-                                      color: Default_Theme.accentColor2,
-                                    ),
-                                  ),
-                                );
+                                return const SkeletonCardRows();
                               },
                             );
                           }

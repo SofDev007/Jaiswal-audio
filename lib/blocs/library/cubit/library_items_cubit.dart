@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'dart:async';
 import 'dart:developer';
 import 'package:Bloomee/core/models/exported.dart';
@@ -217,6 +218,7 @@ class LibraryItemsCubit extends Cubit<LibraryItemsState> {
   /// Like or unlike a track.
   Future<void> setTrackLiked(Track track, bool liked) async {
     await _playlistDao.setTrackLiked(track, liked);
+    if (liked) await TasteModel.judged(track.id, good: true);
   }
 
   /// Get all playlist names containing a given track.

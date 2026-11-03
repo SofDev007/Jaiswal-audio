@@ -7,3 +7,15 @@ const _displayNames = {
 
 /// The name to show for the plugin with [id] whose own name is [name].
 String pluginDisplayName(String id, String name) => _displayNames[id] ?? name;
+
+/// Where a song comes from, for "Enjoying From …" when it wasn't started from
+/// a playlist: "YouTube Music", "JioSaavn", "YouTube Video", or "Local".
+String sourceNameOfTrack(String trackId) {
+  final plugin = trackId.split('::').first;
+  return const {
+        'content-resolver.bloomfactory.ytmusic': 'YouTube Music',
+        'content-resolver.bloomfactory.ytvideo': 'YouTube Video',
+        'content-resolver.bloomfactory.jisaavn': 'JioSaavn',
+      }[plugin] ??
+      (trackId.contains('::') ? 'Search' : 'Local');
+}

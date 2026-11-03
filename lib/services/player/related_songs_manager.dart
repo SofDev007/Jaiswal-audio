@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/core/models/track_signal.dart';
@@ -8,15 +9,18 @@ import 'package:Bloomee/services/db/dao/settings_dao.dart';
 import 'package:Bloomee/services/db/dao/track_dao.dart';
 import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
+import 'package:Bloomee/services/db/global_db.dart' show PlaylistTypeDB;
 import 'package:Bloomee/services/meta_resolver/cross_plugin_resolver.dart';
 import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/services/recommendations/candidate_gatherer.dart';
+import 'package:Bloomee/services/recommendations/rec_health.dart';
 import 'package:Bloomee/services/recommendations/recommendation_ranker.dart';
 import 'package:Bloomee/services/recommendations/suggestion_blocklist.dart';
 import 'package:rxdart/rxdart.dart';
 
 typedef TasteLoader = Future<UserTaste> Function(RecommendationRanker ranker);
+typedef HealthCounter = void Function(String counter, [int by]);
 
 /// Tracks queued per refill.
 const int kRecommendationBatch = 5;
@@ -36,6 +40,7 @@ class RelatedSongsManager {
   final RecommendationRanker _ranker;
   final TasteLoader _loadTaste;
   final Future<bool> Function() _autoPlayEnabled;
+  final HealthCounter _health;
 
   Track? _seed;
   bool _gathered = false;
@@ -52,7 +57,9 @@ class RelatedSongsManager {
     RecommendationRanker? ranker,
     TasteLoader? loadTaste,
     Future<bool> Function()? autoPlayEnabled,
-  })  : _gatherer = gatherer ??
+    HealthCounter? health,
+  })  : _health = health ?? RecHealth.add,
+        _gatherer = gatherer ??
             CandidateGatherer(
                 plugins, CrossPluginResolver(pluginService: plugins)),
         _ranker = ranker ??
@@ -73,13 +80,43 @@ class RelatedSongsManager {
           .then((p) => p.tracks),
       HistoryDAO(DBProvider.db, trackDao).getHistory(limit: 200),
       SuggestionBlocklist.load(),
+      _userPlaylists(trackDao),
     ]);
     return ranker.buildTaste(
       signals: results[0] as List<TrackSignal>,
       liked: results[1] as List<Track>,
       history: results[2] as List<Track>,
       blocked: results[3] as Set<String>,
+      playlists: results[4] as Map<String, List<Track>>,
+      model: await TasteModel.load(),
     );
+  }
+
+  static (DateTime, Map<String, List<Track>>)? _playlistsCache;
+
+  /// The user's own playlists by name (not Liked, Downloads or Local music),
+  /// re-read at most every 10 minutes: refills ask for this every time.
+  static Future<Map<String, List<Track>>> _userPlaylists(
+      TrackDAO trackDao) async {
+    final cached = _playlistsCache;
+    if (cached != null &&
+        DateTime.now().difference(cached.$1) < const Duration(minutes: 10)) {
+      return cached.$2;
+    }
+    final dao = PlaylistDAO(DBProvider.db, trackDao);
+    const skip = {
+      PlaylistDAO.likedPlaylist,
+      SettingKeys.downloadPlaylist,
+      SettingKeys.localMusicPlaylist,
+      SettingKeys.recentlyPlayedPlaylist,
+    };
+    final out = <String, List<Track>>{};
+    for (final p in await dao.getPlaylistsByType(PlaylistTypeDB.userPlaylist)) {
+      if (skip.contains(p.name)) continue;
+      out[p.name] = (await dao.loadPlaylist(p.name)).tracks;
+    }
+    _playlistsCache = (DateTime.now(), out);
+    return out;
   }
 
   Future<void> checkForRelatedSongs({
@@ -88,14 +125,19 @@ class RelatedSongsManager {
     required int currentPlayingIdx,
     required LoopMode loopMode,
   }) async {
-    final shouldQueueMore = queue.isNotEmpty &&
-        (queue.length - currentPlayingIdx) < 2 &&
-        loopMode != LoopMode.all;
-    if (_busy || !shouldQueueMore || !await _autoPlayEnabled()) return;
+    final left = queue.length - currentPlayingIdx;
+    // Gather while a few songs are still left, so the pool is ready (plugin
+    // calls can take many seconds on mobile data); queue at the last one.
+    final shouldGather =
+        queue.isNotEmpty && left <= 4 && loopMode != LoopMode.all;
+    final shouldQueueMore = shouldGather && left < 2;
+    if (_busy || !shouldGather || !await _autoPlayEnabled()) return;
 
     _busy = true;
     try {
-      final seed = _seedFor(queue, currentPlayingIdx) ?? currentMedia;
+      // The refill at the last song uses the last track the user chose, so
+      // gather early for that one, not for the one playing now.
+      final seed = _seedFor(queue, queue.length - 1) ?? currentMedia;
       if (seed.id != _seed?.id) {
         _seed = seed;
         _gathered = false;
@@ -113,8 +155,14 @@ class RelatedSongsManager {
 
       if (!_gathered) {
         _gathered = true;
+        final started = DateTime.now();
         _addToPool(await _gatherer.gather(seed));
+        _health(RecHealth.gathers);
+        _health(RecHealth.gatherMs,
+            DateTime.now().difference(started).inMilliseconds);
       }
+      if (!shouldQueueMore) return;
+      _health(RecHealth.refills);
       var batch = _rank(seed, queue, taste);
       // Short of a full batch: up to two more radio pages.
       for (var i = 0;
@@ -125,7 +173,21 @@ class RelatedSongsManager {
         _addToPool(await _gatherer.gather(seed, radioPage: _nextRadioPage));
         batch = _rank(seed, queue, taste);
       }
-      if (batch.isEmpty) return;
+      if (batch.isEmpty && taste.library.isNotEmpty) {
+        // Every source failed or was used up: the user's own songs.
+        log('No plugin candidates for "${seed.title}"; using the library',
+            name: 'RelatedSongs');
+        _pool.addAll([
+          for (var i = 0; i < taste.library.length; i++)
+            RecCandidate(taste.library[i], RecSource.library, i),
+        ]);
+        batch = _rank(seed, queue, taste);
+        if (batch.isNotEmpty) _health(RecHealth.libraryRefills);
+      }
+      if (batch.isEmpty) {
+        _health(RecHealth.emptyRefills);
+        return;
+      }
 
       final tracks = [for (final r in batch) r.track];
       final ids = {for (final t in tracks) t.id};
@@ -135,6 +197,9 @@ class RelatedSongsManager {
         ...reasons.value,
         for (final r in batch) r.track.id: r.reason,
       });
+      for (final r in batch) {
+        TasteModel.remember(r.track.id, r.features);
+      }
       relatedSongs.add(tracks);
       log('Queued ${tracks.length} recommendations for "${seed.title}"',
           name: 'RelatedSongs');

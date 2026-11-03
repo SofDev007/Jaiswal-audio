@@ -15,9 +15,11 @@ import 'package:Bloomee/core/constants/route_paths.dart';
 import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
+import 'package:Bloomee/screens/widgets/never_suggest_button.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/screens/widgets/smart_replace_dialog.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
+import 'package:Bloomee/services/recommendations/suggestion_blocklist.dart';
 import 'package:Bloomee/services/song_metadata_refresh_service.dart';
 
 void showMoreBottomSheet(
@@ -35,6 +37,7 @@ void showMoreBottomSheet(
   final libraryCubit = context.read<LibraryItemsCubit>();
   final playlistCubit = context.read<AddToPlaylistCubit>();
   final downloaderCubit = context.read<DownloaderCubit>();
+  SuggestionBlocklist.load(); // for "Do not suggest this song"
 
   showModalBottomSheet(
     context: context,
@@ -148,6 +151,7 @@ class _TrackOptionsBottomSheet extends StatelessWidget {
                       showOptions: false,
                       showCopyBtn: true,
                       showInfoBtn: true,
+                      swipeToQueue: false,
                     ),
                   ),
                   Flexible(
@@ -334,6 +338,42 @@ class _TrackOptionsBottomSheet extends StatelessWidget {
                                 SnackbarService.showMessage(
                                     l10n.menuOpenLinkFailed);
                               }
+                            },
+                          ),
+                          // Keeps this song out of every suggestion (Up
+                          // Next, For you, mixes); tap again to lift it.
+                          StreamBuilder<Set<String>>(
+                            stream: SuggestionBlocklist.keys,
+                            builder: (ctx, snap) {
+                              final blocked = (snap.data ?? const {})
+                                  .contains(SuggestionBlocklist.keyOf(song));
+                              return _CompactTile(
+                                icon: blocked
+                                    ? Icons.add_circle_outline_rounded
+                                    : Icons.remove_circle_outline_rounded,
+                                title: blocked
+                                    ? l10n.menuSuggestAgain
+                                    : l10n.menuNeverSuggest,
+                                onTap: (ctx) async {
+                                  Navigator.pop(ctx);
+                                  if (blocked) {
+                                    await SuggestionBlocklist.unblock(song);
+                                    SnackbarService.showMessage(
+                                        l10n.neverSuggestLifted(song.title));
+                                    return;
+                                  }
+                                  await blockSuggestion(parentContext, song);
+                                  SnackbarService.showMessage(
+                                    l10n.neverSuggestDone(song.title),
+                                    duration: const Duration(seconds: 4),
+                                    action: SnackBarAction(
+                                      label: l10n.neverSuggestUndo,
+                                      onPressed: () =>
+                                          SuggestionBlocklist.unblock(song),
+                                    ),
+                                  );
+                                },
+                              );
                             },
                           ),
                           if (onRemoveFromQueue != null) ...[

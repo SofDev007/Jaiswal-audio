@@ -1,14 +1,20 @@
 // Home: the three layouts the user can pick from (see HomeLayout) and the
-// rows they are built from. A "For you": greeting, Continue listening and
+// rows they are built from. A "For you": greeting, Recently played and
 // For you cards. B "Mixes": mood shortcuts, a playlist grid and Today's mix.
-// C "Pulse": Jump back in, Up next for you and Your playlists.
+// C "Pulse": Jump back in, Up next for you, Your playlists and
+// Recently played (all three show Recently played).
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:Bloomee/blocs/explore/cubit/explore_cubits.dart';
 import 'package:Bloomee/blocs/library/cubit/library_items_cubit.dart';
+
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
+import 'package:Bloomee/screens/widgets/animated_list_item.dart';
+import 'package:audio_service/audio_service.dart' as audio;
+import 'package:flutter/services.dart';
 import 'package:Bloomee/core/constants/route_paths.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/di/service_locator.dart';
@@ -90,11 +96,13 @@ class HomeTop extends StatelessWidget {
             const _MoodChips(),
             const _ShortcutGrid(),
             forYou((picks) => _TodaysMixCard(picks: picks)),
+            const ContinueListeningRow(),
           ],
         HomeLayout.pulse => [
             const JumpBackInCard(),
             forYou((picks) => _UpNextList(picks: picks)),
             const YourPlaylistsRow(),
+            const ContinueListeningRow(),
           ],
       },
     );
@@ -196,7 +204,8 @@ class HomeTitle extends StatelessWidget {
 
 // ── A: For you ────────────────────────────────────────────────────────────
 
-/// Recently played tracks as a row of cards; "See all" opens the history.
+/// Recently played tracks as a row of cards; the title and "See all" open
+/// the full history.
 class ContinueListeningRow extends StatelessWidget {
   const ContinueListeningRow({super.key});
 
@@ -207,7 +216,7 @@ class ContinueListeningRow extends StatelessWidget {
       builder: (context, state) {
         if (state.tracks.isEmpty) return const SizedBox.shrink();
         return _TrackRow(
-          title: l10n.homeContinueListening,
+          title: l10n.homeRecentlyPlayed,
           tracks: state.tracks.take(12).toList(),
           playlistTitle: 'Recently',
           onSeeAll: () => Navigator.push(
@@ -251,7 +260,8 @@ class _TrackRow extends StatelessWidget {
                 title: title,
                 hint: hint,
                 action: onSeeAll == null ? null : l10n.homeSeeAll,
-                onAction: onSeeAll),
+                onAction: onSeeAll,
+                onTitleTap: onSeeAll),
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -533,142 +543,152 @@ class _TodaysMixCard extends StatelessWidget {
 
 // ── C: Pulse ──────────────────────────────────────────────────────────────
 
-/// The most recently played track as a large card. Its button resumes the
-/// track when it is still the current one, otherwise plays the history
-/// from it.
+/// The current track (else the most recently played one) as a large card.
+/// It follows the player directly, so it changes as soon as a song starts;
+/// history itself only counts a song after 20 s (RecentlyPlayedTracker).
+/// Its button resumes the track when it is still the current one, otherwise
+/// plays the history from it.
 class JumpBackInCard extends StatelessWidget {
   const JumpBackInCard({super.key});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return BlocBuilder<RecentlyCubit, RecentlyCubitState>(
-      builder: (context, state) {
-        if (state.tracks.isEmpty) return const SizedBox.shrink();
-        final recent = state.tracks.take(12).toList();
-        final t = recent.first;
-        final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
-        void play() {
-          if (player.currentMedia.id == t.id) {
-            player.engine.playing ? player.pause() : player.play();
-            return;
+    final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+    return StreamBuilder(
+      stream: player.mediaItem,
+      builder: (context, _) => BlocBuilder<RecentlyCubit, RecentlyCubitState>(
+        builder: (context, state) {
+          final now = player.currentMedia;
+          final recent = [
+            if (now.id.isNotEmpty) now,
+            ...state.tracks.where((h) => h.id != now.id),
+          ].take(12).toList();
+          if (recent.isEmpty) return const SizedBox.shrink();
+          final t = recent.first;
+          void play() {
+            if (player.currentMedia.id == t.id) {
+              player.engine.playing ? player.pause() : player.play();
+              return;
+            }
+            _play(context, recent, 'Recently', 0);
           }
-          _play(context, recent, 'Recently', 0);
-        }
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: GestureDetector(
-            onTap: play,
-            onLongPress: () =>
-                showMoreBottomSheet(context, t, showSinglePlay: true),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: _line),
-              ),
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: GestureDetector(
+              onTap: play,
+              onLongPress: () =>
+                  showMoreBottomSheet(context, t, showSinglePlay: true),
               child: Container(
-                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
+                  color: _surface,
                   borderRadius: BorderRadius.circular(22),
-                  gradient: RadialGradient(
-                    center: Alignment.topRight,
-                    radius: 1.3,
-                    stops: const [0, 0.6],
-                    colors: [
-                      Default_Theme.accentColor2.withValues(alpha: 0.45),
-                      Default_Theme.accentColor2.withValues(alpha: 0),
-                    ],
-                  ),
+                  border: Border.all(color: _line),
                 ),
-                child: Stack(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.homeJumpBackIn.toUpperCase(),
-                          style: Default_Theme.secondoryTextStyle.merge(
-                              TextStyle(
-                                  fontSize: 11,
-                                  letterSpacing: 1.5,
-                                  color: _muted)),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: LoadImageCached(
-                                imageUrl:
-                                    t.thumbnail.urlHigh ?? t.thumbnail.url,
-                                fallbackUrl: t.thumbnail.url,
-                                width: 92,
-                                height: 92,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: SizedBox(
-                                height: 40,
-                                child: LivePulseVisualizer(
-                                    trackId: t.id,
-                                    fallback: _LivePulse(trackId: t.id)),
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 80),
-                          child: Text(
-                            t.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Default_Theme.secondoryTextStyleMedium.merge(
-                                const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Default_Theme.primaryColor1)),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 80),
-                          child: Text(
-                            _artistNames(t),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Default_Theme.secondoryTextStyle.merge(
-                                TextStyle(fontSize: 12.5, color: _muted)),
-                          ),
-                        ),
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    gradient: RadialGradient(
+                      center: Alignment.topRight,
+                      radius: 1.3,
+                      stops: const [0, 0.6],
+                      colors: [
+                        Default_Theme.accentColor2.withValues(alpha: 0.45),
+                        Default_Theme.accentColor2.withValues(alpha: 0),
                       ],
                     ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: GestureDetector(
-                        onTap: play,
-                        child: StreamBuilder<bool>(
-                          stream: player.engine.playingStream,
-                          builder: (context, snap) => _RoundPlayButton(
-                            size: 62,
-                            glow: true,
-                            playing: (snap.data ?? false) &&
-                                player.currentMedia.id == t.id,
+                  ),
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.homeJumpBackIn.toUpperCase(),
+                            style: Default_Theme.secondoryTextStyle.merge(
+                                TextStyle(
+                                    fontSize: 11,
+                                    letterSpacing: 1.5,
+                                    color: _muted)),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: LoadImageCached(
+                                  imageUrl:
+                                      t.thumbnail.urlHigh ?? t.thumbnail.url,
+                                  fallbackUrl: t.thumbnail.url,
+                                  width: 92,
+                                  height: 92,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 40,
+                                  child: LivePulseVisualizer(
+                                      key: ValueKey(t.id),
+                                      trackId: t.id,
+                                      fallback: _LivePulse(trackId: t.id)),
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 80),
+                            child: Text(
+                              t.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Default_Theme.secondoryTextStyleMedium
+                                  .merge(const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Default_Theme.primaryColor1)),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 80),
+                            child: Text(
+                              _artistNames(t),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Default_Theme.secondoryTextStyle.merge(
+                                  TextStyle(fontSize: 12.5, color: _muted)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: play,
+                          child: StreamBuilder<bool>(
+                            stream: player.engine.playingStream,
+                            builder: (context, snap) => _RoundPlayButton(
+                              size: 62,
+                              glow: true,
+                              playing: (snap.data ?? false) &&
+                                  player.currentMedia.id == t.id,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -870,54 +890,187 @@ class _UpNextList extends StatelessWidget {
               onAction: () => _play(context, tracks, l10n.homeUpNext, 0)),
           const SizedBox(height: 4),
           for (var i = 0; i < picks.length && i < _shown; i++)
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _play(context, tracks, l10n.homeUpNext, i),
-              onLongPress: () => showMoreBottomSheet(context, picks[i].$1,
-                  showSinglePlay: true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: _line))),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LoadImageCached(
-                        imageUrl: picks[i].$1.thumbnail.url,
-                        width: 46,
-                        height: 46,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(picks[i].$1.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Default_Theme.secondoryTextStyleMedium
-                                  .merge(const TextStyle(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: Default_Theme.primaryColor1))),
-                          Text(_artistNames(picks[i].$1),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Default_Theme.secondoryTextStyle.merge(
-                                  TextStyle(fontSize: 11.5, color: _muted))),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 130),
-                      child: _ReasonChip(recReasonText(l10n, picks[i].$2)),
-                    ),
-                    NeverSuggestButton(track: picks[i].$1),
-                  ],
+            AnimatedListItem(
+              key: ValueKey('upnext_${picks[i].$1.id}'),
+              index: i,
+              child: _UpNextRow(
+                pick: picks[i],
+                onPlay: () => _play(context, tracks, l10n.homeUpNext, i),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One "Up next for you" song. Tapping it gives a press-and-bounce with an
+/// accent glow; while it plays, bars move over its cover.
+class _UpNextRow extends StatefulWidget {
+  const _UpNextRow({required this.pick, required this.onPlay});
+  final ForYouPick pick;
+  final VoidCallback onPlay;
+
+  @override
+  State<_UpNextRow> createState() => _UpNextRowState();
+}
+
+class _UpNextRowState extends State<_UpNextRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tap = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 650));
+
+  @override
+  void dispose() {
+    _tap.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final track = widget.pick.$1;
+    final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+    return StreamBuilder<audio.MediaItem?>(
+      stream: player.mediaItem,
+      builder: (context, snap) {
+        final playing = snap.data?.id == track.id;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _tap.forward(from: 0);
+            widget.onPlay();
+          },
+          onLongPress: () =>
+              showMoreBottomSheet(context, track, showSinglePlay: true),
+          child: AnimatedBuilder(
+            animation: _tap,
+            builder: (context, child) {
+              final t = _tap.value;
+              // Dip to 94% fast, spring back past 100% and settle.
+              final scale = t < 0.2
+                  ? 1 - 0.06 * (t / 0.2)
+                  : 0.94 + 0.06 * Curves.elasticOut.transform((t - 0.2) / 0.8);
+              return Transform.scale(
+                scale: scale,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    // Only while the tap animation runs (t is 0 at rest).
+                    color: Default_Theme.accentColor2
+                        .withValues(alpha: t == 0 ? 0 : 0.18 * (1 - t)),
+                  ),
+                  child: child,
                 ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: _line))),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        LoadImageCached(
+                          imageUrl: track.thumbnail.url,
+                          width: 46,
+                          height: 46,
+                        ),
+                        if (playing)
+                          Container(
+                            width: 46,
+                            height: 46,
+                            color: Colors.black.withValues(alpha: 0.45),
+                            alignment: Alignment.center,
+                            child: const _PlayingBars(),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(track.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Default_Theme.secondoryTextStyleMedium
+                                .merge(TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: playing
+                                        ? Default_Theme.accentColor2
+                                        : Default_Theme.primaryColor1))),
+                        Text(_artistNames(track),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Default_Theme.secondoryTextStyle.merge(
+                                TextStyle(fontSize: 11.5, color: _muted))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 130),
+                    child: _ReasonChip(recReasonText(l10n, widget.pick.$2)),
+                  ),
+                  NeverSuggestButton(track: track),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Three bars bouncing out of step: "this one is playing".
+class _PlayingBars extends StatefulWidget {
+  const _PlayingBars();
+
+  @override
+  State<_PlayingBars> createState() => _PlayingBarsState();
+}
+
+class _PlayingBarsState extends State<_PlayingBars>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 900))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) => Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var b = 0; b < 3; b++)
+            Container(
+              width: 3.5,
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              height: 6 +
+                  12 *
+                      (0.5 +
+                          0.5 *
+                              math.sin(2 * math.pi * _c.value + b * 2.1)),
+              decoration: BoxDecoration(
+                color: Default_Theme.accentColor2,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
         ],
@@ -1044,11 +1197,16 @@ class _LibraryShortcuts extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(
-      {required this.title, this.hint, this.action, this.onAction});
+      {required this.title,
+      this.hint,
+      this.action,
+      this.onAction,
+      this.onTitleTap});
   final String title;
   final String? hint;
   final String? action;
   final VoidCallback? onAction;
+  final VoidCallback? onTitleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1058,12 +1216,15 @@ class _SectionHeader extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(title,
-                  style: Default_Theme.secondoryTextStyleMedium.merge(
-                      const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Default_Theme.primaryColor1))),
+              child: GestureDetector(
+                onTap: onTitleTap,
+                child: Text(title,
+                    style: Default_Theme.secondoryTextStyleMedium.merge(
+                        const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Default_Theme.primaryColor1))),
+              ),
             ),
             if (action != null)
               GestureDetector(

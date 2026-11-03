@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/utils/friendly_error.dart';
 import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
@@ -13,7 +14,7 @@ import 'package:Bloomee/src/rust/api/plugin/manifest.dart';
 import 'package:Bloomee/src/rust/api/plugin/plugin_info.dart';
 import 'package:Bloomee/src/rust/api/plugin/types.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:Bloomee/utils/pick_file.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
@@ -384,14 +385,8 @@ class _PluginManagerScreenState extends State<PluginManagerScreen> {
   Future<void> _installPlugin(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['bex'],
-        dialogTitle: l10n.pluginManagerSelectPackage,
-      );
-
-      if (result == null || result.files.isEmpty) return;
-      final filePath = result.files.single.path;
+      final filePath = await pickFileWithExtension(const ['bex'],
+          dialogTitle: l10n.pluginManagerSelectPackage);
       if (filePath == null) return;
 
       if (context.mounted) {
@@ -401,8 +396,11 @@ class _PluginManagerScreenState extends State<PluginManagerScreen> {
         SnackbarService.showMessage(l10n.pluginManagerInstalling,
             loading: true);
       }
+    } on WrongFileType catch (e) {
+      SnackbarService.showMessage(e.message);
     } catch (e) {
-      SnackbarService.showMessage(l10n.pluginManagerPickFailed(e.toString()));
+      SnackbarService.showMessage(l10n
+          .pluginManagerPickFailed(friendlyError(e, fallback: 'Try again.')));
     }
   }
 }
@@ -981,8 +979,8 @@ class _PluginDetailSheet extends StatelessWidget {
                     child: IconButton(
                       onPressed: operating
                           ? null
-                          : () => _confirmDelete(
-                              context, manifest.id, pluginDisplayName(manifest.id, manifest.name)),
+                          : () => _confirmDelete(context, manifest.id,
+                              pluginDisplayName(manifest.id, manifest.name)),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.red.withValues(alpha: 0.15),
                         shape: RoundedRectangleBorder(
@@ -1128,8 +1126,8 @@ class _ApiKeysDialogContentState extends State<_ApiKeysDialogContent> {
           return const SizedBox(
               height: 200,
               child: Center(
-                  child: JarxLoadingIndicator(
-                      color: Default_Theme.accentColor2)));
+                  child:
+                      JarxLoadingIndicator(color: Default_Theme.accentColor2)));
         }
 
         final existing = snapshot.data!;
