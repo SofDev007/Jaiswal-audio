@@ -185,6 +185,10 @@ flutter:
     - family: NotoSans
       fonts:
         - asset: assets/fonts/Noto/NotoSans-VariableFont_wdth,wght.ttf
+    # Live lyric line, English (SIL OFL 1.1, see assets/fonts/Sora/OFL.txt)
+    - family: Sora
+      fonts:
+        - asset: assets/fonts/Sora/Sora-Variable.ttf
 
 
     - family: Fjalla

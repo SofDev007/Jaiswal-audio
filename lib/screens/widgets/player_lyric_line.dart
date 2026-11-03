@@ -7,6 +7,8 @@ import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/models/lyrics_models.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/screens/screen/player_views/fullscreen_lyrics_view.dart';
+import 'package:Bloomee/services/recommendations/recommendation_ranker.dart'
+    show scriptOf;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -218,11 +220,16 @@ class _LineWords extends StatelessWidget {
   Widget build(BuildContext context) {
     final words = text.isEmpty ? const ['♪'] : text.split(RegExp(r'\s+'));
     final starts = wordStarts(words, start, end);
-    const base = TextStyle(
-      fontSize: 19,
+    // English (Latin letters): Sora, 2 points smaller (it read big at 19).
+    // Hindi in Devanagari keeps Noto Sans at 19 (Sora has no Devanagari).
+    final latin = scriptOf(text) == 'latin';
+    final base = TextStyle(
+      fontSize: latin ? 17 : 19,
       fontWeight: FontWeight.w800,
+      // Variable fonts: set the weight axis too.
+      fontVariations: const [FontVariation('wght', 800)],
       height: 1.3,
-      fontFamily: 'NotoSans',
+      fontFamily: latin ? 'Sora' : 'NotoSans',
     );
     final spans = <InlineSpan>[];
     for (var w = 0; w < words.length; w++) {
