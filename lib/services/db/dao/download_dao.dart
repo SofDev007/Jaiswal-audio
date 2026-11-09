@@ -251,11 +251,15 @@ class DownloadDAO {
     final downloads = await getValidDownloads();
     final result = <Track>[];
     final runtimeArtworkCacheDir = await _runtimeArtworkCacheDir();
+    // All the song details in one read (it used to be one full table scan
+    // per download: hundreds of them at every start).
+    final tracks = await _trackDAO.getTracksByMediaIds(
+        {for (final d in downloads) d.mediaId});
 
     for (final record in downloads) {
       if (isLocalMediaId(record.mediaId)) continue;
 
-      final track = await _trackDAO.getTrackByMediaId(record.mediaId);
+      final track = tracks[record.mediaId];
       if (track != null) {
         final trackWithArtwork = await _resolveEmbeddedArtworkAtRuntime(
           record,
@@ -292,6 +296,13 @@ class DownloadDAO {
     required String runtimeArtworkCacheDir,
   }) async {
     final currentArtworkUrl = track.thumbnail.url;
+    // A cover from the web (cached by the image loader) needs no file read,
+    // and encrypted downloads (.jarx) can't be read for embedded art. Reading
+    // each file on the SD card was what made Offline take tens of seconds.
+    if (currentArtworkUrl.startsWith('http') ||
+        record.fileName.toLowerCase().endsWith('.jarx')) {
+      return track;
+    }
     if (await _isExistingLocalImagePath(currentArtworkUrl)) {
       return track;
     }

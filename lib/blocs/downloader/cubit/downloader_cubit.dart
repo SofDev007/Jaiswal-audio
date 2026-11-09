@@ -1,4 +1,10 @@
 import 'package:Bloomee/utils/friendly_error.dart';
+import 'package:flutter/material.dart';
+import 'package:Bloomee/core/theme/app_theme.dart';
+import 'package:Bloomee/l10n/app_localizations.dart';
+import 'package:Bloomee/routes/app_router.dart';
+import 'package:Bloomee/services/downloaded_playlists.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
@@ -69,6 +75,177 @@ class DownloaderCubit extends Cubit<DownloaderState> {
         .encryptExistingDownloads()
         .then((_) => _loadDownloadedSongs()));
     unawaited(_warmUpDownloadService());
+    unawaited(_watchNetwork());
+    // A song added to a playlist that was downloaded with "Download all".
+    DownloadedPlaylists.autoDownload =
+        (title, track) => unawaited(downloadSong(track, showSnackbar: false));
+  }
+
+  // ── Playlist downloads ("Download all") ───────────────────────────────────
+
+  final Map<String, PlaylistDownloadBatch> _batches = {};
+
+  /// The playlist downloads in progress, for the progress notification.
+  Iterable<PlaylistDownloadBatch> get playlistBatches => _batches.values;
+
+  PlaylistDownloadBatch? _batchOf(String trackId) => _batches.values
+      .where((b) =>
+          b.ids.contains(trackId) &&
+          !b.done.contains(trackId) &&
+          !b.failed.contains(trackId))
+      .firstOrNull;
+
+  /// Downloads [songs] of playlist [title] as one batch: no message per
+  /// song; one at the end ("X downloaded" or "N downloaded, M failed"), and
+  /// the failed ones are kept so the playlist can offer Retry.
+  Future<void> downloadPlaylist(String title, List<Track> songs) async {
+    if (songs.isEmpty) return;
+    final batch = PlaylistDownloadBatch(title, {for (final t in songs) t.id});
+    _batches[title] = batch;
+    await DownloadedPlaylists.setFailed(title, const []);
+    onDownloadsChanged?.call();
+    for (final song in songs) {
+      var queued = false;
+      try {
+        queued = await downloadSong(song, showSnackbar: false);
+      } catch (_) {}
+      if (!queued) _settle(song.id, ok: false);
+    }
+  }
+
+  /// Tries the failed songs of playlist [title] again; each one also gets
+  /// another source if its own fails again.
+  Future<void> retryPlaylist(String title, List<Track> playlistTracks) async {
+    final failed = (await DownloadedPlaylists.loadFailed())[title] ?? const [];
+    final ids = failed.toSet();
+    _fallbackTried.removeAll(ids);
+    await downloadPlaylist(
+        title, [for (final t in playlistTracks) if (ids.contains(t.id)) t]);
+  }
+
+  /// A song reached its end state. Returns true when it belongs to a
+  /// playlist batch (then the per-song message is left out).
+  bool _settle(String trackId, {required bool ok}) {
+    final batch = _batchOf(trackId);
+    if (batch == null) return false;
+    (ok ? batch.done : batch.failed).add(trackId);
+    if (ok) batch.lastDone = DateTime.now();
+    if (batch.finished) unawaited(_finishBatch(batch));
+    onDownloadsChanged?.call();
+    return true;
+  }
+
+  Future<void> _finishBatch(PlaylistDownloadBatch batch) async {
+    _batches.remove(batch.title);
+    await DownloadedPlaylists.setFailed(batch.title, batch.failed.toList());
+    onPlaylistFinished?.call(batch);
+    final context = GlobalRoutes.globalRouterKey.currentContext;
+    if (context == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final ok = batch.failed.isEmpty;
+    unawaited(showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Default_Theme.themeColor,
+        icon: Icon(
+            ok ? Icons.download_done_rounded : Icons.error_outline_rounded,
+            color: ok ? Default_Theme.accentColor2 : Colors.amber,
+            size: 34),
+        title: Text(
+          ok
+              ? l10n.playlistDownloadDone(batch.title)
+              : l10n.playlistDownloadPartial(
+                  batch.done.length, batch.failed.length),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+        ),
+        content: ok
+            ? null
+            : Text(l10n.playlistDownloadFailedBanner(batch.failed.length),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK',
+                style: TextStyle(
+                    color: Default_Theme.accentColor2,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    ));
+  }
+
+  /// Hooks for the download notification (see download_notifier.dart).
+  static VoidCallback? onDownloadsChanged;
+  static void Function(PlaylistDownloadBatch batch)? onPlaylistFinished;
+
+  // ── Download over Wi-Fi / mobile data ─────────────────────────────────────
+
+  bool _wifiOnly = false;
+  bool _onWifi = true;
+  final Set<String> _pausedForWifi = {};
+  StreamSubscription<List<ConnectivityResult>>? _netSub;
+
+  /// The user chose "Download over: Wi-Fi".
+  bool get downloadOverWifiOnly => _wifiOnly;
+
+  /// [taskId] is paused only because there is no Wi-Fi right now.
+  bool isWaitingForWifi(String taskId) => _pausedForWifi.contains(taskId);
+
+  static bool _isWifi(List<ConnectivityResult> r) =>
+      r.contains(ConnectivityResult.wifi) ||
+      r.contains(ConnectivityResult.ethernet);
+
+  Future<void> _watchNetwork() async {
+    try {
+      _wifiOnly =
+          await _settingsDao.getSettingBool(SettingKeys.downloadWifiOnly) ??
+              false;
+      _onWifi = _isWifi(await Connectivity().checkConnectivity());
+    } catch (e) {
+      log('Network check failed: $e', name: 'DownloaderCubit');
+    }
+    _netSub = Connectivity().onConnectivityChanged.listen((r) {
+      _onWifi = _isWifi(r);
+      unawaited(_applyNetworkRule());
+    });
+  }
+
+  /// "Download over": Wi-Fi only (true) or also mobile data (false).
+  Future<void> setDownloadOverWifiOnly(bool wifiOnly) async {
+    _wifiOnly = wifiOnly;
+    await _settingsDao.putSettingBool(SettingKeys.downloadWifiOnly, wifiOnly);
+    await _applyNetworkRule();
+  }
+
+  bool get _mustWaitForWifi => _wifiOnly && !_onWifi;
+
+  static const _waitingForWifiText =
+      'Waiting for Wi-Fi: downloads continue when you are on Wi-Fi';
+
+  /// On mobile data with "Wi-Fi" chosen: pause what is running and remember
+  /// it; back on Wi-Fi (or the setting changed): resume exactly those.
+  Future<void> _applyNetworkRule() async {
+    if (_mustWaitForWifi) {
+      for (final d in List.of(_activeDownloads)) {
+        if (_running.contains(d.status.state)) await _holdForWifi(d.task.taskId);
+      }
+    } else if (_pausedForWifi.isNotEmpty) {
+      final ids = List.of(_pausedForWifi);
+      _pausedForWifi.clear();
+      for (final id in ids) {
+        await resumeDownload(id);
+      }
+      _emitUpdatedState();
+    }
+  }
+
+  Future<void> _holdForWifi(String taskId) async {
+    if (!_pausedForWifi.add(taskId)) return;
+    await pauseDownload(taskId);
+    _emitUpdatedState();
   }
 
   /// Waits for initial downloaded songs to be loaded from database.
@@ -238,12 +415,28 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       taskUpdated: (value) {
         final snapshot = value.field0;
         _upsertSnapshot(snapshot);
+        // Started (or resumed) on mobile data while "Wi-Fi" is chosen.
+        if (_mustWaitForWifi &&
+            const {
+              DownloadTaskState.queued,
+              DownloadTaskState.resolving,
+              DownloadTaskState.downloading,
+              DownloadTaskState.retrying,
+            }.contains(snapshot.state)) {
+          unawaited(_holdForWifi(snapshot.taskId));
+        }
         if (snapshot.state == DownloadTaskState.failed &&
             !_downloadFromOtherSource(snapshot)) {
-          SnackbarService.showMessage(
-            snapshot.lastError ?? 'Failed to download ${snapshot.track.title}',
-          );
+          // No other source left: the song (the one asked for, if this was
+          // its other-source copy) has failed.
+          final asked = _fallbackFor.remove(snapshot.track.id) ?? snapshot.track;
+          if (!_settle(asked.id, ok: false)) {
+            SnackbarService.showMessage(
+              snapshot.lastError ?? 'Failed to download ${snapshot.track.title}',
+            );
+          }
         }
+        onDownloadsChanged?.call();
       },
       taskCompletedPendingAck: (value) {
         final snapshot = value.field0;
@@ -298,21 +491,27 @@ class DownloaderCubit extends Cubit<DownloaderState> {
           // Nothing found (e.g. right after start, before the plugins have
           // loaded): let the next retry look again.
           _fallbackTried.remove(original.id);
-          SnackbarService.showMessage(
-              failed.lastError ?? 'Failed to download ${original.title}');
+          if (!_settle(original.id, ok: false)) {
+            SnackbarService.showMessage(
+                failed.lastError ?? 'Failed to download ${original.title}');
+          }
           return;
         }
         _fallbackFor[other.id] = original;
         await cancelDownload(failed.taskId);
-        SnackbarService.showMessage(
-            'Downloading ${original.title} from another source');
+        if (_batchOf(original.id) == null) {
+          SnackbarService.showMessage(
+              'Downloading ${original.title} from another source');
+        }
         await downloadSong(other, showSnackbar: false);
       } catch (e, s) {
         _fallbackTried.remove(original.id);
         log('Download fallback failed',
             name: 'DownloaderCubit', error: e, stackTrace: s);
-        SnackbarService.showMessage(
-            failed.lastError ?? 'Failed to download ${original.title}');
+        if (!_settle(original.id, ok: false)) {
+          SnackbarService.showMessage(
+              failed.lastError ?? 'Failed to download ${original.title}');
+        }
       }
     }());
     return true;
@@ -358,7 +557,9 @@ class DownloaderCubit extends Cubit<DownloaderState> {
               name: 'DownloaderCubit');
         }
       }
-      SnackbarService.showMessage('Downloaded ${snapshot.track.title}');
+      if (!_settle((original ?? snapshot.track).id, ok: true)) {
+        SnackbarService.showMessage('Downloaded ${snapshot.track.title}');
+      }
       _downloaded.add(original ?? snapshot.track);
       await _loadDownloadedSongs();
     } catch (error, stackTrace) {
@@ -477,7 +678,8 @@ class DownloaderCubit extends Cubit<DownloaderState> {
   }
 
   /// The main public method to initiate a new download.
-  Future<void> downloadSong(Track song, {bool showSnackbar = true}) async {
+  /// Returns true when the song is queued (or was already queued/resumed).
+  Future<bool> downloadSong(Track song, {bool showSnackbar = true}) async {
     try {
       await _ensureDownloadServiceReady();
     } catch (error, stackTrace) {
@@ -490,12 +692,12 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       if (showSnackbar) {
         SnackbarService.showMessage('Error: Download service is unavailable.');
       }
-      return;
+      return false;
     }
 
     if (connectivityCubit.state != ConnectivityState.connected) {
       if (showSnackbar) SnackbarService.showMessage("No internet connection.");
-      return;
+      return false;
     }
 
     // Pre-download checks
@@ -510,14 +712,15 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       } else if (showSnackbar) {
         SnackbarService.showMessage('${song.title} is already in the queue.');
       }
-      return;
+      return true;
     }
 
     if (await _isAlreadyDownloaded(song)) {
       if (showSnackbar) {
         SnackbarService.showMessage("${song.title} is already downloaded.");
       }
-      return;
+      _settle(song.id, ok: true); // counts as done in a playlist batch
+      return true;
     }
 
     final directory = await _getDownloadDirectory();
@@ -542,6 +745,7 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       if (showSnackbar) {
         SnackbarService.showMessage('Added ${song.title} to download queue');
       }
+      return true;
     } catch (e, stackTrace) {
       log(
         'Failed to queue download for ${song.title}',
@@ -553,6 +757,7 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       if (showSnackbar) {
         SnackbarService.showMessage('Error: Could not start download.');
       }
+      return false;
     }
   }
 
@@ -562,8 +767,44 @@ class DownloaderCubit extends Cubit<DownloaderState> {
   }
 
   Future<void> resumeDownload(String taskId) async {
+    if (_mustWaitForWifi) {
+      SnackbarService.showMessage(_waitingForWifiText);
+      return;
+    }
     await _ensureDownloadServiceReady();
     await _downloadService.resume(taskId);
+  }
+
+  static const _running = {
+    DownloadState.downloading,
+    DownloadState.resolving,
+    DownloadState.fetchingMetadata,
+    DownloadState.retrying,
+    DownloadState.queued,
+  };
+
+  /// Some download is running or waiting its turn.
+  bool get anyRunning =>
+      _activeDownloads.any((d) => _running.contains(d.status.state));
+
+  /// Pauses every running or queued download (Offline's "Pause all").
+  Future<void> pauseAll() async {
+    for (final d in List.of(_activeDownloads)) {
+      if (_running.contains(d.status.state)) {
+        await pauseDownload(d.task.taskId);
+      }
+    }
+  }
+
+  /// Resumes every paused download.
+  Future<void> resumeAll() async {
+    if (_mustWaitForWifi) return; // they would only pause again
+    _pausedForWifi.clear();
+    for (final d in List.of(_activeDownloads)) {
+      if (d.status.state == DownloadState.paused) {
+        await resumeDownload(d.task.taskId);
+      }
+    }
   }
 
   Future<void> cancelDownload(String taskId) async {
@@ -575,6 +816,7 @@ class DownloaderCubit extends Cubit<DownloaderState> {
   Future<void> close() async {
     _libraryRefreshDebounce?.cancel();
     await _librarySubscription?.cancel();
+    await _netSub?.cancel();
     await _downloadSubscription?.cancel();
     await _downloadService.dispose();
     await super.close();
@@ -595,5 +837,27 @@ class DownloaderCubit extends Cubit<DownloaderState> {
     await _downloadRepo.removeDownload(song.id);
     await _loadDownloadedSongs();
     SnackbarService.showMessage("${song.title} download removed");
+  }
+}
+
+/// One playlist's "Download all": which songs finished or failed.
+class PlaylistDownloadBatch {
+  PlaylistDownloadBatch(this.title, this.ids);
+  final String title;
+  final Set<String> ids;
+  final Set<String> done = {};
+  final Set<String> failed = {};
+  final DateTime started = DateTime.now();
+  DateTime? lastDone;
+
+  int get settled => done.length + failed.length;
+  bool get finished => settled >= ids.length;
+
+  /// Time left, from the pace of the songs done so far; null until one is.
+  Duration? get eta {
+    final last = lastDone;
+    if (last == null || done.isEmpty) return null;
+    final perSong = last.difference(started) ~/ done.length;
+    return perSong * (ids.length - settled);
   }
 }

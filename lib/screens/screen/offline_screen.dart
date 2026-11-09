@@ -11,6 +11,7 @@ import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
 import 'package:Bloomee/services/downloaded_playlists.dart';
 import 'package:Bloomee/utils/load_image.dart';
+import 'package:Bloomee/utils/download_types.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -117,6 +118,12 @@ class _OfflineScreenState extends State<OfflineScreen> {
                   SliverList(
                     delegate: SliverChildListDelegate(
                       [
+                        if (state.downloads.any((d) =>
+                            d.status.state != DownloadState.failed))
+                          _PauseAllRow(
+                              running: context
+                                  .read<DownloaderCubit>()
+                                  .anyRunning),
                         ...state.downloads.map((download) =>
                             DownloadingCardWidget(downloadProgress: download)),
                         for (final p in grouped?.playlists ?? const [])
@@ -354,4 +361,36 @@ class _DownloadedPlaylistView extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// "Pause all" while songs download; "Resume all" once they are paused.
+class _PauseAllRow extends StatelessWidget {
+  const _PauseAllRow({required this.running});
+  final bool running;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<DownloaderCubit>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 12, 0),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: running ? cubit.pauseAll : cubit.resumeAll,
+          style: TextButton.styleFrom(
+            foregroundColor: Default_Theme.accentColor2,
+            backgroundColor: Default_Theme.accentColor2.withValues(alpha: 0.12),
+            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          ),
+          icon: Icon(
+              running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              size: 18),
+          label: Text(running ? l10n.offlinePauseAll : l10n.offlineResumeAll,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
+      ),
+    );
+  }
 }

@@ -20,7 +20,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/screens/widgets/player_overlay_wrapper.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/screens/widgets/like_widget.dart';
 import 'package:Bloomee/screens/widgets/play_pause_widget.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
@@ -807,7 +806,7 @@ class _PlayerControlsRow extends StatelessWidget {
       children: [
         _buildControlColumn(
           top: const SleepTimerButton(),
-          bottom: const _LoopControl(),
+          bottom: const LoopButton(),
         ),
         _buildControlColumn(
           top: IconButton(
@@ -851,45 +850,6 @@ class _PlayerControlsRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _LoopControl extends StatelessWidget {
-  const _LoopControl();
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<LoopMode>(
-      stream: context.read<BloomeePlayerCubit>().bloomeePlayer.loopMode,
-      builder: (context, snapshot) {
-        final loopMode = snapshot.data ?? LoopMode.off;
-        final l10n = AppLocalizations.of(context)!;
-        return PopupMenuButton(
-          itemBuilder: (_) => [
-            PopupMenuItem(value: 0, child: Text(l10n.playerLoopOff)),
-            PopupMenuItem(value: 1, child: Text(l10n.playerLoopOne)),
-            PopupMenuItem(value: 2, child: Text(l10n.playerLoopAll)),
-          ],
-          child: Icon(
-            loopMode == LoopMode.off
-                ? MingCute.repeat_line
-                : loopMode == LoopMode.one
-                    ? MingCute.repeat_one_line
-                    : MingCute.repeat_fill,
-            color: loopMode == LoopMode.off
-                ? Default_Theme.primaryColor1
-                : Default_Theme.accentColor1,
-            size: 24,
-          ),
-          onSelected: (value) {
-            final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
-            if (value == 0) player.setLoopMode(LoopMode.off);
-            if (value == 1) player.setLoopMode(LoopMode.one);
-            if (value == 2) player.setLoopMode(LoopMode.all);
-          },
-        );
-      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -38,6 +39,71 @@ class PlaylistView extends StatefulWidget {
 class _PlaylistViewState extends State<PlaylistView> {
   late final ScrollController _scrollController;
   bool _didTriggerInitialLoad = false;
+
+  bool _loadingAll = false;
+
+  // Search inside the playlist (the whole playlist is loaded when it opens).
+  bool _searching = false;
+  String _query = '';
+  final _searchController = TextEditingController();
+
+  void _toggleSearch() {
+    setState(() {
+      _searching = !_searching;
+      if (!_searching) {
+        _query = '';
+        _searchController.clear();
+      }
+    });
+    if (_searching) {
+      unawaited(context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded());
+    }
+  }
+
+  bool _matches(Track t) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return t.title.toLowerCase().contains(q) ||
+        t.artists.any((a) => a.name.toLowerCase().contains(q)) ||
+        (t.album?.title.toLowerCase().contains(q) ?? false);
+  }
+
+  Widget _buildSearchField() {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: TextField(
+        controller: _searchController,
+        autofocus: true,
+        onChanged: (v) => setState(() => _query = v),
+        style: const TextStyle(color: Colors.white),
+        cursorColor: Default_Theme.accentColor2,
+        decoration: InputDecoration(
+          hintText: l10n.playlistSearchHint,
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+          prefixIcon: Icon(Icons.search_rounded,
+              color: Colors.white.withValues(alpha: 0.6)),
+          suffixIcon: _query.isEmpty
+              ? null
+              : IconButton(
+                  icon: Icon(Icons.close_rounded,
+                      color: Colors.white.withValues(alpha: 0.6)),
+                  onPressed: () => setState(() {
+                    _query = '';
+                    _searchController.clear();
+                  }),
+                ),
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.06),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
   String? _targetPlaylistName;
 
   @override
@@ -72,6 +138,7 @@ class _PlaylistViewState extends State<PlaylistView> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -213,6 +280,29 @@ class _PlaylistViewState extends State<PlaylistView> {
           ),
         ),
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16.0),
+          child: IconButton(
+            tooltip: AppLocalizations.of(context)!.playlistSearchHint,
+            icon: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _searching
+                    ? Default_Theme.accentColor2.withValues(alpha: 0.25)
+                    : Colors.white.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Icon(
+                  _searching ? Icons.close_rounded : Icons.search_rounded,
+                  color: Colors.white,
+                  size: 20),
+            ),
+            onPressed: _toggleSearch,
+          ),
+        ),
+      ],
     );
   }
 
@@ -350,6 +440,11 @@ class _PlaylistViewState extends State<PlaylistView> {
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
+                  SliverToBoxAdapter(
+                      child: _FailedDownloadsBanner(
+                          title: state.playlist.title)),
+                  if (_searching)
+                    SliverToBoxAdapter(child: _buildSearchField()),
                   if (state.playlist.tracks.isEmpty && !state.isLoadingMore)
                     SliverFillRemaining(
                       hasScrollBody: false,
@@ -419,6 +514,9 @@ class _PlaylistViewState extends State<PlaylistView> {
             ),
           ),
         ),
+        SliverToBoxAdapter(
+            child: _FailedDownloadsBanner(title: state.playlist.title)),
+        if (_searching) SliverToBoxAdapter(child: _buildSearchField()),
         if (state.playlist.tracks.isEmpty && !state.isLoadingMore)
           SliverFillRemaining(
             hasScrollBody: false,
@@ -513,6 +611,16 @@ class _PlaylistViewState extends State<PlaylistView> {
 
   Widget _buildInfo(CurrentPlaylistState state, AppLocalizations l10n,
       {required bool isCentered}) {
+    // Long playlists load a page at a time: load the rest once in the
+    // background so the total length counts every song.
+    if (state.hasMore && !state.isLoadingMore && !_loadingAll) {
+      _loadingAll = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded());
+        }
+      });
+    }
     final creatorText = l10n.playlistByCreator(
         state.playlist.artists?.map((a) => a.name).join(', ') ??
             l10n.playlistYou);
@@ -536,7 +644,12 @@ class _PlaylistViewState extends State<PlaylistView> {
         ),
         const SizedBox(height: 10),
         Text(
-          l10n.playlistSongCount(state.totalTracks),
+          [
+            l10n.playlistSongCount(state.totalTracks),
+            // Total length once every song is loaded ("4h 36min").
+            if (!state.hasMore && playlistLength(state.playlist.tracks) != null)
+              playlistLength(state.playlist.tracks)!,
+          ].join(' · '),
           textAlign: isCentered ? TextAlign.center : TextAlign.left,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.7),
@@ -704,13 +817,20 @@ class _PlaylistViewState extends State<PlaylistView> {
   }
 
   Widget _buildTrackList(CurrentPlaylistState state) {
-    final tracks = state.playlist.tracks;
+    final all = state.playlist.tracks;
+    // While searching: only the matches, each keeping its place (number and
+    // play position) in the playlist.
+    final shown = [
+      for (var i = 0; i < all.length; i++)
+        if (_matches(all[i])) i
+    ];
     return SliverList(
       delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final track = tracks[index];
+        (context, row) {
+          final index = shown[row];
+          final track = all[index];
           return AnimatedListItem(
-            index: index,
+            index: row,
             child: SongCardWidget(
               index: index + 1,
               key: ValueKey(track.id),
@@ -728,7 +848,7 @@ class _PlaylistViewState extends State<PlaylistView> {
             ),
           );
         },
-        childCount: tracks.length,
+        childCount: shown.length,
         addRepaintBoundaries: true,
       ),
     );
@@ -802,13 +922,101 @@ class _PlaylistViewState extends State<PlaylistView> {
       // Queued in the background, no progress pop-up; the Offline tab shows
       // the playlist and its progress.
       unawaited(DownloadedPlaylists.add(state.playlist.title, items));
-      unawaited(() async {
-        for (final song in missing) {
-          try {
-            await downloader.downloadSong(song, showSnackbar: false);
-          } catch (_) {}
-        }
-      }());
+      // One batch: no message per song, one at the end; failures show as a
+      // banner here with Retry.
+      unawaited(downloader.downloadPlaylist(state.playlist.title, missing));
     }
+  }
+}
+
+/// "2 songs failed to download · Retry", at the top of a playlist whose
+/// "Download all" left songs behind. Retry downloads them again, from another
+/// source when their own fails.
+class _FailedDownloadsBanner extends StatefulWidget {
+  const _FailedDownloadsBanner({required this.title});
+  final String title;
+
+  @override
+  State<_FailedDownloadsBanner> createState() => _FailedDownloadsBannerState();
+}
+
+class _FailedDownloadsBannerState extends State<_FailedDownloadsBanner> {
+  int _failed = 0;
+  bool _retrying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    DownloadedPlaylists.changes.addListener(_load);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    DownloadedPlaylists.changes.removeListener(_load);
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final n = (await DownloadedPlaylists.loadFailed())[widget.title]?.length ?? 0;
+    if (mounted) setState(() => _failed = n);
+  }
+
+  Future<void> _retry() async {
+    setState(() => _retrying = true);
+    final tracks =
+        (await context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded())
+            .tracks;
+    if (!mounted) return;
+    await context.read<DownloaderCubit>().retryPlaylist(widget.title, tracks);
+    if (mounted) setState(() => _retrying = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed == 0) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded,
+                color: Colors.amber, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(l10n.playlistDownloadFailedBanner(_failed),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600)),
+            ),
+            TextButton(
+              onPressed: _retrying ? null : _retry,
+              style: TextButton.styleFrom(
+                foregroundColor: Default_Theme.accentColor2,
+                backgroundColor:
+                    Default_Theme.accentColor2.withValues(alpha: 0.12),
+                shape: const StadiumBorder(),
+              ),
+              child: _retrying
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Default_Theme.accentColor2))
+                  : Text(l10n.playlistDownloadRetry,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

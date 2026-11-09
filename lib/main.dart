@@ -33,6 +33,7 @@ import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/blocs/timer/timer_bloc.dart';
 import 'package:Bloomee/screens/widgets/global_event_listener.dart';
 import 'package:Bloomee/screens/widgets/jarx_intro/jarx_launch.dart';
+import 'package:Bloomee/services/download_notifier.dart';
 import 'package:Bloomee/screens/widgets/shortcut_indicator_overlay.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/bootstrap.dart';
@@ -444,15 +445,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           lazy: false,
         ),
         BlocProvider(
-          create: (context) => DownloaderCubit(
-            connectivityCubit: context.read<ConnectivityCubit>(),
-            libraryItemsCubit: context.read<LibraryItemsCubit>(),
-            downloadRepo: DownloadRepository(
-              DownloadDAO(DBProvider.db, trackDao, playlistDao),
-            ),
-            settingsDao: SettingsDAO(DBProvider.db),
-            pluginService: ServiceLocator.pluginService,
-          ),
+          create: (context) {
+            final downloader = DownloaderCubit(
+              connectivityCubit: context.read<ConnectivityCubit>(),
+              libraryItemsCubit: context.read<LibraryItemsCubit>(),
+              downloadRepo: DownloadRepository(
+                DownloadDAO(DBProvider.db, trackDao, playlistDao),
+              ),
+              settingsDao: SettingsDAO(DBProvider.db),
+              pluginService: ServiceLocator.pluginService,
+            );
+            // Progress in the notification panel.
+            DownloadNotifier.attach(downloader);
+            return downloader;
+          },
           lazy: false,
         ),
         BlocProvider(

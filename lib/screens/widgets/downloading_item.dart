@@ -1,4 +1,5 @@
 import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
+import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/core/models/exported.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/utils/download_types.dart';
@@ -134,7 +135,15 @@ class DownloadingCardWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _getStatusText(status.state),
+          cubit.isWaitingForWifi(downloadProgress.task.taskId)
+              ? Text(
+                  AppLocalizations.of(context)!.downloadWaitingForWifi,
+                  style: const TextStyle(
+                      color: Colors.amber,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold),
+                )
+              : _getStatusText(status.state),
           const SizedBox(height: 4),
           Row(
             mainAxisSize: MainAxisSize.min,

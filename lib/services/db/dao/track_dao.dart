@@ -81,6 +81,18 @@ class TrackDAO {
     return trackDB != null ? trackDBToTrack(trackDB) : null;
   }
 
+  /// Tracks for [mediaIds] in one read, by media id (missing ones left out).
+  /// One pass over the table instead of a full scan per id.
+  Future<Map<String, Track>> getTracksByMediaIds(Set<String> mediaIds) async {
+    if (mediaIds.isEmpty) return const {};
+    final isar = await _db;
+    final rows = await isar.trackDBs.where().findAll();
+    return {
+      for (final r in rows)
+        if (mediaIds.contains(r.mediaId)) r.mediaId: trackDBToTrack(r),
+    };
+  }
+
   /// Find a track by Isar internal [id].
   ///
   /// Returns a domain [Track] model, or null if not found.

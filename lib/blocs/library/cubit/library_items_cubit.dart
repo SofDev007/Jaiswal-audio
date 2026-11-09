@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/services/downloaded_playlists.dart';
 import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'dart:async';
 import 'dart:developer';
@@ -172,6 +173,8 @@ class LibraryItemsCubit extends Cubit<LibraryItemsState> {
       await _playlistDao.addTrackToPlaylistByName(playlistName, track);
       // A suggested song the user keeps in a playlist: a strong "good".
       await TasteModel.judged(track.id, good: true, how: 'playlist');
+      // Added to a playlist that was downloaded: download it too.
+      unawaited(DownloadedPlaylists.songAdded(playlistName, track));
       if (showSnackbar) {
         SnackbarService.showMessage('${track.title} added to $playlistName');
       }

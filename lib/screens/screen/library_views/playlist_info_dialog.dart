@@ -49,21 +49,22 @@ class InfoTile extends StatelessWidget {
   }
 }
 
-String getArtists(List<Track> tracks) {
-  String artists = "";
-  List<String> artistList = [];
-
-  for (int i = 0; i < tracks.length; i++) {
-    final trackArtists = tracks[i].artists.map((a) => a.name).toList();
-    artistList.addAll(trackArtists);
-    if (artistList.length > 4) {
-      break;
-    }
+/// Total length of [tracks] like Spotify: "4h 36min", "45 min". Null when
+/// no song has a known length.
+String? playlistLength(List<Track> tracks) {
+  var ms = 0;
+  for (final t in tracks) {
+    ms += t.durationMs?.toInt() ?? 0;
   }
-  artists = artistList.toSet().join(", ");
-  artists = "$artists +";
-  return artists;
+  if (ms <= 0) return null;
+  final d = Duration(milliseconds: ms);
+  if (d.inHours == 0) return '${d.inMinutes.clamp(1, 59)} min';
+  return '${d.inHours}h ${d.inMinutes % 60}min';
 }
+
+/// "28/10/2026 at 3:08 AM" (DD/MM/YYYY) in the phone's time zone.
+String _readableDate(DateTime t) =>
+    DateFormat("dd/MM/yyyy 'at' h:mm a").format(t.toLocal());
 
 Future<dynamic> showPlaylistInfo(
   BuildContext context,
@@ -79,6 +80,7 @@ Future<dynamic> showPlaylistInfo(
     useSafeArea: true,
     barrierDismissible: true,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       return Dialog(
           backgroundColor: bgColor,
           shadowColor: bgColor,
@@ -102,22 +104,16 @@ Future<dynamic> showPlaylistInfo(
                         ),
                       ),
                     ),
-                    InfoTile(
-                      title: "Playlist Length",
-                      subtitle: state.playlist.tracks.length.toString(),
-                      icon: MingCute.playlist_2_line,
-                      fg: fgColor,
-                    ),
-                    InfoTile(
-                      title: "Artists",
-                      subtitle: state.playlist.artists != null
-                          ? state.playlist.artists!
-                              .map((a) => a.name)
-                              .join(', ')
-                          : getArtists(state.playlist.tracks),
-                      icon: MingCute.group_fill,
-                      fg: fgColor,
-                    ),
+                    // When it was made. "Created by" (the account's name) is
+                    // added with V2's Google login, which knows who is using
+                    // JARX.
+                    if (state.playlist.createdAt != null)
+                      InfoTile(
+                        title: l10n.playlistInfoCreated,
+                        subtitle: _readableDate(state.playlist.createdAt!),
+                        icon: MingCute.calendar_line,
+                        fg: fgColor,
+                      ),
                     state.playlist.description != null
                         ? InfoTile(
                             title: "Description",
@@ -128,10 +124,8 @@ Future<dynamic> showPlaylistInfo(
                         : const SizedBox.shrink(),
                     state.playlist.updatedAt != null
                         ? InfoTile(
-                            title: "Last Updated",
-                            subtitle:
-                                state.playlist.updatedAt?.toIso8601String() ??
-                                    "",
+                            title: l10n.playlistInfoUpdated,
+                            subtitle: _readableDate(state.playlist.updatedAt!),
                             icon: MingCute.history_line,
                             fg: fgColor,
                           )

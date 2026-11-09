@@ -5,6 +5,7 @@ import 'package:Bloomee/blocs/timer/timer_bloc.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/screens/screen/home_views/timer_view.dart';
+import 'package:Bloomee/services/player/player_engine.dart' show LoopMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -329,4 +330,81 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) => old.left != left;
+}
+
+/// Repeat: each tap moves Off -> Repeat all -> Repeat one -> Off, with a
+/// half-turn of the icon and the mode flashed above the cover.
+class LoopButton extends StatefulWidget {
+  const LoopButton({super.key});
+
+  @override
+  State<LoopButton> createState() => _LoopButtonState();
+}
+
+class _LoopButtonState extends State<LoopButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _turn = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 450));
+
+  @override
+  void dispose() {
+    _turn.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final player = context.read<BloomeePlayerCubit>().bloomeePlayer;
+    final l10n = AppLocalizations.of(context)!;
+    return StreamBuilder<LoopMode>(
+      stream: player.loopMode,
+      builder: (context, snapshot) {
+        final mode = snapshot.data ?? LoopMode.off;
+        final next = switch (mode) {
+          LoopMode.off => LoopMode.all,
+          LoopMode.all => LoopMode.one,
+          LoopMode.one => LoopMode.off,
+        };
+        return IconButton(
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            _turn.forward(from: 0);
+            player.setLoopMode(next);
+            playerFlash.value = PlayerFlashMessage(
+              next == LoopMode.one
+                  ? MingCute.repeat_one_line
+                  : MingCute.repeat_fill,
+              switch (next) {
+                LoopMode.off => l10n.playerRepeatOff,
+                LoopMode.all => l10n.playerRepeatAll,
+                LoopMode.one => l10n.playerRepeatOne,
+              },
+            );
+          },
+          icon: AnimatedBuilder(
+            animation: _turn,
+            // A full turn, so it always lands upright (a half turn left the
+            // "1" of Repeat one upside down).
+            builder: (context, child) => Transform.rotate(
+              angle: 2 * math.pi * Curves.easeOutBack.transform(_turn.value),
+              child: Transform.scale(
+                  scale: 1 + 0.2 * math.sin(math.pi * _turn.value),
+                  child: child),
+            ),
+            child: Icon(
+              mode == LoopMode.off
+                  ? MingCute.repeat_line
+                  : mode == LoopMode.one
+                      ? MingCute.repeat_one_line
+                      : MingCute.repeat_fill,
+              color: mode == LoopMode.off
+                  ? Default_Theme.primaryColor1
+                  : Default_Theme.accentColor1,
+              size: 24,
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

@@ -47,6 +47,9 @@ class SettingKeys {
   static const String downloadPlaylist = "_DOWNLOADS";
   static const String downQuality = "downloadQuality";
 
+  /// true = download only on Wi-Fi; false (default) = also on mobile data.
+  static const String downloadWifiOnly = "downloadWifiOnly";
+
   // ── Backup ──────────────────────────────────────────────────────────────────
   static const String backupPath = "backupPath";
   static const String autoBackup = "autoBackup";

@@ -35,7 +35,7 @@ final class LyricsInitial extends LyricsState {
                 provider: LyricsProvider.none),
             Track(
                 id: 'Null',
-                title: 'Null',
+                title: '',
                 artists: const [],
                 thumbnail: const Artwork(url: '', layout: ImageLayout.square),
                 isExplicit: false));

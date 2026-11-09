@@ -10,11 +10,13 @@ import 'package:Bloomee/core/models/exported.dart';
 /// where a non-nullable Track is required but no track is loaded.
 final Track trackNull = Track(
   id: 'Null',
-  title: 'Null',
+  // Empty, not "Null": anything that shows the current song with none
+  // loaded (e.g. Home's Jump back in on a new install) stays blank.
+  title: '',
   artists: const [],
   thumbnail: const Artwork(url: '', layout: ImageLayout.square),
   isExplicit: false,
 );
 
 /// Check whether a [Track] is the null sentinel.
-bool isTrackNull(Track track) => track.id == 'Null' && track.title == 'Null';
+bool isTrackNull(Track track) => track.id == 'Null';

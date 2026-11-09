@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
 import 'package:Bloomee/blocs/settings_cubit/cubit/settings_cubit.dart';
 import 'package:Bloomee/services/player/stream_quality_selector.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/setting_shared_widgets.dart';
@@ -103,6 +104,9 @@ class _DownloadSettingsState extends State<DownloadSettings> {
                 ],
               ),
               const SizedBox(height: 28),
+              SettingSectionHeader(label: l10n.downloadOverTitle),
+              const _DownloadOverCard(),
+              const SizedBox(height: 28),
               SettingSectionHeader(label: l10n.settingsStorage),
               SettingCard(
                 children: [
@@ -176,6 +180,49 @@ class _DownloadLocationRow extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// "Download over": Wi-Fi (only on Wi-Fi) or Mobile data (any network,
+/// the default).
+class _DownloadOverCard extends StatefulWidget {
+  const _DownloadOverCard();
+
+  @override
+  State<_DownloadOverCard> createState() => _DownloadOverCardState();
+}
+
+class _DownloadOverCardState extends State<_DownloadOverCard> {
+  late bool _wifiOnly =
+      context.read<DownloaderCubit>().downloadOverWifiOnly;
+
+  Future<void> _set(bool wifiOnly) async {
+    setState(() => _wifiOnly = wifiOnly);
+    await context.read<DownloaderCubit>().setDownloadOverWifiOnly(wifiOnly);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SettingCard(
+      children: [
+        SettingRadioTile<bool>(
+          title: l10n.downloadOverWifi,
+          subtitle: l10n.downloadOverWifiSubtitle,
+          value: true,
+          groupValue: _wifiOnly,
+          onChanged: (_) => _set(true),
+        ),
+        const SettingDivider(),
+        SettingRadioTile<bool>(
+          title: l10n.downloadOverMobile,
+          subtitle: l10n.downloadOverMobileSubtitle,
+          value: false,
+          groupValue: _wifiOnly,
+          onChanged: (_) => _set(false),
+        ),
+      ],
     );
   }
 }

@@ -2280,6 +2280,18 @@ abstract class AppLocalizations {
   /// **'You'**
   String get playlistYou;
 
+  /// No description provided for @playlistInfoCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get playlistInfoCreated;
+
+  /// No description provided for @playlistInfoUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
+  String get playlistInfoUpdated;
+
   /// No description provided for @pluginManagerTitle.
   ///
   /// In en, this message translates to:
@@ -3779,6 +3791,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shuffle off'**
   String get playerShuffleOff;
+
+  /// No description provided for @playerRepeatOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat off'**
+  String get playerRepeatOff;
+
+  /// No description provided for @playerRepeatAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat all'**
+  String get playerRepeatAll;
+
+  /// No description provided for @playerRepeatOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat one'**
+  String get playerRepeatOne;
+
+  /// No description provided for @offlinePauseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause all'**
+  String get offlinePauseAll;
+
+  /// No description provided for @offlineResumeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume all'**
+  String get offlineResumeAll;
+
+  /// No description provided for @downloadOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download over'**
+  String get downloadOverTitle;
+
+  /// No description provided for @downloadOverWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi'**
+  String get downloadOverWifi;
+
+  /// No description provided for @downloadOverWifiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only download on Wi-Fi; waits on mobile data'**
+  String get downloadOverWifiSubtitle;
+
+  /// No description provided for @downloadOverMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile data'**
+  String get downloadOverMobile;
+
+  /// No description provided for @downloadOverMobileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on Wi-Fi and mobile data'**
+  String get downloadOverMobileSubtitle;
+
+  /// No description provided for @downloadWaitingForWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for Wi-Fi'**
+  String get downloadWaitingForWifi;
+
+  /// No description provided for @playlistDownloadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" downloaded'**
+  String playlistDownloadDone(String title);
+
+  /// No description provided for @playlistDownloadPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} downloaded, {failed} failed'**
+  String playlistDownloadPartial(int done, int failed);
+
+  /// No description provided for @playlistDownloadFailedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 song failed to download} other{{count} songs failed to download}}'**
+  String playlistDownloadFailedBanner(int count);
+
+  /// No description provided for @playlistDownloadRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get playlistDownloadRetry;
+
+  /// No description provided for @playlistSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in this playlist'**
+  String get playlistSearchHint;
 
   /// No description provided for @playerSleepTimerSet.
   ///

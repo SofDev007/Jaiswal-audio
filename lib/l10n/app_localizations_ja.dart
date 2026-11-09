@@ -1160,6 +1160,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playlistYou => 'あなた';
 
   @override
+  String get playlistInfoCreated => 'Created';
+
+  @override
+  String get playlistInfoUpdated => 'Last updated';
+
+  @override
   String get pluginManagerTitle => 'プラグイン';
 
   @override
@@ -2005,6 +2011,67 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get playerShuffleOff => 'Shuffle off';
+
+  @override
+  String get playerRepeatOff => 'Repeat off';
+
+  @override
+  String get playerRepeatAll => 'Repeat all';
+
+  @override
+  String get playerRepeatOne => 'Repeat one';
+
+  @override
+  String get offlinePauseAll => 'Pause all';
+
+  @override
+  String get offlineResumeAll => 'Resume all';
+
+  @override
+  String get downloadOverTitle => 'Download over';
+
+  @override
+  String get downloadOverWifi => 'Wi-Fi';
+
+  @override
+  String get downloadOverWifiSubtitle =>
+      'Only download on Wi-Fi; waits on mobile data';
+
+  @override
+  String get downloadOverMobile => 'Mobile data';
+
+  @override
+  String get downloadOverMobileSubtitle => 'Download on Wi-Fi and mobile data';
+
+  @override
+  String get downloadWaitingForWifi => 'Waiting for Wi-Fi';
+
+  @override
+  String playlistDownloadDone(String title) {
+    return '\"$title\" downloaded';
+  }
+
+  @override
+  String playlistDownloadPartial(int done, int failed) {
+    return '$done downloaded, $failed failed';
+  }
+
+  @override
+  String playlistDownloadFailedBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs failed to download',
+      one: '1 song failed to download',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistDownloadRetry => 'Retry';
+
+  @override
+  String get playlistSearchHint => 'Search in this playlist';
 
   @override
   String playerSleepTimerSet(String time) {

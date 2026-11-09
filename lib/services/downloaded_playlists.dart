@@ -75,4 +75,60 @@ class DownloadedPlaylists {
       ],
     );
   }
+
+  // ── Songs added later, and songs that failed ───────────────────────────
+
+  /// Set by the downloader: downloads [track], just added to the downloaded
+  /// playlist [title].
+  static void Function(String title, Track track)? autoDownload;
+
+  /// [track] was added to playlist [title]: if that playlist was downloaded
+  /// with "Download all", record the song and download it too.
+  static Future<void> songAdded(String title, Track track) async {
+    final saved = await load();
+    final p = saved.where((p) => p.title == title).firstOrNull;
+    if (p == null) return;
+    if (!p.ids.contains(track.id)) {
+      final all = [
+        for (final q in saved)
+          q.title == title ? (title: q.title, ids: [...q.ids, track.id]) : q,
+      ];
+      await SettingsDAO(DBProvider.db).putSettingStr(
+          _key,
+          jsonEncode([
+            for (final q in all) {'title': q.title, 'ids': q.ids}
+          ]));
+      changes.value++;
+    }
+    autoDownload?.call(title, track);
+  }
+
+  static const _failedKey = 'downloadedPlaylistsFailed';
+
+  /// Playlist title -> ids of its songs whose download failed last time.
+  static Future<Map<String, List<String>>> loadFailed() async {
+    try {
+      final raw = await SettingsDAO(DBProvider.db).getSettingStr(_failedKey);
+      if (raw == null) return {};
+      return {
+        for (final e in (jsonDecode(raw) as Map).entries)
+          e.key as String: [for (final id in e.value as List) id as String],
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Records the songs of [title] that failed ([ids] empty clears it).
+  static Future<void> setFailed(String title, List<String> ids) async {
+    final all = await loadFailed();
+    if (ids.isEmpty) {
+      if (all.remove(title) == null) return;
+    } else {
+      all[title] = ids;
+    }
+    await SettingsDAO(DBProvider.db)
+        .putSettingStr(_failedKey, jsonEncode(all));
+    changes.value++;
+  }
 }

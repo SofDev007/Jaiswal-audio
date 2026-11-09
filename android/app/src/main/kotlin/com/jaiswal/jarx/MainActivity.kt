@@ -29,6 +29,34 @@ class MainActivity : AudioServiceActivity() {
                 }
                 android.os.Process.killProcess(android.os.Process.myPid())
             }
+        // Download progress notification (DownloadNotifications).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "jarx/downloads")
+            .setMethodCallHandler { call, result ->
+                val ctx = applicationContext
+                when (call.method) {
+                    "show" -> {
+                        DownloadNotifications.show(
+                            ctx,
+                            call.argument<Int>("id") ?: 0,
+                            call.argument<String>("title") ?: "",
+                            call.argument<String>("text") ?: "",
+                            call.argument<String>("sub"),
+                            call.argument<Int>("progress") ?: 0,
+                            call.argument<Int>("max") ?: 0,
+                            call.argument<Boolean>("ongoing") ?: true,
+                            call.argument<Boolean>("done") ?: false,
+                            call.argument<String>("cover"),
+                            (call.argument<Int>("timeoutMs") ?: 0).toLong(),
+                        )
+                        result.success(null)
+                    }
+                    "cancel" -> {
+                        DownloadNotifications.cancel(ctx, call.argument<Int>("id") ?: 0)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         // Encrypted downloads (DownloadCrypto). Runs off the main thread;
         // uses the application context so it outlives this activity.
         val app = applicationContext
