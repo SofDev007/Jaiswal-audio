@@ -7,7 +7,6 @@ import 'package:Bloomee/screens/screen/home_views/setting_views/plugin_defaults_
 import 'package:Bloomee/screens/screen/home_views/setting_views/storage_setting.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/country_setting.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/download_setting.dart';
-import 'package:Bloomee/screens/screen/home_views/setting_views/lastfm_setting.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/player_setting.dart';
 import 'package:Bloomee/screens/screen/plugin_manager_screen.dart';
 import 'package:flutter/material.dart';
@@ -136,14 +135,6 @@ class SettingsView extends StatelessWidget {
                     icon: MingCute.coin_2_fill,
                     iconColor: Default_Theme.accentColor2,
                     onTap: () => _navigate(context, const BackupSettings()),
-                  ),
-                  _SettingsTile(
-                    title: AppLocalizations.of(context)!.settingsLastFM,
-                    subtitle:
-                        AppLocalizations.of(context)!.settingsLastFMSubtitle,
-                    icon: FontAwesome.lastfm_brand,
-                    iconColor: Default_Theme.accentColor2,
-                    onTap: () => _navigate(context, const LastDotFM()),
                   ),
                 ],
               ),

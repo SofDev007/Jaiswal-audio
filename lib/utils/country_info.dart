@@ -15,7 +15,7 @@ class CountryInfoService {
     Uri.parse('https://ipwho.is/'),
     Uri.parse('https://api.country.is/'),
     Uri.parse('https://ipapi.co/json/'),
-    Uri.parse('http://ip-api.com/json'),
+    // ip-api.com was removed: its free tier is plain http (V2.0 security).
   ];
 
   const CountryInfoService._();

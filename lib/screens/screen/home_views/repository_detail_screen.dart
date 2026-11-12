@@ -82,6 +82,7 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen> {
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
+      plugin.verifyFile(response.bodyBytes);
 
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/${plugin.assetName}');

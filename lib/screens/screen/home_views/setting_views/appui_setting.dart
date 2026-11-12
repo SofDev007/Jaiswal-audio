@@ -5,7 +5,6 @@ import 'package:Bloomee/plugins/blocs/chart/chart_event.dart';
 import 'package:Bloomee/plugins/blocs/chart/chart_state.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 
-import 'package:Bloomee/repository/LastFM/lastfmapi.dart';
 import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
 import 'package:Bloomee/screens/screen/home_views/home_rows.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/setting_shared_widgets.dart';
@@ -86,7 +85,6 @@ class _AppUISettingsState extends State<AppUISettings> {
         buildWhen: (prev, curr) =>
             prev.homeLayout != curr.homeLayout ||
             prev.autoSlideCharts != curr.autoSlideCharts ||
-            prev.lFMPicks != curr.lFMPicks ||
             prev.chartMap != curr.chartMap,
         builder: (context, state) {
           return ListView(
@@ -137,22 +135,6 @@ class _AppUISettingsState extends State<AppUISettings> {
                     value: state.autoSlideCharts,
                     onChanged: (v) =>
                         context.read<SettingsCubit>().setAutoSlideCharts(v),
-                  ),
-                  const SettingDivider(),
-                  SettingToggleTile(
-                    icon: MingCute.music_2_line,
-                    title: l10n.exploreLastFmPicks,
-                    subtitle: l10n.appuiLastFmPicksSubtitle,
-                    value: state.lFMPicks,
-                    onChanged: (v) {
-                      context.read<SettingsCubit>().setLastFMExpore(v);
-                      if (v && LastFmAPI.initialized == false) {
-                        Future.delayed(const Duration(milliseconds: 500), () {
-                          context.read<SettingsCubit>().setLastFMExpore(false);
-                        });
-                        SnackbarService.showMessage(l10n.appuiLoginToLastFm);
-                      }
-                    },
                   ),
                 ],
               ),

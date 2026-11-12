@@ -1,3 +1,4 @@
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:Bloomee/utils/country_info.dart';
 
 class RemotePluginModel {
@@ -14,6 +15,10 @@ class RemotePluginModel {
   final List<String> countryAllowlist;
   final DateTime? lastUpdated;
 
+  /// SHA-256 of the plugin file, from the plugin list (hex). Empty when the
+  /// list doesn't give one.
+  final String sha256Hex;
+
   RemotePluginModel({
     required this.assetName,
     required this.description,
@@ -27,7 +32,24 @@ class RemotePluginModel {
     this.publisherName,
     this.countryAllowlist = const [],
     this.lastUpdated,
+    this.sha256Hex = '',
   });
+
+  /// Refuses a downloaded plugin file that isn't the one the list
+  /// describes (swapped, corrupted or cut-off download). Plugins run code
+  /// inside JARX, so this is checked before every install.
+  ///
+  /// ponytail: the hash comes from the same list as the download link, so
+  /// this can't stop someone who controls that list. Upgrade path: sign the
+  /// list with a key kept off GitHub and check the signature in the app.
+  void verifyFile(List<int> bytes) {
+    final want = sha256Hex.trim().toLowerCase();
+    if (want.isEmpty) return; // older lists have no hashes yet
+    final got = crypto.sha256.convert(bytes).toString();
+    if (got != want) {
+      throw PluginFileMismatch(name.isEmpty ? id : name);
+    }
+  }
 
   factory RemotePluginModel.fromJson(Map<String, dynamic> json) {
     return RemotePluginModel(
@@ -54,6 +76,7 @@ class RemotePluginModel {
       lastUpdated: json['last_updated'] != null
           ? DateTime.tryParse(json['last_updated'].toString())
           : null,
+      sha256Hex: json['sha256']?.toString() ?? '',
     );
   }
 
@@ -103,4 +126,15 @@ class PluginRepositoryModel {
           : null,
     );
   }
+}
+
+/// A downloaded plugin file doesn't match the fingerprint in the plugin list.
+class PluginFileMismatch implements Exception {
+  PluginFileMismatch(this.plugin);
+  final String plugin;
+
+  @override
+  String toString() =>
+      'The downloaded "$plugin" plugin did not match its fingerprint, so it '
+      'was not installed. Try again later.';
 }

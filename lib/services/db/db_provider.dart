@@ -6,6 +6,7 @@ import 'package:isar_community/isar.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:Bloomee/core/constants/cache_keys.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart' as models;
 import 'package:Bloomee/services/db/global_db.dart';
@@ -133,8 +134,25 @@ class DBProvider {
       await trackDAO.purgeOrphanTracks();
       await cacheDAO.purgeExpiredCache();
       await searchHistoryDAO.limitSearchHistory();
+      await _forgetLastFm(cacheDAO, settingsDAO);
       log('Scheduled maintenance complete', name: 'DBProvider');
     });
+  }
+
+  /// Last.fm was removed in V2.0: blank its stored login (username, API key,
+  /// secret, session) and pending scrobbles, as its own log-out did. Once.
+  static Future<void> _forgetLastFm(
+      CacheDAO cacheDAO, SettingsDAO settingsDAO) async {
+    const doneKey = 'lastFmRemovedV2';
+    if (await settingsDAO.getSettingBool(doneKey) == true) return;
+    // Tokens and settings share one table, so this also covers the copies
+    // an old BloomeeTunes import made.
+    for (final key in CacheKeys.lastFmTokens) {
+      await cacheDAO.putApiToken(key, '');
+    }
+    await cacheDAO.removeCache(CacheKeys.lFMTrackedCache);
+    await settingsDAO.putSettingBool(doneKey, true);
+    log('Removed stored Last.fm login', name: 'DBProvider');
   }
 
   /// Reset (clear) all collections in the database.

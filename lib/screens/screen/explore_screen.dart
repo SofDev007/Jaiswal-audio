@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'package:Bloomee/blocs/internet_connectivity/cubit/connectivity_cubit.dart';
-import 'package:Bloomee/blocs/lastdotfm/lastdotfm_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/blocs/notification/notification_cubit.dart';
 import 'package:Bloomee/blocs/settings_cubit/cubit/settings_cubit.dart';
@@ -39,7 +38,6 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   bool isUpdateChecked = false;
   late final ContentBloc _homeContentBloc;
-  Future<List<Track>> lFMData = Future.value(const []);
 
   @override
   void initState() {
@@ -108,33 +106,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void dispose() {
     _homeContentBloc.close();
     super.dispose();
-  }
-
-  Future<List<Track>> fetchLFMPicks(bool state, BuildContext ctx) async {
-    if (state) {
-      try {
-        final data = await lFMData;
-        if (data.isNotEmpty) return data;
-        if (ctx.mounted) {
-          final pluginState = ctx.read<PluginBloc>().state;
-          final priority = ctx.read<SettingsCubit>().state.resolverPriority;
-          final allIds = pluginState.loadedContentResolvers
-              .map((p) => p.manifest.id)
-              .toList();
-          final resolverIds = [
-            ...priority.where(allIds.contains),
-            ...allIds.where((id) => !priority.contains(id)),
-          ];
-          lFMData = ctx.read<LastdotfmCubit>().getRecommendedTracks(
-                resolverPluginIds: resolverIds,
-              );
-        }
-        return (await lFMData);
-      } catch (e) {
-        log(e.toString(), name: "ExploreScreen");
-      }
-    }
-    return const [];
   }
 
   @override
@@ -217,56 +188,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 state.homeSectionsStatus == DetailStatus.error,
                           ),
                         ),
-                      ),
-                      BlocBuilder<SettingsCubit, SettingsState>(
-                        builder: (context, state) {
-                          if (state.lFMPicks) {
-                            return FutureBuilder(
-                              future: fetchLFMPicks(state.lFMPicks, context),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData &&
-                                    (snapshot.data?.isNotEmpty ?? false)) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 15.0),
-                                    child: TabSongListWidget(
-                                      list: snapshot.data!.map((e) {
-                                        return SongCardWidget(
-                                          song: e,
-                                          // Sits in a sideways pager.
-                                          swipeToQueue: false,
-                                          onTap: () {
-                                            context
-                                                .read<BloomeePlayerCubit>()
-                                                .bloomeePlayer
-                                                .loadPlaylist(
-                                                  Playlist(
-                                                    tracks: snapshot.data!,
-                                                    title: 'Last.Fm Picks',
-                                                  ),
-                                                  idx:
-                                                      snapshot.data!.indexOf(e),
-                                                  doPlay: true,
-                                                );
-                                          },
-                                          onOptionsTap: () =>
-                                              showMoreBottomSheet(
-                                                  context,
-                                                  showSinglePlay: true,
-                                                  e),
-                                        );
-                                      }).toList(),
-                                      category: AppLocalizations.of(context)!
-                                          .exploreLastFmPicks,
-                                      columnSize: 3,
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
                       ),
                       // Home sections from plugin
                       BlocBuilder<ContentBloc, ContentState>(

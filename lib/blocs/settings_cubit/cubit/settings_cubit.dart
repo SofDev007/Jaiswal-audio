@@ -63,11 +63,9 @@ class SettingsCubit extends Cubit<SettingsState> {
         () => _settingsRepo.getSettingStr(SettingKeys.historyClearTime),
         SettingKeys.historyClearTime,
       ),
-      // [6] lastFMScrobble
-      _readSetting(
-        () => _settingsRepo.getSettingBool(CacheKeys.lFMScrobbleSetting),
-        CacheKeys.lFMScrobbleSetting,
-      ),
+      // [6] unused (was Last.fm scrobbling; Last.fm was removed in V2.0).
+      // Kept as a placeholder so the indexes below stay the same.
+      Future<Object?>.value(),
       // [7] autoPlay
       _readSetting(
         () => _settingsRepo.getSettingBool(SettingKeys.autoPlay),
@@ -79,11 +77,8 @@ class SettingsCubit extends Cubit<SettingsState> {
             .getSettingBool(SettingKeys.autoResolveUnavailableTracks),
         SettingKeys.autoResolveUnavailableTracks,
       ),
-      // [9] lFMPicks
-      _readSetting(
-        () => _settingsRepo.getSettingBool(CacheKeys.lFMUIPicks),
-        CacheKeys.lFMUIPicks,
-      ),
+      // [9] unused (was Last.fm picks on Home).
+      Future<Object?>.value(),
       // [10] backupPath
       _resolveBackupPath(),
       // [11] autoBackup
@@ -276,8 +271,6 @@ class SettingsCubit extends Cubit<SettingsState> {
       languageCode: (results[13] as String?) ?? '',
       countryCode: resolvedCountry,
       autoSaveLyrics: (results[15] as bool?) ?? false,
-      lFMPicks: (results[9] as bool?) ?? false,
-      lastFMScrobble: (results[6] as bool?) ?? false,
       chartMap: Map.from(chartMap),
       autoPlay: (results[7] as bool?) ?? true,
       autoResolveUnavailableTracks: (results[8] as bool?) ?? true,
@@ -393,16 +386,6 @@ class SettingsCubit extends Cubit<SettingsState> {
   void setAutoSaveLyrics(bool v) {
     _settingsRepo.putSettingBool(SettingKeys.autoSaveLyrics, v);
     emit(state.copyWith(autoSaveLyrics: v));
-  }
-
-  void setLastFMScrobble(bool v) {
-    _settingsRepo.putSettingBool(CacheKeys.lFMScrobbleSetting, v);
-    emit(state.copyWith(lastFMScrobble: v));
-  }
-
-  void setLastFMExpore(bool v) {
-    _settingsRepo.putSettingBool(CacheKeys.lFMUIPicks, v);
-    emit(state.copyWith(lFMPicks: v));
   }
 
   void setAutoGetCountry(bool v) {

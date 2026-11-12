@@ -497,6 +497,7 @@ class PluginBootstrapService {
     for (int attempt = 1; attempt <= retries; attempt++) {
       try {
         final bytes = await _downloadBytes(plugin.downloadUrl);
+        plugin.verifyFile(bytes);
         final tmpDir = await getTemporaryDirectory();
         final file = File('${tmpDir.path}/${plugin.assetName}');
         await file.writeAsBytes(bytes, flush: true);
@@ -534,6 +535,7 @@ class PluginBootstrapService {
   static Future<String?> _installOnce(RemotePluginModel plugin,
       String countryCode, PluginService pluginService) async {
     final bytes = await _downloadBytes(plugin.downloadUrl);
+    plugin.verifyFile(bytes);
     final tmpDir = await getTemporaryDirectory();
     final file = File('${tmpDir.path}/${plugin.assetName}');
     await file.writeAsBytes(bytes, flush: true);
