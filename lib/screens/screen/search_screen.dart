@@ -4,6 +4,7 @@ import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:flutter/services.dart';
+import 'package:Bloomee/screens/widgets/global_footer.dart' show tabTaps;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
 
@@ -90,11 +91,35 @@ class _SearchScreenState extends State<SearchScreen> {
     if (widget.searchQuery.isNotEmpty) {
       _textEditingController.text = widget.searchQuery;
       _doSearch(widget.searchQuery);
+    } else {
+      _focusForNextSearch(); // opened from the bottom bar
     }
+    tabTaps.addListener(_onTabTap);
+  }
+
+  void _onTabTap() {
+    if (tabTaps.value.$1 == 2) _focusForNextSearch();
+  }
+
+  /// The Search button opens the box with the keyboard up; the last search
+  /// is selected, so typing replaces it.
+  void _focusForNextSearch() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final text = _textEditingController.text;
+      _textEditingController.selection =
+          TextSelection(baseOffset: 0, extentOffset: text.length);
+      if (_searchFocusNode.hasFocus) {
+        SystemChannels.textInput.invokeMethod('TextInput.show');
+      } else {
+        _searchFocusNode.requestFocus();
+      }
+    });
   }
 
   @override
   void dispose() {
+    tabTaps.removeListener(_onTabTap);
     _scrollController.dispose();
     _textEditingController.dispose();
     _searchFocusNode.dispose();
@@ -760,14 +785,8 @@ class _SuggestionsSliver extends StatelessWidget {
   });
 
   String _normalize(String q) => q.trim().replaceAll(RegExp(r'\s+'), ' ');
-  ContentSearchFilter _filterForEntity(plugin_models.EntityType type) =>
-      switch (type) {
-        plugin_models.EntityType.track => ContentSearchFilter.track,
-        plugin_models.EntityType.album => ContentSearchFilter.album,
-        plugin_models.EntityType.artist => ContentSearchFilter.artist,
-        plugin_models.EntityType.playlist => ContentSearchFilter.playlist,
-        _ => ContentSearchFilter.all,
-      };
+  // A top result searches All too: tapping an album suggestion used to land
+  // on the Albums tab, hiding the songs the user was usually after.
 
   /// Only the title: the subtitle (artist, album) shown under a suggestion is
   /// not part of what the user was looking for.
@@ -802,7 +821,7 @@ class _SuggestionsSliver extends StatelessWidget {
                 (q) => (query: _normalize(q), filter: ContentSearchFilter.all)),
             ...entityList.map((e) => (
                   query: _buildEntitySearchQuery(e),
-                  filter: _filterForEntity(e.kind)
+                  filter: ContentSearchFilter.all
                 )),
           ];
 
@@ -874,7 +893,7 @@ class _SuggestionsSliver extends StatelessWidget {
               ...entityList.asMap().entries.map((e) => _EntitySuggestionTile(
                     entity: e.value,
                     globalIndex: e.key + dbList.length + apiList.length,
-                    filter: _filterForEntity(e.value.kind),
+                    filter: ContentSearchFilter.all,
                     query: _buildEntitySearchQuery(e.value),
                     highlightedIndexNotifier: highlightedIndexNotifier,
                     onSearch: onSearchWithFilter,

@@ -11,6 +11,60 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
+/// The last bottom-bar tap: (tab index, tap number). The number only makes
+/// each tap a new value, so tapping the same tab twice is heard twice.
+final tabTaps = ValueNotifier<(int, int)>((-1, 0));
+
+const _searchTab = 2;
+
+/// A bottom-bar tap does that tab's job: Search opens with the keyboard up
+/// (see SearchScreen); every other tab goes back to its main page, at the top.
+void _openTab(StatefulNavigationShell shell, int index) {
+  shell.goBranch(index, initialLocation: index != _searchTab);
+  tabTaps.value = (index, tabTaps.value.$2 + 1);
+}
+
+/// Scrolls a tab's main page to the top when its bottom-bar button is tapped.
+class TabTop extends StatefulWidget {
+  const TabTop({super.key, required this.tab, required this.child});
+  final int tab;
+  final Widget child;
+
+  @override
+  State<TabTop> createState() => _TabTopState();
+}
+
+class _TabTopState extends State<TabTop> {
+  @override
+  void initState() {
+    super.initState();
+    tabTaps.addListener(_onTap);
+  }
+
+  @override
+  void dispose() {
+    tabTaps.removeListener(_onTap);
+    super.dispose();
+  }
+
+  void _onTap() {
+    if (tabTaps.value.$1 != widget.tab) return;
+    // After the frame: a page opened on top of this one is being closed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final c = PrimaryScrollController.maybeOf(context);
+      for (final p in c?.positions.toList() ?? const <ScrollPosition>[]) {
+        p.animateTo(0,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 class GlobalFooter extends StatelessWidget {
   const GlobalFooter({super.key, required this.navigationShell});
   final StatefulNavigationShell navigationShell;
@@ -213,7 +267,7 @@ class VerticalNavBar extends StatelessWidget {
       ],
       selectedIndex: navigationShell.currentIndex,
       minWidth: 70,
-      onDestinationSelected: navigationShell.goBranch,
+      onDestinationSelected: (i) => _openTab(navigationShell, i),
       groupAlignment: 0.0,
       unselectedIconTheme:
           const IconThemeData(color: Default_Theme.primaryColor2),
@@ -251,7 +305,7 @@ class HorizontalNavBar extends StatelessWidget {
         GButton(icon: MingCute.folder_download_fill, text: l10n.navOffline),
       ],
       selectedIndex: navigationShell.currentIndex,
-      onTabChange: navigationShell.goBranch,
+      onTabChange: (i) => _openTab(navigationShell, i),
     );
   }
 }

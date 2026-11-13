@@ -1,4 +1,5 @@
 import 'package:Bloomee/core/di/service_locator.dart';
+import 'package:Bloomee/services/player/listening_time.dart';
 import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/setting_shared_widgets.dart';
@@ -26,6 +27,7 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
   Set<SongLanguage>? _languages;
   Map<SongLanguage, double> _shares = const {};
   TasteModel? _model;
+  ListeningStats? _listening;
 
   @override
   void initState() {
@@ -36,6 +38,7 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
   Future<void> _load() async {
     final health = await RecHealth.load();
     final model = await TasteModel.load();
+    final listening = await ListeningTime.load();
     Set<SongLanguage>? languages;
     var shares = const <SongLanguage, double>{};
     try {
@@ -51,7 +54,15 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
       _languages = languages;
       _shares = shares;
       _model = model;
+      _listening = listening;
     });
+  }
+
+  /// The [n] artists listened to longest.
+  List<({String name, int ms})> _topArtists(int n) {
+    final all = _listening?.artists.values.toList() ?? [];
+    all.sort((x, y) => y.ms.compareTo(x.ms));
+    return all.take(n).toList();
   }
 
   String _pct(int part, int whole) =>
@@ -91,6 +102,21 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
             for (final e in (_shares.entries.toList()
               ..sort((a, b) => b.value.compareTo(a.value))))
               _Row('  ${e.key.name}', '${(e.value * 100).round()}%'),
+          ]),
+          const SizedBox(height: 28),
+          const SettingSectionHeader(label: 'Listening time (for Your corner)'),
+          SettingCard(children: [
+            _Row(
+                'Total',
+                _listening == null
+                    ? '…'
+                    : '${_listening!.totalMs ~/ 60000} min since '
+                        '${_listening!.since.day}/${_listening!.since.month}/${_listening!.since.year}'),
+            for (final a in _topArtists(3))
+              _Row('  ${a.name}', '${a.ms ~/ 60000} min'),
+            _Row('Songs counted', '${_listening?.songs.length ?? 0}'),
+            for (final t in _listening?.topSongs(3) ?? const <SongStat>[])
+              _Row('  ${t.title}', '${t.plays}× · ${t.ms ~/ 60000} min'),
           ]),
           const SizedBox(height: 28),
           const SettingSectionHeader(label: 'Learned weights (Layer 2)'),

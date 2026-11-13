@@ -776,15 +776,19 @@ class _PlaylistViewState extends State<PlaylistView> {
               }),
 
           const SizedBox(width: 12),
+          // Search where Info was; Info lives in the ⋮ menu now.
           _buildActionIcon(
-              MingCute.information_line,
-              l10n.buttonInfo,
-              () => showPlaylistInfo(context, state,
-                  fgColor: fgColor, bgColor: bgColor)),
+              _searching ? Icons.close_rounded : MingCute.search_line,
+              l10n.playlistSearchHint,
+              _toggleSearch),
 
           const SizedBox(width: 12),
-          _buildActionIcon(MingCute.more_2_line, l10n.buttonMore,
-              () => showPlaylistOptsInrSheet(context, state.playlist)),
+          _buildActionIcon(
+              MingCute.more_2_line,
+              l10n.buttonMore,
+              () => showPlaylistOptsInrSheet(context, state.playlist,
+                  onInfo: () => showPlaylistInfo(context, state,
+                      fgColor: fgColor, bgColor: bgColor))),
         ],
       ),
     );

@@ -1,0 +1,14 @@
+name = "jarx"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Not secrets: the web client ID is public by design, and the owner's email
+# only decides who may open /admin.
+[vars]
+GOOGLE_CLIENT_ID = "269249413715-d5fb6ac76r9jngrmfadrk4oausldiv22.apps.googleusercontent.com"
+ADMIN_EMAIL = "arnavjaiswal.aj@gmail.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jarx"
+database_id = "ad415196-419e-47b8-a74a-9871ce8a3400"

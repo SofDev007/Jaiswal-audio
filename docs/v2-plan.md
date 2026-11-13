@@ -100,3 +100,84 @@ Each step is its own build with a phone test, as in v1. Version numbers become
   one of its steps ("Sign in to keep your music on every phone · Skip").
 - **Old is Gold duplicates:** pending the user's choice (group only, or group +
   delete extra copies).
+
+## V2.1 design (decided 2026-11-13)
+
+Decisions: Cloudflare for the server; **login is mandatory** (no listening
+without signing in); sync = all playlists + Liked + what JARX learned about
+the user (Layer 2 weights, time-of-day moods, languages, listening time); the
+owner can see every user and ban anyone. About 0–60 users.
+
+### Server (one Cloudflare Worker + D1 database)
+
+Tables:
+
+- `users`: Google id, email, name, photo, first seen, last seen, app
+  version, status (`active`, `pending`, `banned`), ban reason.
+- `sessions`: a random session token (stored hashed), user, device, expiry.
+- `user_data`: one row per user holding three JSON snapshots (playlists +
+  Liked, taste, listening time) and when each was last updated.
+
+Endpoints:
+
+- `POST /auth/google`: the app sends Google's sign-in token; the Worker checks
+  it with Google's public keys, creates or updates the user, and returns a
+  JARX session token, unless the user is banned (or pending, see below).
+- `GET /me`: who am I, am I still allowed. Called at start and every few hours.
+- `GET /sync`, `PUT /sync`: download / upload the snapshots (newest wins).
+- `DELETE /me`: delete my account and data (Play Store requires this).
+- `/admin`: the owner's page (below).
+
+### Admin page (for the owner only)
+
+A web page at the Worker's address, opened in any browser. You sign in with
+Google; only the owner's email gets in. It shows every user (photo, name,
+email, first and last seen, app version, phones) with **Ban** / **Unban**
+(with a reason) and **Approve** buttons.
+
+### In the app
+
+- **Sign-in screen** before anything else (JARX logo, "Continue with Google").
+  Without signing in, nothing plays.
+- The session is kept in Android's secure storage (Keystore).
+- **Offline:** once signed in, JARX works offline (downloads) for up to 10 days
+  before it must reach the server again to confirm the account.
+- **Ban:** checked at start and every few hours while online. A banned user is
+  signed out at once and sees "This account can't use JARX" with the reason.
+- **Settings › Account:** name and photo, Sign out, Delete my account.
+- **Sync:** after sign-in on a new phone, playlists, Liked and the learned
+  taste come back. Changes upload in the background (a few seconds after they
+  happen) and download at start.
+
+### Honest limits
+
+- The JARX code is public (GPL), so someone could build their own copy with
+  the login removed. A ban stops the account in the real JARX app; it can't
+  stop a person who builds their own version.
+- A banned person could sign in with a different Google account. An
+  **"approve new users"** switch stops that: new accounts wait as `pending`
+  until the owner approves them on the admin page.
+- Storing names, emails and listening taste needs a privacy policy, and the
+  app must offer account deletion.
+
+### Owner setup (needs the owner's accounts)
+
+1. **Google Cloud** (console.cloud.google.com): new project "JARX" →
+   OAuth consent screen (External, app name JARX, your email; publish it) →
+   Credentials:
+   - OAuth client ID, type **Android**: package `com.jaiswal.jarx`, SHA-1
+     `E1:B1:43:97:FE:6B:0B:BB:19:CB:71:54:90:3A:C9:C2:24:51:D5:8D`.
+   - OAuth client ID, type **Web application** (name "JARX server"): copy its
+     **Client ID** (not secret; it goes into the app and the Worker).
+2. **Cloudflare**: create a free account, then run `npx wrangler login` once
+   so the Worker and database can be deployed from this PC.
+
+### Setup done (2026-11-13)
+
+- Google Cloud project `jarx-514521` (number 269249413715). Clients:
+  Android `269249413715-3u61455uug0p8t3j84s38as09eh5tpeg`, Web ("JARX server")
+  `269249413715-d5fb6ac76r9jngrmfadrk4oausldiv22` (both `.apps.googleusercontent.com`).
+- Cloudflare: Worker live at https://jarx.jarx-backend.workers.dev (pages `/`,
+  `/privacy`, `/admin`); D1 database `jarx` (ad415196-419e-47b8-a74a-9871ce8a3400, APAC).
+- Server code: `server/` (Worker `src/index.js`, `schema.sql`, `test.mjs`;
+  run `node test.mjs`). No approval mode: `pending` status is unused.

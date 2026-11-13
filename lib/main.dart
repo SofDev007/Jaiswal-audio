@@ -1,3 +1,5 @@
+import 'package:Bloomee/services/account/account.dart';
+import 'package:Bloomee/screens/screen/account/account_gate.dart';
 import 'dart:async';
 import 'dart:io' as io;
 import 'package:Bloomee/services/app_restart.dart';
@@ -17,7 +19,6 @@ import 'package:Bloomee/plugins/blocs/plugin/plugin_bloc.dart';
 import 'package:Bloomee/plugins/blocs/plugin/plugin_event.dart';
 import 'package:Bloomee/repository/bloomee/download_repository.dart';
 import 'package:Bloomee/repository/bloomee/settings_repository.dart';
-import 'package:Bloomee/services/db/dao/cache_dao.dart';
 import 'package:Bloomee/services/db/dao/download_dao.dart';
 import 'package:Bloomee/services/db/dao/history_dao.dart';
 import 'package:Bloomee/services/db/dao/lyrics_dao.dart';
@@ -158,7 +159,9 @@ Future<void> main() async {
   MediaKit.ensureInitialized();
   unawaited(setHighRefreshRate());
   // The JARX intro plays while the app initialises; see JarxLaunch.
-  runApp(JarxLaunch(init: _initOrRestart, app: (_) => const MyApp()));
+  runApp(JarxLaunch(
+      init: _initOrRestart,
+      app: (_) => const AccountGate(child: MyApp())));
 }
 
 /// Everything MyApp needs before its first frame.
@@ -180,6 +183,13 @@ Future<void> _initApp() async {
   await bootstrapApp();
   await setupPlayerCubit();
   DiscordService.initialize();
+  // Signing in is required: signed out or banned, the music stops.
+  await Account.instance.start();
+  Account.instance.state.addListener(() {
+    if (!Account.instance.signedIn) {
+      unawaited(bloomeePlayerCubit.bloomeePlayer.pause());
+    }
+  });
 }
 
 class MyApp extends StatefulWidget {

@@ -19,7 +19,8 @@ import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/services/import_export_service.dart';
 
 /// Shows options for an internal/local playlist
-void showPlaylistOptsInrSheet(BuildContext context, Playlist playlist) {
+void showPlaylistOptsInrSheet(BuildContext context, Playlist playlist,
+    {VoidCallback? onInfo}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -28,6 +29,7 @@ void showPlaylistOptsInrSheet(BuildContext context, Playlist playlist) {
     builder: (sheetContext) => _PlaylistOptionsSheet(
       title: playlist.title,
       isInternal: true,
+      onInfo: onInfo,
       onEdit: () async {
         final playlistCubit = context.read<CurrentPlaylistCubit>();
         await playlistCubit.ensureAllTracksLoaded();
@@ -67,6 +69,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
   final int? playlistId;
   final bool isPinned;
   final VoidCallback? onEdit;
+  final VoidCallback? onInfo;
   final BuildContext? parentContext;
 
   const _PlaylistOptionsSheet({
@@ -75,6 +78,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
     this.playlistId,
     this.isPinned = false,
     this.onEdit,
+    this.onInfo,
     this.parentContext,
   });
 
@@ -227,6 +231,12 @@ class _PlaylistOptionsSheet extends StatelessWidget {
                             ),
                             _OptionGroup(
                               children: [
+                                if (onInfo != null)
+                                  _BottomSheetTile(
+                                    icon: MingCute.information_line,
+                                    title: l10n.buttonInfo,
+                                    onTap: onInfo!,
+                                  ),
                                 if (isInternal)
                                   _BottomSheetTile(
                                     icon: MingCute.edit_2_line,

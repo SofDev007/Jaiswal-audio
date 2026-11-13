@@ -38,7 +38,8 @@ class AppRouter {
               GoRoute(
                   name: RoutePaths.exploreScreen,
                   path: '/Explore',
-                  builder: (context, state) => const ExploreScreen(),
+                  builder: (context, state) =>
+                      const TabTop(tab: 0, child: ExploreScreen()),
                   routes: [
                     GoRoute(
                         name: RoutePaths.chartScreen,
@@ -57,7 +58,8 @@ class AppRouter {
               GoRoute(
                   name: RoutePaths.libraryScreen,
                   path: '/Library',
-                  builder: (context, state) => const LibraryScreen(),
+                  builder: (context, state) =>
+                      const TabTop(tab: 1, child: LibraryScreen()),
                   routes: [
                     GoRoute(
                       path: RoutePaths.importMediaFromPlatforms,
@@ -106,14 +108,16 @@ class AppRouter {
               GoRoute(
                 name: RoutePaths.localMusicScreen,
                 path: '/LocalMusic',
-                builder: (context, state) => const LocalMusicScreen(),
+                builder: (context, state) =>
+                    const TabTop(tab: 3, child: LocalMusicScreen()),
               ),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                 name: RoutePaths.offlineScreen,
                 path: '/Offline',
-                builder: (context, state) => const OfflineScreen(),
+                builder: (context, state) =>
+                    const TabTop(tab: 4, child: OfflineScreen()),
               ),
             ]),
           ])

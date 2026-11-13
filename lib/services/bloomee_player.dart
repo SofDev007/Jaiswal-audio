@@ -26,6 +26,7 @@ import 'package:Bloomee/services/player/player_engine.dart';
 import 'package:Bloomee/services/player/player_error_handler.dart';
 import 'package:Bloomee/services/player/queue_manager.dart';
 import 'package:Bloomee/services/player/related_songs_manager.dart';
+import 'package:Bloomee/services/player/listening_time.dart';
 import 'package:Bloomee/services/player/recently_played_tracker.dart';
 import 'package:Bloomee/services/plugin/plugin_service.dart';
 import 'package:Bloomee/services/meta_resolver/smart_track_replacement_service.dart';
@@ -66,6 +67,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   late QueueManager _queueManager;
   late RelatedSongsManager _relatedSongsManager;
   late RecentlyPlayedTracker _recentlyPlayedTracker;
+  late ListeningTime _listeningTime;
   late MediaResolverService _resolver;
   late SmartTrackReplacementService _smartTrackReplacementService;
 
@@ -352,6 +354,8 @@ class BloomeeMusicPlayer extends BaseAudioHandler
       engine,
       () => _queueManager.currentTrack,
     );
+    // Minutes listened, for V2's "Your corner".
+    _listeningTime = ListeningTime(engine, () => _queueManager.currentTrack);
   }
 
   // ─── Subscriptions ─────────────────────────────────────────────────────────
@@ -1260,6 +1264,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     _queueManager.dispose();
     _relatedSongsManager.dispose();
     await _recentlyPlayedTracker.dispose();
+    await _listeningTime.dispose();
 
     DiscordService.clearPresence();
     try {

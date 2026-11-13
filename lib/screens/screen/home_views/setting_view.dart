@@ -1,4 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/services/account/account.dart';
+import 'package:Bloomee/screens/screen/account/account_view.dart';
 import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/about.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/appui_setting.dart';
@@ -44,6 +46,20 @@ class SettingsView extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             children: [
+              // ── Account ──
+              _SettingsSection(
+                children: [
+                  _SettingsTile(
+                    title: 'Account',
+                    subtitle: Account.instance.user?.email ??
+                        'Sign out or delete your account',
+                    icon: MingCute.user_3_fill,
+                    iconColor: Default_Theme.accentColor2,
+                    onTap: () => _navigate(context, const AccountView()),
+                  ),
+                ],
+              ),
+
               // ── Group 1: Core App & Plugins ──
               _SettingsSection(
                 children: [
