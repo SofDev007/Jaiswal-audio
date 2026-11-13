@@ -1,5 +1,6 @@
 // Settings › Account: who is signed in, Sign out, Delete my account.
 
+import 'package:Bloomee/services/account/sync.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/services/account/account.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -48,6 +49,25 @@ class AccountView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(color: fg.withValues(alpha: 0.7))),
           const SizedBox(height: 32),
+          ValueListenableBuilder<bool>(
+            valueListenable: Sync.instance.busy,
+            builder: (context, busy, _) => ValueListenableBuilder<DateTime?>(
+              valueListenable: Sync.instance.lastSynced,
+              builder: (context, last, _) => _Tile(
+                icon: Icons.sync_rounded,
+                title: busy ? 'Syncing…' : 'Sync now',
+                subtitle: 'Playlists, Liked, recent plays and taste follow you '
+                    'to every phone. ${last == null ? 'Not synced yet.' : 'Last synced ${_when(last)}.'}',
+                onTap: () async {
+                  final error = await Sync.instance.syncNow();
+                  if (error != null && context.mounted) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(error)));
+                  }
+                },
+              ),
+            ),
+          ),
           _Tile(
             icon: Icons.logout_rounded,
             title: 'Sign out',
@@ -92,6 +112,14 @@ class AccountView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _when(DateTime t) {
+    final ago = DateTime.now().difference(t);
+    if (ago.inMinutes < 1) return 'just now';
+    if (ago.inHours < 1) return '${ago.inMinutes} min ago';
+    if (ago.inDays < 1) return '${ago.inHours} h ago';
+    return '${t.day}/${t.month}/${t.year}';
   }
 
   static Future<bool> _confirm(

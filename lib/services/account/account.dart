@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:math' show Random;
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -41,7 +42,7 @@ class JarxUser {
       {'id': id, 'email': email, 'name': name, 'photo': photo};
 }
 
-enum AccountStatus { signedOut, signedIn, banned, needsOnline }
+enum AccountStatus { signedOut, signedIn, pending, banned, needsOnline }
 
 class AccountState {
   const AccountState(this.status, {this.user, this.reason = ''});
@@ -86,9 +87,11 @@ class Account {
       if (_token != null && userJson != null) {
         final user = JarxUser.fromJson(jsonDecode(userJson) as Map);
         state.value = AccountState(
-            withinGrace(_lastOk, DateTime.now())
-                ? AccountStatus.signedIn
-                : AccountStatus.needsOnline,
+            _lastOk == null // signed in, never let in yet: waiting for approval
+                ? AccountStatus.pending
+                : withinGrace(_lastOk, DateTime.now())
+                    ? AccountStatus.signedIn
+                    : AccountStatus.needsOnline,
             user: user);
       }
     } catch (e) {
@@ -111,7 +114,13 @@ class Account {
             (jsonDecode(res.body) as Map)['user'] as Map));
         return;
       }
-      if (res.statusCode == 403) return _banned(_reasonOf(res.body));
+      if (res.statusCode == 403) {
+        if (_errorOf(res.body) == 'pending') {
+          state.value = AccountState(AccountStatus.pending, user: user);
+          return;
+        }
+        return _banned(_reasonOf(res.body));
+      }
       if (res.statusCode == 401) {
         // The session ended (signed out elsewhere, expired, account deleted).
         await _forget();
@@ -157,7 +166,14 @@ class Account {
       final body = jsonDecode(res.body) as Map;
       _token = body['token'] as String;
       await _store.write(key: _kSession, value: _token);
-      await _confirmed(JarxUser.fromJson(body['user'] as Map));
+      final user = JarxUser.fromJson(body['user'] as Map);
+      if ((body['user'] as Map)['status'] == 'pending') {
+        // New account: the owner has to approve it first.
+        await _store.write(key: _kUser, value: jsonEncode(user.toJson()));
+        state.value = AccountState(AccountStatus.pending, user: user);
+        return null;
+      }
+      await _confirmed(user);
       return null;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) return null;
@@ -235,6 +251,50 @@ class Account {
       try {
         await GoogleSignIn.instance.signOut();
       } catch (_) {}
+    }
+  }
+
+  /// A request to the JARX server as this account (null: not signed in or
+  /// no connection).
+  Future<http.Response?> api(String method, String path,
+      {Map<String, String>? query, Object? body}) async {
+    final token = _token;
+    if (token == null) return null;
+    final req = http.Request(method,
+        Uri.parse('$jarxServer$path').replace(queryParameters: query))
+      ..headers.addAll(await _headers(token));
+    if (body != null) {
+      req.headers['content-type'] = 'application/json';
+      req.body = jsonEncode(body);
+    }
+    try {
+      return await http.Response.fromStream(
+          await req.send().timeout(const Duration(seconds: 60)));
+    } catch (e) {
+      log('$method $path failed: $e', name: 'Account');
+      return null;
+    }
+  }
+
+  /// A random id for this phone, kept across sign-outs (its listening time
+  /// is stored under it).
+  static Future<String> deviceId() async {
+    const key = 'jarxDevice';
+    var id = await _store.read(key: key);
+    if (id == null) {
+      final r = Random.secure();
+      id = [for (var i = 0; i < 16; i++) r.nextInt(256).toRadixString(16).padLeft(2, '0')]
+          .join();
+      await _store.write(key: key, value: id);
+    }
+    return id;
+  }
+
+  static String _errorOf(String body) {
+    try {
+      return (jsonDecode(body) as Map)['error']?.toString() ?? '';
+    } catch (_) {
+      return '';
     }
   }
 

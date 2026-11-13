@@ -23,7 +23,9 @@ class HistoryDAO {
   /// Accepts a domain [Track] model. Upserts it into [TrackDB] first,
   /// then writes a new [PlaybackHistoryDB] row. Multiple plays of the
   /// same track each get their own history row (non-deduplicating log).
-  Future<void> recordPlay(Track track) async {
+  ///
+  /// [at] is for plays copied from the user's other phones (sync).
+  Future<void> recordPlay(Track track, {DateTime? at}) async {
     final isar = await _db;
     final trackId = await _trackDAO.upsertTrack(track);
     final trackObj = await isar.trackDBs.get(trackId);
@@ -33,7 +35,7 @@ class HistoryDAO {
       return;
     }
 
-    final entry = PlaybackHistoryDB(playedAt: DateTime.now())
+    final entry = PlaybackHistoryDB(playedAt: at ?? DateTime.now())
       ..track.value = trackObj;
 
     await isar.writeTxn(() async {

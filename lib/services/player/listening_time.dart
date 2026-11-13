@@ -72,6 +72,25 @@ class ListeningStats {
         },
       );
 
+  /// Adds [o] (another phone's counts) into this record.
+  void add(ListeningStats o) {
+    totalMs += o.totalMs;
+    for (final e in o.artists.entries) {
+      final mine = artists[e.key];
+      artists[e.key] =
+          (name: e.value.name, ms: (mine?.ms ?? 0) + e.value.ms);
+    }
+    for (final e in o.songs.entries) {
+      final mine = songs[e.key];
+      songs[e.key] = (
+        title: e.value.title,
+        artist: e.value.artist,
+        plays: (mine?.plays ?? 0) + e.value.plays,
+        ms: (mine?.ms ?? 0) + e.value.ms,
+      );
+    }
+  }
+
   /// The [n] songs played most (by plays, then by time).
   List<SongStat> topSongs(int n) {
     final all = songs.values.toList()
@@ -194,6 +213,31 @@ class ListeningTime {
     } catch (e) {
       log('Saving listening time failed: $e', name: 'ListeningTime');
     }
+  }
+
+  /// The user's other phones' records (sync), by phone.
+  static const _othersKey = 'listeningOthers1';
+
+  static Future<Map<String, dynamic>> otherPhones() async {
+    try {
+      final raw = await SettingsDAO(DBProvider.db).getSettingStr(_othersKey);
+      if (raw != null) return (jsonDecode(raw) as Map).cast<String, dynamic>();
+    } catch (_) {}
+    return {};
+  }
+
+  static Future<void> saveOtherPhones(Map<String, dynamic> others) =>
+      SettingsDAO(DBProvider.db).putSettingStr(_othersKey, jsonEncode(others));
+
+  /// This phone's counts plus the user's other phones'.
+  static Future<ListeningStats> loadAllPhones() async {
+    final all = await load();
+    for (final o in (await otherPhones()).values) {
+      try {
+        all.add(ListeningStats.fromJson(o as Map));
+      } catch (_) {}
+    }
+    return all;
   }
 
   /// Everything counted so far (an empty record from today when nothing).

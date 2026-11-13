@@ -73,6 +73,27 @@ class TasteModel {
     return _instance = m;
   }
 
+  /// How much this model has learned: suggestions judged plus plays noted.
+  /// Sync keeps the copy (this phone's or the account's) that learned more.
+  static int amountOf(Map j) =>
+      (j['n'] as num? ?? 0).toInt() +
+      [
+        for (final slot in (j['t'] as Map? ?? const {}).values)
+          for (final n in (slot as Map).values) (n as num).toInt()
+      ].fold(0, (a, b) => a + b);
+
+  /// The saved model as JSON (null when nothing learned yet).
+  static Future<Map?> savedJson() async {
+    final raw = await SettingsDAO(DBProvider.db).getSettingStr(_key);
+    return raw == null ? null : jsonDecode(raw) as Map;
+  }
+
+  /// Use another phone's model (it learned more than this one).
+  static Future<void> adopt(Map j) async {
+    await SettingsDAO(DBProvider.db).putSettingStr(_key, jsonEncode(j));
+    _instance = null;
+  }
+
   static TasteModel _fresh() =>
       TasteModel._(Map.of(prior), 0, 0, <int, Map<String, int>>{});
 

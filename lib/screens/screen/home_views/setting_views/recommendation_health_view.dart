@@ -38,7 +38,7 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
   Future<void> _load() async {
     final health = await RecHealth.load();
     final model = await TasteModel.load();
-    final listening = await ListeningTime.load();
+    final listening = await ListeningTime.loadAllPhones(); // all your phones
     Set<SongLanguage>? languages;
     var shares = const <SongLanguage, double>{};
     try {
@@ -104,7 +104,7 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
               _Row('  ${e.key.name}', '${(e.value * 100).round()}%'),
           ]),
           const SizedBox(height: 28),
-          const SettingSectionHeader(label: 'Listening time (for Your corner)'),
+          const SettingSectionHeader(label: 'Listening time, all phones (for Your corner)'),
           SettingCard(children: [
             _Row(
                 'Total',

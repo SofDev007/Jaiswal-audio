@@ -110,6 +110,33 @@ assert.equal((await call('GET', '/me', { token: t })).status, 401);
 const again = await signIn(sis);
 assert.deepEqual((await call('GET', '/sync', { token: again.body.token })).body, {}, 'fresh after delete');
 
+// Approval on: new people wait until the owner approves them.
+env.APPROVAL = 'on';
+const friend = { sub: 'f1', email: 'friend@x.com', name: 'Friend' };
+const f = await signIn(friend);
+assert.equal(f.status, 200);
+assert.equal(f.body.user.status, 'pending');
+assert.deepEqual((await call('GET', '/me', { token: f.body.token })).body, { error: 'pending' });
+assert.equal((await call('GET', '/sync', { token: f.body.token })).status, 403);
+assert.equal((await signIn(owner)).body.user.status, 'active', 'the owner never waits');
+assert.equal((await signIn(sis)).body.user.status, 'active', 'known users keep their status');
+assert.equal((await call('POST', '/admin/approve', { token: again.body.token, body: { id: 'f1' } })).status, 403, 'only the owner approves');
+await call('POST', '/admin/approve', { token: o.body.token, body: { id: 'f1' } });
+assert.equal((await call('GET', '/me', { token: f.body.token })).status, 200, 'approved');
+
+// One listening row per phone; unknown kinds ignored; unchanged kinds come back without data.
+const ft = f.body.token;
+await call('PUT', '/sync', { token: ft, body: {
+  'listening:aaaaaaaa': { data: { totalMs: 1 }, updatedAt: 10 },
+  'listening:bbbbbbbb': { data: { totalMs: 2 }, updatedAt: 20 },
+  history: { data: [1], updatedAt: 30 },
+  junk: { data: 1, updatedAt: 5 } } });
+const s2 = (await call('GET', '/sync?history=30&listening:aaaaaaaa=0', { token: ft })).body;
+assert.deepEqual(Object.keys(s2).sort(), ['history', 'listening:aaaaaaaa', 'listening:bbbbbbbb']);
+assert.equal(s2.history.data, undefined, 'unchanged: no data');
+assert.equal(s2.history.updatedAt, 30);
+assert.equal(s2['listening:aaaaaaaa'].data.totalMs, 1);
+
 // The admin page is served.
 const page = await call('GET', '/admin');
 assert.match(page.body, /data-client_id="cid"/);

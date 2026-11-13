@@ -6,6 +6,7 @@ import 'package:Bloomee/services/db/dao/track_dao.dart';
 import 'package:Bloomee/services/db/global_db.dart';
 import 'package:Bloomee/services/db/mappers/media_item_mapper.dart';
 import 'package:isar_community/isar.dart';
+import 'package:Bloomee/services/account/sync_log.dart';
 
 /// DAO for playlist CRUD and position-based track ordering.
 ///
@@ -101,6 +102,8 @@ class PlaylistDAO {
   /// Delete a playlist by id, cascading to all its [PlaylistEntryDB] rows.
   Future<void> deletePlaylist(int playlistId) async {
     final isar = await _db;
+    final name = (await isar.playlistDBs.get(playlistId))?.name;
+    if (name != null) await SyncLog.deleted(name);
     await isar.writeTxn(() async {
       await isar.playlistEntryDBs
           .filter()
@@ -129,6 +132,10 @@ class PlaylistDAO {
     final isar = await _db;
     final playlist = await isar.playlistDBs.get(playlistId);
     if (playlist == null) return;
+    // Renamed: on other phones the old name goes, the new one arrives.
+    if (name != null && name != playlist.name) {
+      await SyncLog.deleted(playlist.name);
+    }
     if (name != null) playlist.name = name;
     if (thumbnail != null) playlist.thumbnail = thumbnail;
     if (description != null) playlist.description = description;
@@ -194,6 +201,12 @@ class PlaylistDAO {
       playlist.updatedAt = DateTime.now();
       await isar.playlistDBs.put(playlist);
       return entryId;
+    }).then((entryId) async {
+      if (entryId != null) {
+        final name = (await isar.playlistDBs.get(playlistId))?.name;
+        if (name != null) await SyncLog.added(name, [track.id]);
+      }
+      return entryId;
     });
   }
 
@@ -257,6 +270,8 @@ class PlaylistDAO {
       playlist.updatedAt = DateTime.now();
       await isar.playlistDBs.put(playlist);
     });
+    final name = (await isar.playlistDBs.get(playlistId))?.name;
+    if (name != null) await SyncLog.added(name, tracks.map((t) => t.id));
   }
 
   /// Replace the full ordered contents of [playlistId] with [tracks].
@@ -266,6 +281,15 @@ class PlaylistDAO {
     final orderedUniqueTracks =
         tracks.where((track) => seenIds.add(track.id)).toList(growable: false);
     final trackIds = await _trackDAO.upsertTracks(orderedUniqueTracks);
+
+    // What changed, for sync (edit screen, smart replace).
+    final before = (await getPlaylistTracks(playlistId)).map((t) => t.mediaId);
+    final name = (await isar.playlistDBs.get(playlistId))?.name;
+    if (name != null) {
+      await SyncLog.removed(name, before.where((id) => !seenIds.contains(id)));
+      final had = before.toSet();
+      await SyncLog.added(name, seenIds.where((id) => !had.contains(id)));
+    }
 
     await isar.writeTxn(() async {
       final playlist = await isar.playlistDBs.get(playlistId);
@@ -325,6 +349,10 @@ class PlaylistDAO {
         }
       }
     });
+    if (playlistId != null && trackMediaId != null) {
+      final name = (await isar.playlistDBs.get(playlistId))?.name;
+      if (name != null) await SyncLog.removed(name, [trackMediaId]);
+    }
 
     if (trackMediaId != null) {
       await _trackDAO.purgeOrphanTrack(trackMediaId);
@@ -708,6 +736,18 @@ class PlaylistDAO {
     if (existing != null) return existing.id;
     final playlist = PlaylistDB(name: name, type: type);
     return isar.writeTxn(() => isar.playlistDBs.put(playlist));
+  }
+
+  /// Sets when a playlist last changed. Sync uses it after copying another
+  /// phone's version, so this phone doesn't look newer than it is.
+  Future<void> setUpdatedAt(int playlistId, DateTime at) async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      final playlist = await isar.playlistDBs.get(playlistId);
+      if (playlist == null) return;
+      playlist.updatedAt = at;
+      await isar.playlistDBs.put(playlist);
+    });
   }
 
   /// Update (or set) the thumbnail URL for a playlist.

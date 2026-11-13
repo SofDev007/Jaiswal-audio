@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:Bloomee/services/account/account.dart';
 import 'package:Bloomee/screens/screen/account/account_view.dart';
 import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
@@ -55,6 +56,7 @@ class SettingsView extends StatelessWidget {
                         'Sign out or delete your account',
                     icon: MingCute.user_3_fill,
                     iconColor: Default_Theme.accentColor2,
+                    photoUrl: Account.instance.user?.photo,
                     onTap: () => _navigate(context, const AccountView()),
                   ),
                 ],
@@ -245,6 +247,9 @@ class _SettingsTile extends StatelessWidget {
   final bool isHighlightIcon;
   final VoidCallback onTap;
 
+  /// Shown instead of [icon] when set (the Google photo on Account).
+  final String? photoUrl;
+
   const _SettingsTile({
     required this.title,
     required this.subtitle,
@@ -252,6 +257,7 @@ class _SettingsTile extends StatelessWidget {
     required this.iconColor,
     this.isHighlightIcon = false,
     required this.onTap,
+    this.photoUrl,
   });
 
   @override
@@ -265,7 +271,18 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            // Icon wrapped in a soft, rounded square
+            // Icon wrapped in a soft, rounded square (or the user's photo)
+            if (photoUrl?.isNotEmpty ?? false)
+              ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl: photoUrl!,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => Icon(icon, color: iconColor),
+                ),
+              )
+            else
             Container(
               width: 40,
               height: 40,

@@ -27,11 +27,17 @@ class GlobalEventsCubit extends Cubit<GlobalEventsState> {
 
     if (await _settingsDao.getSettingBool(SettingKeys.autoUpdateNotify) ??
         true) {
-      if (updates["results"]) {
+      // The pop-up shows once per new version; the Home bell keeps it.
+      final tag = '${updates["newVer"]}+${updates["newBuild"]}';
+      const shownKey = 'updatePopupShown';
+      if (updates["results"] &&
+          await _settingsDao.getSettingStr(shownKey) != tag) {
+        await _settingsDao.putSettingStr(shownKey, tag);
         emit(UpdateAvailable(
           newVersion: updates["newVer"],
           newBuild: updates["newBuild"],
-          downloadUrl: "https://bloomee.sourceforge.io/",
+          downloadUrl: updates["download_url"] ?? '',
+          notes: updates["notes"] ?? '',
         ));
       }
     }

@@ -138,6 +138,10 @@ Track _trackFromJson(Map<String, dynamic> m) => Track(
           : _lyricsFromJson(m['lyrics'] as Map<String, dynamic>),
     );
 
+/// A track as JSON (also used by sync).
+Map<String, dynamic> trackToJson(Track t) => _trackToJson(t);
+Track trackFromJson(Map<String, dynamic> m) => _trackFromJson(m);
+
 // ── MediaItem (sealed variant) ────────────────────────────────────────────────
 
 Map<String, dynamic> _mediaItemToJson(MediaItem item) => switch (item) {

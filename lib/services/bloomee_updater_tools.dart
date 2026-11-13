@@ -164,7 +164,7 @@ Future<Map<String, dynamic>> sourceforgeUpdate(
 Future<Map<String, dynamic>> githubUpdate(
     {Duration timeout = const Duration(seconds: 6)}) async {
   final url =
-      'https://api.github.com/repos/HemantKArya/BloomeeTunes/releases/latest';
+      'https://api.github.com/repos/SofDev007/Jaiswal-audio/releases/latest';
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
   try {
     final response = await http.get(Uri.parse(url)).timeout(timeout);
@@ -185,6 +185,8 @@ Future<Map<String, dynamic>> githubUpdate(
 
       return {
         'source': 'github',
+        // The release notes: shown in full in the update notice.
+        'notes': (data['body'] as String?)?.trim() ?? '',
         'newVer': versionPart,
         'newBuild': buildPart,
         'download_url': download,
@@ -209,10 +211,15 @@ Future<Map<String, dynamic>> githubUpdate(
   }
 }
 
-/// Update checks are off in JARX: the GitHub and SourceForge releases and the
-/// changelog belong to upstream Bloomee, not to this app.
-Future<Map<String, dynamic>> getAppUpdates() async =>
-    {'results': false, 'changelogs': null, 'source': 'disabled'};
+/// JARX's newest full release on GitHub (pre-releases are test builds and
+/// are not offered). Offline or on any error: no update.
+Future<Map<String, dynamic>> getAppUpdates() async {
+  try {
+    return await githubUpdate();
+  } catch (_) {
+    return {'results': false, 'changelogs': null, 'source': 'offline'};
+  }
+}
 
 /// Fetch the project's CHANGELOG.md from the hosted GitHub Pages site.
 /// Returns the changelog text on success, or null on any failure.

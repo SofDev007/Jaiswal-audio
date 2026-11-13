@@ -1,3 +1,4 @@
+import 'package:Bloomee/services/account/sync.dart';
 import 'package:Bloomee/services/account/account.dart';
 import 'package:Bloomee/screens/screen/account/account_gate.dart';
 import 'dart:async';
@@ -184,12 +185,19 @@ Future<void> _initApp() async {
   await setupPlayerCubit();
   DiscordService.initialize();
   // Signing in is required: signed out or banned, the music stops.
-  await Account.instance.start();
-  Account.instance.state.addListener(() {
-    if (!Account.instance.signedIn) {
+  // Signed in, the music syncs with the user's other phones.
+  void onAccount() {
+    if (Account.instance.signedIn) {
+      unawaited(Sync.instance.start());
+    } else {
       unawaited(bloomeePlayerCubit.bloomeePlayer.pause());
+      unawaited(Sync.instance.stop());
     }
-  });
+  }
+
+  Account.instance.state.addListener(onAccount);
+  await Account.instance.start();
+  onAccount();
 }
 
 class MyApp extends StatefulWidget {

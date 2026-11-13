@@ -90,6 +90,9 @@ be on Cloudflare anyway. The recommendation is Cloudflare for everything.
 4. V2.3 Your corner.
 5. V2.4 mood tags.
 6. V2.5 JARX AI chat.
+7. V2.6 JARX Connect (control one device from another), before or with the
+   desktop app.
+8. V2.7 Jam (listen together with friends by link).
 
 Each step is its own build with a phone test, as in v1. Version numbers become
 2.0.0+N.
@@ -181,3 +184,39 @@ email, first and last seen, app version, phones) with **Ban** / **Unban**
   `/privacy`, `/admin`); D1 database `jarx` (ad415196-419e-47b8-a74a-9871ce8a3400, APAC).
 - Server code: `server/` (Worker `src/index.js`, `schema.sql`, `test.mjs`;
   run `node test.mjs`). No approval mode: `pending` status is unused.
+
+## V2.6 JARX Connect and V2.7 Jam (planned 2026-11-13, user approved the order)
+
+Both need a live connection between devices: one Cloudflare Durable Object
+("room") with WebSockets on the existing Worker. Free plan, fine for ~60 users.
+
+### V2.6 JARX Connect: control one device from another (about one build)
+
+- Every JARX signed in with the same account joins that account's room while
+  it is open.
+- Other devices show "Playing on <device> · <song>"; tapping it opens a remote:
+  play/pause, next/previous, seek, play any song or playlist there, add to its
+  queue, and volume (the playing phone sets its own media volume).
+- "Play here" moves the song to this device at the same position and stops it
+  on the other one.
+- Audio always plays and streams on the playing device; the remote only sends
+  small commands.
+- Main use: desktop app plays, phone is the remote (and the other way round).
+- Limits: the playing device must have JARX open or playing in the background
+  (waking a closed app would need push notifications). Desktop Google sign-in
+  goes through the browser (part of the desktop work).
+
+### V2.7 Jam: listen together in real time (about two builds, after Connect)
+
+- Start a Jam: a link `https://jarx.jarx-backend.workers.dev/jam/<code>` and a
+  QR code; the link opens JARX directly (Android App Links, `assetlinks.json`
+  served by the Worker).
+- One shared queue; anyone adds songs; the host chooses whether others may
+  skip/pause. Members shown with their Google photos. Ends when the host leaves.
+- Each phone streams the song itself; JARX agrees on one clock and corrects
+  drift by seeking (target: within about half a second).
+- Limits: every listener needs JARX and an approved account (approval is on);
+  a link opened without JARX shows a "Get JARX" page. Not sample-perfect (not
+  for two speakers in one room). A song missing on a friend's source (e.g.
+  JioSaavn outside India) plays from another source via the existing
+  replacement logic. Downloaded files are never sent between phones.

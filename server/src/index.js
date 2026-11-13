@@ -6,7 +6,9 @@
 
 const GOOGLE_CERTS = 'https://www.googleapis.com/oauth2/v3/certs';
 const SESSION_DAYS = 180;
-const KINDS = ['library', 'taste', 'listening'];
+// library, history and taste are one row per user; listening is one row per
+// phone (listening:<device id>) so the phones' counts can be added up.
+const KIND = /^(library|history|taste|listening:[0-9a-f]{8,32})$/;
 const MAX_SNAPSHOT = 1_900_000; // D1 keeps at most 2 MB in one value
 const ADMIN_DEVICE = 'admin page';
 
@@ -79,12 +81,14 @@ async function signIn(req, env) {
   if (!g) return json({ error: 'bad_token' }, 401);
   const t = now();
   await env.DB.prepare(
-    `INSERT INTO users (id, email, name, photo, first_seen, last_seen, app_version)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO users (id, email, name, photo, first_seen, last_seen, app_version, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name,
        photo = excluded.photo, last_seen = excluded.last_seen,
        app_version = coalesce(excluded.app_version, users.app_version)`)
-    .bind(g.sub, g.email, clip(g.name, 200), clip(g.picture, 500), t, t, clip(body.appVersion, 40))
+    .bind(g.sub, g.email, clip(g.name, 200), clip(g.picture, 500), t, t, clip(body.appVersion, 40),
+      // New people wait for the owner's OK while approval is on.
+      env.APPROVAL === 'on' && g.email !== env.ADMIN_EMAIL ? 'pending' : 'active')
     .run();
   const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(g.sub).first();
   if (user.status === 'banned') return json({ error: 'banned', reason: user.ban_reason || '' }, 403);
@@ -100,16 +104,24 @@ async function signIn(req, env) {
 }
 
 const publicUser = (u, env) => ({
-  id: u.id, email: u.email, name: u.name, photo: u.photo, admin: u.email === env.ADMIN_EMAIL,
+  id: u.id, email: u.email, name: u.name, photo: u.photo, status: u.status,
+  admin: u.email === env.ADMIN_EMAIL,
 });
 
-// ---- Sync: newest snapshot wins, per kind ----
+// ---- Sync: newest snapshot wins, per kind (the app merges before it uploads) ----
 
-async function getSync(env, user) {
+// ?library=<ms>&history=<ms>...: a kind not newer than the time the phone
+// already has comes back without its data, so syncs stay small.
+async function getSync(req, env, user) {
+  const have = Object.fromEntries(new URL(req.url).searchParams);
   const { results } = await env.DB.prepare(
     'SELECT kind, json, updated_at FROM user_data WHERE user_id = ?').bind(user.id).all();
   const out = {};
-  for (const r of results) out[r.kind] = { data: JSON.parse(r.json), updatedAt: r.updated_at };
+  for (const r of results) {
+    out[r.kind] = Number(have[r.kind]) >= r.updated_at
+      ? { updatedAt: r.updated_at }
+      : { data: JSON.parse(r.json), updatedAt: r.updated_at };
+  }
   return json(out);
 }
 
@@ -117,9 +129,8 @@ async function putSync(req, env, user) {
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== 'object') return json({ error: 'bad_body' }, 400);
   const writes = [];
-  for (const kind of KINDS) {
-    const snap = body[kind];
-    if (!snap) continue;
+  for (const [kind, snap] of Object.entries(body)) {
+    if (!KIND.test(kind) || !snap) continue;
     const text = JSON.stringify(snap.data ?? null);
     if (new TextEncoder().encode(text).length > MAX_SNAPSHOT) return json({ error: 'too_big', kind }, 413);
     const at = Number(snap.updatedAt);
@@ -150,11 +161,12 @@ async function listUsers(env, admin) {
   return json({ users: results });
 }
 
-async function setBan(req, env, admin, banned) {
+async function setStatus(req, env, admin, status) {
   const body = await req.json().catch(() => ({}));
   if (!body.id || body.id === admin.id) return json({ error: 'bad_user' }, 400);
+  const banned = status === 'banned';
   await env.DB.prepare('UPDATE users SET status = ?, ban_reason = ? WHERE id = ?')
-    .bind(banned ? 'banned' : 'active', banned ? clip(body.reason, 300) || '' : null, body.id).run();
+    .bind(status, banned ? clip(body.reason, 300) || '' : null, body.id).run();
   return json({ ok: true });
 }
 
@@ -169,6 +181,10 @@ async function route(req, env) {
   const user = await sessionUser(req, env);
   if (!user) return json({ error: 'signed_out' }, 401);
   if (user.status === 'banned') return json({ error: 'banned', reason: user.ban_reason || '' }, 403);
+  // Waiting for approval: may only leave (sign out, delete).
+  if (user.status === 'pending' && path !== 'POST /signout' && path !== 'DELETE /me') {
+    return json({ error: 'pending' }, 403);
+  }
   const isAdmin = user.email === env.ADMIN_EMAIL;
 
   switch (path) {
@@ -185,14 +201,16 @@ async function route(req, env) {
         .concat(env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.id)));
       return json({ ok: true });
     case 'GET /sync':
-      return getSync(env, user);
+      return getSync(req, env, user);
     case 'PUT /sync':
       return putSync(req, env, user);
     case 'GET /admin/users':
       return isAdmin ? listUsers(env, user) : json({ error: 'not_admin' }, 403);
     case 'POST /admin/ban':
     case 'POST /admin/unban':
-      return isAdmin ? setBan(req, env, user, path.endsWith('/ban')) : json({ error: 'not_admin' }, 403);
+    case 'POST /admin/approve':
+      if (!isAdmin) return json({ error: 'not_admin' }, 403);
+      return setStatus(req, env, user, path.endsWith('/ban') ? 'banned' : 'active');
   }
   return json({ error: 'not_found' }, 404);
 }
@@ -261,8 +279,16 @@ async function load() {
     const img = new Image(); img.referrerPolicy = 'no-referrer'; if (u.photo) img.src = u.photo;
     cell(tr, img); cell(tr, u.name); cell(tr, u.email); cell(tr, when(u.first_seen)); cell(tr, when(u.last_seen));
     cell(tr, u.app_version); cell(tr, u.phones);
-    cell(tr, u.status === 'banned' ? 'Banned' + (u.ban_reason ? ': ' + u.ban_reason : '') : 'Active');
+    cell(tr, u.status === 'banned' ? 'Banned' + (u.ban_reason ? ': ' + u.ban_reason : '')
+      : u.status === 'pending' ? 'Waiting for approval' : 'Active');
     if (u.self) { cell(tr, 'You'); continue; }
+    const td = tr.insertCell();
+    if (u.status === 'pending') {
+      const a = document.createElement('button');
+      a.textContent = 'Approve'; a.className = 'unban'; a.style.marginRight = '8px';
+      a.onclick = async () => { await api('POST', '/admin/approve', { id: u.id }); load(); };
+      td.append(a);
+    }
     const b = document.createElement('button');
     if (u.status === 'banned') {
       b.textContent = 'Unban'; b.className = 'unban';
@@ -275,7 +301,7 @@ async function load() {
         await api('POST', '/admin/ban', { id: u.id, reason }); load();
       };
     }
-    cell(tr, b);
+    td.append(b);
   }
 }
 load();

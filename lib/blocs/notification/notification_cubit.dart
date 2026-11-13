@@ -20,12 +20,14 @@ class NotificationCubit extends Cubit<NotificationState> {
       if (value["results"]) {
         if (int.parse(value["currBuild"]) < int.parse(value["newBuild"])) {
           _notificationDao.putNotification(
-            title: "Update Available",
-            body:
-                "New Version of Bloomee🌸 is now available!! Version: ${value["newVer"]} + ${value["newBuild"]}",
+            title: "JARX ${value["newVer"]} (${value["newBuild"]}) is available",
+            body: (value["notes"] as String?)?.isNotEmpty == true
+                ? value["notes"]
+                : "A new version of JARX is ready to download.",
             type: "app_update",
+            url: value["download_url"],
             unique: true,
-          );
+          ).then((_) => getNotification());
         }
       }
     });

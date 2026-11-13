@@ -129,7 +129,10 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
             showBloomeeDialog(
               context: dialogContext,
               title: l10n.dialogUpdateAvailable,
-              subtitle: l10n.updateAvailableBody(s.newVersion, s.newBuild),
+              subtitle: s.notes.isEmpty
+                  ? l10n.updateAvailableBody(s.newVersion, s.newBuild)
+                  : '${l10n.updateAvailableBody(s.newVersion, s.newBuild)}'
+                      '\n\n${s.notes.length > 600 ? '${s.notes.substring(0, 600)}…\n(Full list in the Home bell.)' : s.notes}',
               icon: Icons.system_update_rounded,
               actions: [
                 BloomeeDialogAction.text(l10n.buttonLater),

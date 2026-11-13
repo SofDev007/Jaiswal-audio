@@ -7,6 +7,8 @@ compatibility_date = "2026-10-01"
 [vars]
 GOOGLE_CLIENT_ID = "269249413715-d5fb6ac76r9jngrmfadrk4oausldiv22.apps.googleusercontent.com"
 ADMIN_EMAIL = "arnavjaiswal.aj@gmail.com"
+# "on": new accounts wait until the owner approves them on /admin.
+APPROVAL = "on"
 
 [[d1_databases]]
 binding = "DB"

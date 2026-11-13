@@ -1,6 +1,7 @@
 // Nothing in JARX opens until the phone is signed in: this gate shows the
 // sign-in, banned or "connect to confirm" screen instead of the app.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:Bloomee/core/theme/app_theme.dart';
@@ -43,6 +44,23 @@ class _LockedScreenState extends State<_LockedScreen> {
   bool _busy = false;
   String? _error;
 
+  /// While waiting for approval, ask again every 20 s.
+  Timer? _poll;
+
+  @override
+  void initState() {
+    super.initState();
+    _poll = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (widget.state.status == AccountStatus.pending) Account.instance.check();
+    });
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
   Future<void> _run(Future<String?> Function() action) async {
     setState(() {
       _busy = true;
@@ -68,6 +86,12 @@ class _LockedScreenState extends State<_LockedScreen> {
               : 'The owner of JARX has blocked this Google account:\n"${s.reason}"',
           'Use another Google account',
         ),
+      AccountStatus.pending => (
+          'Waiting for approval',
+          'The owner of JARX needs to approve ${s.user?.email ?? 'your account'}. '
+              'JARX opens by itself as soon as they do.',
+          'Check again',
+        ),
       AccountStatus.needsOnline => (
           'Connect to confirm your account',
           'JARX works offline for up to 10 days. Connect to the internet once '
@@ -81,7 +105,8 @@ class _LockedScreenState extends State<_LockedScreen> {
           'Continue with Google',
         ),
     };
-    final isRetry = s.status == AccountStatus.needsOnline;
+    final isRetry = s.status == AccountStatus.needsOnline ||
+        s.status == AccountStatus.pending;
 
     return Scaffold(
       body: SafeArea(
@@ -130,9 +155,11 @@ class _LockedScreenState extends State<_LockedScreen> {
                           : () => _run(isRetry
                               ? () async {
                                   await Account.instance.check();
-                                  return Account.instance.signedIn
+                                  final now = Account.instance.state.value;
+                                  return now.status == AccountStatus.signedIn ||
+                                          now.status == AccountStatus.pending
                                       ? null
-                                      : 'Still offline. Connect and try again.';
+                                      : 'Could not reach JARX. Connect and try again.';
                                 }
                               : Account.instance.signIn),
                       icon: _busy

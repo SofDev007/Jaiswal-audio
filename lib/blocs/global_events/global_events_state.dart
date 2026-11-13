@@ -13,11 +13,13 @@ final class UpdateAvailable extends GlobalEventsState {
   final String newVersion;
   final String newBuild;
   final String downloadUrl;
+  final String notes;
 
   const UpdateAvailable(
       {required this.newVersion,
       required this.newBuild,
-      required this.downloadUrl});
+      required this.downloadUrl,
+      this.notes = ''});
 }
 
 final class WhatIsNewState extends GlobalEventsState {
