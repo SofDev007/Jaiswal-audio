@@ -149,11 +149,17 @@ async function putSync(req, env, user) {
     const at = Number(snap.updatedAt);
     if (!Number.isFinite(at) || at <= 0) return json({ error: 'bad_time', kind }, 400);
     // A phone whose clock runs ahead must not win every future sync.
+    // The phone cap is checked again inside the write itself, so parallel
+    // requests can't each squeeze in a new phone.
     writes.push(env.DB.prepare(
-      `INSERT INTO user_data (user_id, kind, json, updated_at) VALUES (?, ?, ?, ?)
+      `INSERT INTO user_data (user_id, kind, json, updated_at)
+       SELECT ?1, ?2, ?3, ?4
+       WHERE ?2 NOT LIKE 'listening:%'
+          OR EXISTS (SELECT 1 FROM user_data WHERE user_id = ?1 AND kind = ?2)
+          OR (SELECT count(*) FROM user_data WHERE user_id = ?1 AND kind LIKE 'listening:%') < ?5
        ON CONFLICT(user_id, kind) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at
        WHERE excluded.updated_at > user_data.updated_at`)
-      .bind(user.id, kind, text, Math.min(at, now())));
+      .bind(user.id, kind, text, Math.min(at, now()), MAX_PHONES));
   }
   if (writes.length) await env.DB.batch(writes);
   const { results } = await env.DB.prepare(
@@ -210,7 +216,11 @@ async function route(req, env) {
     case 'DELETE /me':
       await env.DB.batch(['user_data', 'sessions'].map((t) =>
         env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(user.id))
-        .concat(env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.id)));
+        .concat(user.status === 'banned'
+          // A ban outlives the account: keep a bare record so signing in
+          // again is refused (name and photo are dropped).
+          ? env.DB.prepare('UPDATE users SET name = NULL, photo = NULL WHERE id = ?').bind(user.id)
+          : env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.id)));
       return json({ ok: true });
     case 'GET /sync':
       return getSync(req, env, user);

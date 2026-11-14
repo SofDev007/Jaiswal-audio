@@ -157,6 +157,15 @@ await call('POST', '/admin/approve', { token: o.body.token, body: { id: 'b1' } }
 await call('POST', '/admin/ban', { token: o.body.token, body: { id: 'b1', reason: 'x' } });
 assert.equal((await call('GET', '/sync', { token: b1 })).status, 403);
 assert.equal((await call('DELETE', '/me', { token: b1 })).status, 200, 'banned can delete');
+assert.equal((await signIn({ sub: 'b1', email: 'bad@x.com', name: 'Bad' })).status, 403, 'ban survives deleting the account');
+assert.equal((await call('GET', '/sync', { token: b1 })).status, 401, 'its sessions are gone');
+
+// Parallel uploads can't push an account past 10 phones.
+const p1 = (await signIn({ sub: 'p1', email: 'p@x.com', name: 'P' })).body.token;
+await call('POST', '/admin/approve', { token: o.body.token, body: { id: 'p1' } });
+await Promise.all(Array.from({ length: 15 }, (_, i) => call('PUT', '/sync', { token: p1, body: {
+  [`listening:${i.toString(16).padStart(8, 'a')}`]: { data: { totalMs: i }, updatedAt: 5 } } })));
+assert.equal(db.prepare("SELECT count(*) AS n FROM user_data WHERE user_id = 'p1'").get().n, 10);
 
 // Too many requests from one address are refused.
 env.LIMITER = { limit: async () => ({ success: false }) };
