@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:Bloomee/services/app_updater.dart' show notesSince;
 import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -163,15 +165,20 @@ Future<Map<String, dynamic>> sourceforgeUpdate(
 
 Future<Map<String, dynamic>> githubUpdate(
     {Duration timeout = const Duration(seconds: 6)}) async {
+  // The release list, not /latest: the update notice shows the notes of
+  // every release the user skipped. Drafts and pre-releases are ignored.
   final url =
-      'https://api.github.com/repos/SofDev007/Jaiswal-audio/releases/latest';
+      'https://api.github.com/repos/SofDev007/Jaiswal-audio/releases?per_page=30';
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
   try {
     final response = await http.get(Uri.parse(url)).timeout(timeout);
     log("GitHub response status code: ${response.statusCode}",
         name: 'UpdaterTools');
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
+      final releases = json.decode(response.body) as List;
+      final Map<String, dynamic> data = releases.cast<Map<String, dynamic>>().firstWhere(
+          (r) => r['draft'] != true && r['prerelease'] != true,
+          orElse: () => throw Exception('No full release yet'));
       final tag = (data['tag_name'] as String?) ?? '';
       // tag might be like v2.7.11+12 or v2.7.11
       final tagParts = tag.split('+');
@@ -186,7 +193,8 @@ Future<Map<String, dynamic>> githubUpdate(
       return {
         'source': 'github',
         // The release notes: shown in full in the update notice.
-        'notes': (data['body'] as String?)?.trim() ?? '',
+        'notes': notesSince(releases,
+            (int.tryParse(packageInfo.buildNumber) ?? 0) % 1000),
         'newVer': versionPart,
         'newBuild': buildPart,
         'download_url': download,

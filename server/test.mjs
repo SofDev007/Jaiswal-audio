@@ -137,8 +137,38 @@ assert.equal(s2.history.data, undefined, 'unchanged: no data');
 assert.equal(s2.history.updatedAt, 30);
 assert.equal(s2['listening:aaaaaaaa'].data.totalMs, 1);
 
+// Listening rows: limited in size and in number of phones per account.
+assert.equal((await call('PUT', '/sync', { token: ft, body: {
+  'listening:cccccccc': { data: 'x'.repeat(300_000), updatedAt: 40 } } })).status, 413, 'listening too big');
+for (let i = 0; i < 8; i++) {
+  const r = await call('PUT', '/sync', { token: ft, body: {
+    [`listening:${String(i).repeat(8)}`]: { data: { totalMs: i }, updatedAt: 50 } } });
+  assert.equal(r.status, i < 8 ? 200 : 413);
+}
+const tooMany = await call('PUT', '/sync', { token: ft, body: {
+  'listening:dddddddd': { data: { totalMs: 1 }, updatedAt: 60 } } });
+assert.deepEqual([tooMany.status, tooMany.body.error], [413, 'too_many_phones'], '11th phone refused');
+assert.equal((await call('PUT', '/sync', { token: ft, body: {
+  'listening:aaaaaaaa': { data: { totalMs: 9 }, updatedAt: 70 } } })).status, 200, 'known phone still updates');
+
+// A banned account may still sign out or delete itself, nothing else.
+const b1 = (await signIn({ sub: 'b1', email: 'bad@x.com', name: 'Bad' })).body.token;
+await call('POST', '/admin/approve', { token: o.body.token, body: { id: 'b1' } });
+await call('POST', '/admin/ban', { token: o.body.token, body: { id: 'b1', reason: 'x' } });
+assert.equal((await call('GET', '/sync', { token: b1 })).status, 403);
+assert.equal((await call('DELETE', '/me', { token: b1 })).status, 200, 'banned can delete');
+
+// Too many requests from one address are refused.
+env.LIMITER = { limit: async () => ({ success: false }) };
+assert.equal((await call('GET', '/me', { token: ft })).status, 429);
+delete env.LIMITER;
+
 // The admin page is served.
 const page = await call('GET', '/admin');
 assert.match(page.body, /data-client_id="cid"/);
+const raw = await worker.fetch(new Request('https://jarx.test/admin'), env);
+assert.equal(raw.headers.get('x-frame-options'), 'DENY');
+assert.match(raw.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+assert.equal(raw.headers.get('x-content-type-options'), 'nosniff');
 assert.equal((await call('GET', '/nope', { token: o.body.token })).status, 404);
 console.log('all server checks passed');

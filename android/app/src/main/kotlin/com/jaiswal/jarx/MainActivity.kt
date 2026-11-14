@@ -22,6 +22,17 @@ class MainActivity : AudioServiceActivity() {
         // locked by an earlier engine in this process (see AppRestart in Dart).
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "jarx/app")
             .setMethodCallHandler { call, result ->
+                // In-app updater: hand a downloaded JARX APK to Android's
+                // installer (Android asks the user to allow it once).
+                if (call.method == "installApk") {
+                    val file = java.io.File(call.argument<String>("path")!!)
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        this, "$packageName.apkprovider", file)
+                    startActivity(Intent(Intent.ACTION_VIEW)
+                        .setDataAndType(uri, "application/vnd.android.package-archive")
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+                    return@setMethodCallHandler result.success(true)
+                }
                 if (call.method != "restart") return@setMethodCallHandler result.notImplemented()
                 result.success(null)
                 packageManager.getLaunchIntentForPackage(packageName)?.let {

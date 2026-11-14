@@ -220,3 +220,69 @@ Both need a live connection between devices: one Cloudflare Durable Object
   for two speakers in one room). A song missing on a friend's source (e.g.
   JioSaavn outside India) plays from another source via the existing
   replacement logic. Downloaded files are never sent between phones.
+
+## Build 36 (planned 2026-11-13)
+
+1. **Security fixes** from the pre-release check: server cap on listening rows
+   (10 phones, 256 KB each; done locally, needs deploy), the signing key gets a
+   strong password + a release signing config (same certificate, no reinstall),
+   security headers on the admin page, a per-address rate limit on the Worker,
+   banned accounts may sign out / delete their account, APK SHA-256 in the
+   release notes.
+2. **In-app updater** (user picked option A): "Update" downloads the APK inside
+   JARX with a progress bar and opens Android's install screen
+   (REQUEST_INSTALL_PACKAGES; Android asks the user to allow it once). No
+   silent installs (impossible outside the Play Store).
+3. **"What's new since your version"**: the update notice shows the notes of
+   every full release newer than the installed build (e.g. 36 + 37 + 38 for
+   someone on 35), newest first. Users always jump straight to the newest
+   build; versions can be skipped.
+4. Rule for every build: one-time data changes check their own "done" flag,
+   never "the previous version", so skipping builds is always safe.
+
+Distribution stays on GitHub releases (Play Store not suitable: unofficial
+YouTube access, downloaded plugin code, song downloads). Friends who want fully
+automatic checks can use Obtainium with the GitHub link.
+
+## Build 37 (planned 2026-11-13, user approved)
+
+1. **First-run flow** (same for every edition, incl. Mom's): intro -> sign in
+   (one welcome; the logo's heartbeat line flows in; blurred album covers
+   drift behind) -> approval wait -> 1 "What do you listen to?" (language
+   chips; region detected, "Change" link) -> 2 "Pick 3 artists you love"
+   (round photos for the chosen languages; at least 3, with a Skip link; seeds
+   the first mix) -> 3 "Choose your Home" (live mini previews of the 3
+   layouts) -> 4 "Bring your music" (Spotify / YouTube Music / CSV import, or
+   Skip) -> one notifications card (mic asked only at first Pulse use) ->
+   "You're all set, <name>" -> Home with "Made for <name>". Plugins set up in
+   the background during the steps (corner ring); "Almost ready..." only if
+   not done. Returning user on a new phone: "Welcome back, <name>: bringing
+   your N playlists" and straight to Home. Reduced-motion: plain fades. 60 fps
+   on the 720p test phone.
+2. **Tips at the right moment** (shown once each): first Home -> "Tap ⊖ to
+   never see a suggestion"; first song list -> "Swipe a song right to add it to
+   the queue"; first mini player -> "Swipe the mini player to skip".
+3. **Faster sync** (user's test 2026-11-13: a song added on the realme showed on
+   the second phone only after Sync now): a light "anything new?" check every
+   60 s while JARX is open and when JARX comes back to the front (~30 KB/hour).
+   Instant push comes with V2.6's live connection.
+4. **Switch account**: one local space per Google account (playlists, Liked,
+   history, downloads list, taste); plugins and phone settings shared. Settings
+   › Account lists accounts + "Add another account"; tapping one restarts JARX
+   into it (~2 s, existing AppRestart). The current data becomes the first
+   account's space. New accounts need approval. Separate spaces are required
+   because sync merges the phone's music into the signed-in account.
+
+Tested in two phone rounds: (1) first-run + sync, (2) switch account.
+
+## Roadmap (2026-11-13)
+
+- Done: v1 (17-32), 33 V2.0 security, 34 V2.1 sign-in, 35 V2.2 sync + approval
+  + update notices.
+- Next: 36 (security fixes + in-app updater), 37 (first-run, tips, faster sync,
+  switch account).
+- Planned: V2.3 Your corner, V2.4 AI mood tags, V2.5 JARX AI chat, V2.6 JARX
+  Connect + desktop app, V2.7 Jam.
+- Backlog: Mom's edition, Light theme, Old is Gold duplicates (user's choice
+  pending), confirm plugin update without restart, confirm ytmusic v6 / ytvideo
+  v5 are the live plugin files.

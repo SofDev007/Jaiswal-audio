@@ -1,3 +1,5 @@
+import 'package:Bloomee/core/models/app_notification.dart';
+import 'package:Bloomee/screens/screen/home_views/notification_views/notification_tile.dart';
 import 'dart:async';
 import 'dart:developer';
 import 'package:Bloomee/blocs/global_events/global_events_cubit.dart';
@@ -137,7 +139,14 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
               actions: [
                 BloomeeDialogAction.text(l10n.buttonLater),
                 BloomeeDialogAction.filled(l10n.dialogUpdateNow, onPressed: () {
-                  openURL(s.downloadUrl);
+                  // The in-app updater, with the full notes.
+                  Navigator.of(dialogContext).push(MaterialPageRoute(
+                      builder: (_) => UpdateNotesView(
+                          notification: AppNotification(
+                              title: 'JARX ${s.newVersion} (${s.newBuild}) is available',
+                              body: s.notes,
+                              type: 'app_update',
+                              url: s.downloadUrl))));
                 }),
               ],
             );

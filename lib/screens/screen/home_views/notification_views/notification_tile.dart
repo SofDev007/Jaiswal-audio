@@ -1,4 +1,4 @@
-import 'package:url_launcher/url_launcher.dart';
+import 'package:Bloomee/services/app_updater.dart';
 import 'dart:developer';
 
 import 'package:Bloomee/core/models/app_notification.dart';
@@ -24,7 +24,7 @@ class NotificationTile extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => _UpdateNotes(notification: notification),
+                builder: (context) => UpdateNotesView(notification: notification),
               ),
             );
           } else {
@@ -60,14 +60,47 @@ class NotificationTile extends StatelessWidget {
   }
 }
 
-/// The full release notes of an update, with its download button.
-class _UpdateNotes extends StatelessWidget {
-  const _UpdateNotes({required this.notification});
+/// The release notes of an update (every version the user skipped) and the
+/// in-app updater: Download -> progress -> Android's install screen.
+class UpdateNotesView extends StatefulWidget {
+  const UpdateNotesView({super.key, required this.notification});
   final AppNotification notification;
 
   @override
+  State<UpdateNotesView> createState() => _UpdateNotesViewState();
+}
+
+class _UpdateNotesViewState extends State<UpdateNotesView> {
+  bool _downloading = false;
+  double? _progress;
+  String? _apk, _error;
+
+  Future<void> _download(String url) async {
+    setState(() {
+      _downloading = true;
+      _progress = null;
+      _error = null;
+    });
+    try {
+      final path = await AppUpdater.download(url, (p) {
+        if (mounted) setState(() => _progress = p);
+      });
+      if (!mounted) return;
+      setState(() => _apk = path);
+      await AppUpdater.install(path);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'The download failed. Check your internet and try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final url = notification.url ?? '';
+    final n = widget.notification;
+    final url = n.url ?? '';
     return Scaffold(
       backgroundColor: Default_Theme.themeColor,
       appBar: AppBar(
@@ -79,7 +112,7 @@ class _UpdateNotes extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(notification.title,
+          Text(n.title,
               style: const TextStyle(
                   color: Default_Theme.accentColor2,
                   fontSize: 20,
@@ -87,21 +120,46 @@ class _UpdateNotes extends StatelessWidget {
           const SizedBox(height: 16),
           SelectableText(
             // GitHub notes are Markdown; bold markers read badly as text.
-            notification.body.replaceAll('**', ''),
+            n.body.replaceAll('**', ''),
             style: const TextStyle(
                 color: Default_Theme.primaryColor1, fontSize: 15, height: 1.5),
           ),
           const SizedBox(height: 24),
-          if (url.isNotEmpty)
+          if (_downloading) ...[
+            LinearProgressIndicator(
+                value: _progress,
+                color: Default_Theme.accentColor2,
+                backgroundColor: Colors.white12),
+            const SizedBox(height: 8),
+            Text(
+                _progress == null
+                    ? 'Downloading...'
+                    : 'Downloading... ${(_progress! * 100).round()}%',
+                style: const TextStyle(color: Default_Theme.primaryColor2)),
+          ] else if (url.isNotEmpty)
             FilledButton.icon(
               style: FilledButton.styleFrom(
                   backgroundColor: Default_Theme.accentColor2,
                   minimumSize: const Size.fromHeight(50)),
-              onPressed: () => launchUrl(Uri.parse(url),
-                  mode: LaunchMode.externalApplication),
-              icon: const Icon(Icons.download_rounded),
-              label: const Text('Download update'),
+              onPressed: () => _apk != null
+                  ? AppUpdater.install(_apk!)
+                  : _download(url),
+              icon: Icon(_apk != null
+                  ? Icons.install_mobile_rounded
+                  : Icons.download_rounded),
+              label: Text(_apk != null ? 'Install update' : 'Download update'),
             ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+          ],
+          if (_apk != null) ...[
+            const SizedBox(height: 12),
+            const Text(
+                'If Android asks, allow JARX to install apps, then come back '
+                'and tap Install update. Your music and sign-in stay.',
+                style: TextStyle(color: Default_Theme.primaryColor2)),
+          ],
         ],
       ),
     );

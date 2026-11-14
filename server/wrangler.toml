@@ -14,3 +14,12 @@ APPROVAL = "on"
 binding = "DB"
 database_name = "jarx"
 database_id = "ad415196-419e-47b8-a74a-9871ce8a3400"
+
+# 300 requests a minute per address (Cloudflare's free rate limiter).
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 300
+  period = 60

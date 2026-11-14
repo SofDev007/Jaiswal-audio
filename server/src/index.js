@@ -10,6 +10,10 @@ const SESSION_DAYS = 180;
 // phone (listening:<device id>) so the phones' counts can be added up.
 const KIND = /^(library|history|taste|listening:[0-9a-f]{8,32})$/;
 const MAX_SNAPSHOT = 1_900_000; // D1 keeps at most 2 MB in one value
+// Listening rows are small; a cap on their size and number per account stops
+// one account from filling the database with made-up phone ids.
+const MAX_LISTENING = 256_000;
+const MAX_PHONES = 10;
 const ADMIN_DEVICE = 'admin page';
 
 const json = (body, status = 200) => Response.json(body, { status });
@@ -129,10 +133,19 @@ async function putSync(req, env, user) {
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== 'object') return json({ error: 'bad_body' }, 400);
   const writes = [];
+  const { results: rows } = await env.DB.prepare(
+    "SELECT kind FROM user_data WHERE user_id = ? AND kind LIKE 'listening:%'").bind(user.id).all();
+  const phones = new Set(rows.map((r) => r.kind));
   for (const [kind, snap] of Object.entries(body)) {
     if (!KIND.test(kind) || !snap) continue;
+    const listening = kind.startsWith('listening:');
+    if (listening && !phones.has(kind)) {
+      phones.add(kind);
+      if (phones.size > MAX_PHONES) return json({ error: 'too_many_phones' }, 413);
+    }
     const text = JSON.stringify(snap.data ?? null);
-    if (new TextEncoder().encode(text).length > MAX_SNAPSHOT) return json({ error: 'too_big', kind }, 413);
+    const size = new TextEncoder().encode(text).length;
+    if (size > (listening ? MAX_LISTENING : MAX_SNAPSHOT)) return json({ error: 'too_big', kind }, 413);
     const at = Number(snap.updatedAt);
     if (!Number.isFinite(at) || at <= 0) return json({ error: 'bad_time', kind }, 400);
     // A phone whose clock runs ahead must not win every future sync.
@@ -175,16 +188,15 @@ async function setStatus(req, env, admin, status) {
 async function route(req, env) {
   const path = req.method + ' ' + new URL(req.url).pathname;
   const page = { 'GET /': HOME_PAGE, 'GET /privacy': PRIVACY_PAGE, 'GET /admin': path === 'GET /admin' && adminPage(env) }[path];
-  if (page) return new Response(page, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+  if (page) return new Response(page, { headers: { 'content-type': 'text/html; charset=utf-8', ...PAGE_HEADERS } });
   if (path === 'POST /auth/google') return signIn(req, env);
 
   const user = await sessionUser(req, env);
   if (!user) return json({ error: 'signed_out' }, 401);
-  if (user.status === 'banned') return json({ error: 'banned', reason: user.ban_reason || '' }, 403);
-  // Waiting for approval: may only leave (sign out, delete).
-  if (user.status === 'pending' && path !== 'POST /signout' && path !== 'DELETE /me') {
-    return json({ error: 'pending' }, 403);
-  }
+  // Banned or waiting for approval: may only leave (sign out, delete the account).
+  const leaving = path === 'POST /signout' || path === 'DELETE /me';
+  if (user.status === 'banned' && !leaving) return json({ error: 'banned', reason: user.ban_reason || '' }, 403);
+  if (user.status === 'pending' && !leaving) return json({ error: 'pending' }, 403);
   const isAdmin = user.email === env.ADMIN_EMAIL;
 
   switch (path) {
@@ -218,7 +230,15 @@ async function route(req, env) {
 export default {
   async fetch(req, env) {
     try {
-      return await route(req, env);
+      // ponytail: one limit per address for everything; a shared Wi-Fi with
+      // many JARX users stays far below it.
+      if (env.LIMITER) {
+        const ip = req.headers.get('cf-connecting-ip') || 'unknown';
+        if (!(await env.LIMITER.limit({ key: ip })).success) return json({ error: 'slow_down' }, 429);
+      }
+      const res = await route(req, env);
+      res.headers.set('x-content-type-options', 'nosniff');
+      return res;
     } catch (e) {
       console.error(e);
       return json({ error: 'server' }, 500);
@@ -307,6 +327,22 @@ async function load() {
 load();
 </script></body></html>`;
 }
+
+// No framing by other sites, scripts only from here and Google's sign-in.
+const PAGE_HEADERS = {
+  'content-security-policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client",
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
+    'frame-src https://accounts.google.com/gsi/',
+    "connect-src 'self' https://accounts.google.com/gsi/",
+    'img-src https: data:',
+    "frame-ancestors 'none'",
+  ].join('; '),
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'no-referrer',
+  'cross-origin-opener-policy': 'same-origin-allow-popups',
+};
 
 // ---- Public pages Google asks for (homepage, privacy policy) ----
 
