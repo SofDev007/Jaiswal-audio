@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:Bloomee/blocs/library/cubit/library_items_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/adapters/track_adapter.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
@@ -695,6 +696,38 @@ class _QueueItem extends StatelessWidget {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Smart shuffle's suggestion: + keeps it in the
+                          // playlist that was shuffled.
+                          if (reason != null)
+                            ValueListenableBuilder<Set<String>>(
+                              valueListenable:
+                                  playerCubit.bloomeePlayer.smartPicks,
+                              builder: (context, picks, _) {
+                                if (!picks.contains(mediaItem.id)) {
+                                  return const SizedBox.shrink();
+                                }
+                                final player = playerCubit.bloomeePlayer;
+                                return IconButton(
+                                  tooltip:
+                                      'Add to ${player.smartShuffleFrom}',
+                                  iconSize: 22,
+                                  padding: const EdgeInsets.all(6),
+                                  constraints: const BoxConstraints(
+                                      minWidth: 36, minHeight: 36),
+                                  color: Default_Theme.accentColor2,
+                                  icon: const Icon(
+                                      Icons.add_circle_outline_rounded),
+                                  onPressed: () {
+                                    context
+                                        .read<LibraryItemsCubit>()
+                                        .addToPlaylist(songModel,
+                                            player.smartShuffleFrom);
+                                    player.smartPicks.value = {...picks}
+                                      ..remove(mediaItem.id);
+                                  },
+                                );
+                              },
+                            ),
                           // Suggested: the minus button blocks it for good.
                           if (reason != null)
                             NeverSuggestButton(

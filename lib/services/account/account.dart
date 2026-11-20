@@ -10,6 +10,8 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:math' show Random;
 
+import 'package:Bloomee/services/account/spaces.dart';
+import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -64,8 +66,10 @@ class Account {
 
   final state = ValueNotifier(const AccountState(AccountStatus.signedOut));
   static const _store = FlutterSecureStorage();
-  static const _kSession = 'jarxSession', _kUser = 'jarxUser';
-  static const _kLastOk = 'jarxLastOk';
+  // Each space (account) on this phone keeps its own sign-in.
+  static String get _kSession => Spaces.key('jarxSession');
+  static String get _kUser => Spaces.key('jarxUser');
+  static String get _kLastOk => Spaces.key('jarxLastOk');
 
   String? _token;
   DateTime? _lastOk;
@@ -86,6 +90,8 @@ class Account {
           lastOk == null ? null : DateTime.fromMillisecondsSinceEpoch(lastOk);
       if (_token != null && userJson != null) {
         final user = JarxUser.fromJson(jsonDecode(userJson) as Map);
+        // Signed in before spaces existed: this space is theirs.
+        if (Spaces.ownerOf(Spaces.active) == null) Spaces.own(user);
         state.value = AccountState(
             _lastOk == null // signed in, never let in yet: waiting for approval
                 ? AccountStatus.pending
@@ -138,11 +144,21 @@ class Account {
 
   /// Google's account picker, then the JARX server. Returns a message to
   /// show when it failed, null when signed in (or the user backed out).
-  Future<String?> signIn() async {
+  ///
+  /// Another account than this space's owner restarts JARX into that
+  /// account's own space. When this space has music but no owner yet,
+  /// [isThisYours] decides whether it joins the account (true), stays
+  /// apart (false) or the sign-in stops (null).
+  Future<String?> signIn(
+      {Future<bool?> Function(int playlists, int liked, int plays)?
+          isThisYours}) async {
     try {
       if (!_googleReady) {
         await GoogleSignIn.instance.initialize(serverClientId: _webClientId);
         _googleReady = true;
+      } else {
+        // Always show the picker (adding another account).
+        await GoogleSignIn.instance.signOut();
       }
       final account = await GoogleSignIn.instance.authenticate();
       final idToken = account.authentication.idToken;
@@ -164,10 +180,27 @@ class Account {
         return 'JARX could not sign you in (error ${res.statusCode}). Try again.';
       }
       final body = jsonDecode(res.body) as Map;
+      final user = JarxUser.fromJson(body['user'] as Map);
+      final pending = (body['user'] as Map)['status'] == 'pending';
+      final space = await _spaceFor(user, isThisYours);
+      if (space == null) return null;
+      if (space != Spaces.active) {
+        await _store.write(
+            key: Spaces.key('jarxSession', space), value: body['token']);
+        await _store.write(
+            key: Spaces.key('jarxUser', space),
+            value: jsonEncode(user.toJson()));
+        if (!pending) {
+          await _store.write(
+              key: Spaces.key('jarxLastOk', space),
+              value: '${DateTime.now().millisecondsSinceEpoch}');
+        }
+        await Spaces.switchTo(space);
+        return null;
+      }
       _token = body['token'] as String;
       await _store.write(key: _kSession, value: _token);
-      final user = JarxUser.fromJson(body['user'] as Map);
-      if ((body['user'] as Map)['status'] == 'pending') {
+      if (pending) {
         // New account: the owner has to approve it first.
         await _store.write(key: _kUser, value: jsonEncode(user.toJson()));
         state.value = AccountState(AccountStatus.pending, user: user);
@@ -187,6 +220,30 @@ class Account {
     }
   }
 
+  /// The space [user] signs into: theirs if this phone has one, else this
+  /// one if it's nobody's and (when it has music) they say it's theirs,
+  /// else a new one. Null: they backed out.
+  Future<String?> _spaceFor(JarxUser user,
+      Future<bool?> Function(int, int, int)? isThisYours) async {
+    final theirs = Spaces.spaceOf(user.id);
+    if (theirs != null) return theirs;
+    final isar = await DBProvider.db;
+    if (Spaces.ownerOf(Spaces.active) == null) {
+      final (lists, liked, plays) = await Spaces.music(isar);
+      final bool? yours = lists + liked + plays == 0
+          ? true
+          : isThisYours == null
+              ? false
+              : await isThisYours(lists, liked, plays);
+      if (yours == null) return null;
+      if (yours) {
+        Spaces.own(user);
+        return Spaces.active;
+      }
+    }
+    return Spaces.create(isar, user);
+  }
+
   /// Ends this phone's sign-in. The music on the phone stays.
   Future<void> signOut() async {
     final token = _token;
@@ -199,6 +256,26 @@ class Account {
       } catch (_) {} // the session expires on the server anyway
     }
     await _forget();
+  }
+
+  /// Takes another account off this phone: ends its sign-in and deletes its
+  /// space. Its music stays in the account.
+  static Future<void> removeSpace(String space) async {
+    final token = await _store.read(key: Spaces.key('jarxSession', space));
+    if (token != null) {
+      try {
+        await http
+            .post(Uri.parse('$jarxServer/signout'),
+                headers: await _headers(token))
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {}
+    }
+    for (final k in ['jarxSession', 'jarxUser', 'jarxLastOk']) {
+      try {
+        await _store.delete(key: Spaces.key(k, space));
+      } catch (_) {}
+    }
+    Spaces.remove(space);
   }
 
   /// Deletes the account and everything the server keeps about it.
@@ -216,6 +293,7 @@ class Account {
     } catch (_) {
       return 'No connection to the JARX server. Try again when online.';
     }
+    Spaces.own(null); // the music here is nobody's now
     await _forget();
     return null;
   }

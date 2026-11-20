@@ -1,5 +1,7 @@
 import 'dart:developer';
 
+import 'package:Bloomee/services/player/song_cache.dart';
+
 import 'package:Bloomee/core/events/global_event_bus.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart';
@@ -21,10 +23,15 @@ class ResolvedMediaSource {
   final bool isOffline;
   final Map<String, String>? headers;
 
+  /// When [uri] goes through the song cache: the stream itself, to play
+  /// directly if the player can't use the cache on this phone.
+  final ResolvedMediaSource? direct;
+
   const ResolvedMediaSource({
     required this.uri,
     required this.isOffline,
     this.headers,
+    this.direct,
   });
 }
 
@@ -75,6 +82,20 @@ class MediaResolverService {
     } catch (e) {
       log('Download check failed: $e', name: 'MediaResolverService');
       // Non-fatal — continue to online resolution
+    }
+
+    // 1b. Streamed to the end before: from the phone, no data.
+    if (!SongCache.disabled) {
+      try {
+        final cached = (await SongCache.instance).lookup(track.id);
+        if (cached != null) {
+          log('Playing from cache: ${track.title}',
+              name: 'MediaResolverService');
+          return ResolvedMediaSource(uri: Uri.file(cached.path), isOffline: true);
+        }
+      } catch (e) {
+        log('Cache check failed: $e', name: 'MediaResolverService');
+      }
     }
 
     // 2. Plugin-based stream resolution.
@@ -175,13 +196,26 @@ class MediaResolverService {
         }
 
         log('Resolved stream: $streamUrl', name: 'MediaResolverService');
-        return ResolvedMediaSource(
+        final source = ResolvedMediaSource(
           uri: uri,
           isOffline: false,
           headers: selectedStream == null
               ? null
               : streamHeadersToMap(selectedStream.headers),
         );
+        if (SongCache.disabled || uri.scheme == 'file') return source;
+        try {
+          // Through the song cache, which keeps it if it plays to the end.
+          return ResolvedMediaSource(
+            uri: await (await SongCache.instance)
+                .tee(track.id, uri, source.headers),
+            isOffline: false,
+            direct: source,
+          );
+        } catch (e) {
+          log('Song cache unavailable: $e', name: 'MediaResolverService');
+          return source;
+        }
       },
       trackDetails: (_) =>
           throw Exception('Unexpected response type: trackDetails'),

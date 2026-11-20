@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/shuffle_bubbles.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -176,6 +177,15 @@ class _PlaylistViewState extends State<PlaylistView> {
           doPlay: true,
           shuffling: shuffle,
         );
+  }
+
+  /// The playlist shuffled with suggestions mixed in (one after every 3).
+  Future<void> _smartShuffle(BuildContext context) async {
+    final fullPlaylist =
+        await context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded();
+    if (!mounted || fullPlaylist.tracks.isEmpty) return;
+    context.read<BloomeePlayerCubit>().bloomeePlayer.smartShuffle(
+        Playlist(tracks: fullPlaylist.tracks, title: fullPlaylist.title));
   }
 
   List<Color> _getOptimizedPalette(BuildContext context) {
@@ -683,12 +693,14 @@ class _PlaylistViewState extends State<PlaylistView> {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min, // Hug contents tightly
         children: [
-          _buildActionIcon(
-              MingCute.shuffle_line,
-              l10n.playlistShuffle,
-              isEmpty
-                  ? null
-                  : () => _playFromPlaylist(context, state, shuffle: true)),
+          ShuffleBubbles(
+            button: (onTap) => _buildActionIcon(
+                MingCute.shuffle_line, l10n.playlistShuffle, onTap),
+            onShuffle: isEmpty
+                ? null
+                : () => _playFromPlaylist(context, state, shuffle: true),
+            onSmartShuffle: isEmpty ? null : () => _smartShuffle(context),
+          ),
           const SizedBox(width: 12),
 
           Builder(builder: (ctx) {

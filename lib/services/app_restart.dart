@@ -14,6 +14,9 @@ class AppRestart {
 
   static const _channel = MethodChannel('jarx/app');
 
+  /// Starts JARX again in a new process (switching account).
+  static Future<void> restart() => _channel.invokeMethod<void>('restart');
+
   static bool isDatabaseLocked(Object error) =>
       error.toString().contains('MdbxError (11)');
 

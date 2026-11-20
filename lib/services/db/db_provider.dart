@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:Bloomee/core/constants/cache_keys.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart' as models;
+import 'package:Bloomee/services/account/spaces.dart';
 import 'package:Bloomee/services/db/global_db.dart';
 import 'package:Bloomee/services/db/dao/cache_dao.dart';
 import 'package:Bloomee/services/db/dao/history_dao.dart';
@@ -77,8 +78,9 @@ class DBProvider {
   /// Open (or return existing) Isar instance.
   static Future<Isar> openDB() async {
     if (Isar.instanceNames.isEmpty) {
+      Spaces.load(appSuppDir);
       final File dbFile = File(p.join(appSuppDir, 'dbv3.isar'));
-      if (!await dbFile.exists()) {
+      if (Spaces.active == Spaces.first && !await dbFile.exists()) {
         await checkAndRestoreDB(dbFile.path, [
           p.join(appDocDir, 'dbv3.isar'),
           p.join(appDocDir, 'bloomee_backup_dbv3.isar'),
@@ -87,7 +89,8 @@ class DBProvider {
       }
 
       // Migrate DB from documents dir to support dir if needed
-      if (!await dbFile.exists() &&
+      if (Spaces.active == Spaces.first &&
+          !await dbFile.exists() &&
           await File(p.join(appDocDir, 'dbv3.isar')).exists()) {
         final tempDb =
             Isar.openSync(_schemas, directory: appDocDir, name: 'dbv3');
@@ -97,9 +100,12 @@ class DBProvider {
       }
 
       log(appSuppDir, name: "DB");
-      return Isar.openSync(_schemas, directory: appSuppDir, name: 'dbv3');
+      final isar =
+          Isar.openSync(_schemas, directory: appSuppDir, name: Spaces.active);
+      Spaces.clearIfFresh(isar);
+      return isar;
     }
-    return Future.value(Isar.getInstance());
+    return Future.value(Isar.getInstance(Spaces.active));
   }
 
   /// Schedule periodic maintenance tasks (called once during bootstrap).
@@ -336,8 +342,9 @@ class DBProvider {
   /// A rollback copy is kept during restore so failed restores can recover
   /// without leaving the app in a broken state.
   static Future<Map<String, dynamic>> restoreDB(String? path) async {
-    final primaryFile = File(p.join(appSuppDir, 'dbv3.isar'));
-    final rollbackFile = File(p.join(appSuppDir, 'dbv3.restore_rollback.isar'));
+    final primaryFile = File(p.join(appSuppDir, '${Spaces.active}.isar'));
+    final rollbackFile =
+        File(p.join(appSuppDir, '${Spaces.active}.restore_rollback.isar'));
 
     try {
       String backupFilePath =

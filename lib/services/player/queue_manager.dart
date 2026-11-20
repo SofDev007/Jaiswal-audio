@@ -340,6 +340,26 @@ class QueueManager {
     }
   }
 
+  /// Smart shuffle: puts [picks] one after every [every] songs, only ahead
+  /// of the song playing now. Skipped while shuffle is on (the order isn't
+  /// the queue order then) and for songs already in the queue.
+  void insertEvery(int every, List<Track> picks) {
+    if (shuffleMode.value) return;
+    final q = List<Track>.from(_queue.value);
+    final ids = {for (final t in q) t.id};
+    final todo = [for (final t in picks) if (ids.add(t.id)) t];
+    var at = every, k = 0;
+    while (k < todo.length && at <= q.length) {
+      if (at > _currentIndex) {
+        q.insert(at, todo[k++]);
+        at += every + 1;
+      } else {
+        at += every;
+      }
+    }
+    _queue.add(q);
+  }
+
   /// Remove a track by queue index.
   void removeTrackAt(int index) {
     if (index >= _queue.value.length) return;
