@@ -121,7 +121,7 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
 
                   // --- Main Content ---
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+                    padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,13 +131,13 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
                           l10n.playlistCreateNew,
                           style: Default_Theme.secondoryTextStyleMedium.merge(
                             const TextStyle(
-                              fontSize: 26,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Default_Theme.accentColor2,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
                         // Input Field
                         TextField(
@@ -147,11 +147,11 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
                           maxLines: 1,
                           maxLength: 35,
                           cursorColor: Default_Theme.accentColor2,
-                          cursorWidth: 3,
+                          cursorWidth: 2,
                           cursorRadius: const Radius.circular(3),
                           style: Default_Theme.secondoryTextStyleMedium.merge(
                             TextStyle(
-                              fontSize: 32,
+                              fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: Default_Theme.primaryColor2.withValues(
                                   alpha: 0.9), // Typed text in clear white
@@ -163,9 +163,9 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
                             hintStyle:
                                 Default_Theme.secondoryTextStyleMedium.merge(
                               TextStyle(
-                                fontSize: 32,
+                                fontSize: 18,
                                 color: Default_Theme.primaryColor2.withValues(
-                                    alpha: 0.2), // Greyed out hint text
+                                    alpha: 0.35), // Greyed out hint text
                               ),
                             ),
                             isDense: true,
@@ -201,7 +201,7 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 28),
 
                         // --- Action Buttons ---
                         Row(

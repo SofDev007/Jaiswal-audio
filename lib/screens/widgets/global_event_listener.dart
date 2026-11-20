@@ -133,10 +133,13 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
             showBloomeeDialog(
               context: dialogContext,
               title: l10n.dialogUpdateAvailable,
+              // "Current build", then "Latest build" with its date and
+              // notes (built by notesSince).
               subtitle: s.notes.isEmpty
                   ? l10n.updateAvailableBody(s.newVersion, s.newBuild)
-                  : '${l10n.updateAvailableBody(s.newVersion, s.newBuild)}'
-                      '\n\n${s.notes.length > 600 ? '${s.notes.substring(0, 600)}…\n(Full list in the Home bell.)' : s.notes}',
+                  : s.notes.length > 700
+                      ? '${s.notes.substring(0, 700)}…\n(Full list in the Home bell.)'
+                      : s.notes,
               icon: Icons.system_update_rounded,
               actions: [
                 BloomeeDialogAction.text(l10n.buttonLater),
@@ -145,7 +148,7 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
                   Navigator.of(dialogContext).push(MaterialPageRoute(
                       builder: (_) => UpdateNotesView(
                           notification: AppNotification(
-                              title: 'JARX ${s.newVersion} (${s.newBuild}) is available',
+                              title: 'JARX ${s.newVersion} (build ${s.newBuild}) is available',
                               body: s.notes,
                               type: 'app_update',
                               url: s.downloadUrl))));

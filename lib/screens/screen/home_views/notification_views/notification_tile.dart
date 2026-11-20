@@ -47,7 +47,12 @@ class NotificationTile extends StatelessWidget {
               .merge(Default_Theme.secondoryTextStyle),
         ),
         subtitle: Text(
-          notification.body,
+          // An update: the latest build and its date first ("Current
+          // build" is on the update's own page).
+          notification.type == 'app_update' &&
+                  notification.body.contains('Latest build\n')
+              ? notification.body.split('Latest build\n').last
+              : notification.body,
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
@@ -75,6 +80,13 @@ class UpdateNotesView extends StatefulWidget {
 }
 
 class _UpdateNotesViewState extends State<UpdateNotesView> {
+  /// The section headings of the update text (notesSince).
+  static const _headings = {
+    'Current build',
+    'Latest build',
+    'Also new since your build',
+  };
+
   bool _downloading = false;
   double? _progress;
   String? _apk, _error;
@@ -131,9 +143,21 @@ class _UpdateNotesViewState extends State<UpdateNotesView> {
                     fontWeight: FontWeight.bold)),
           ],
           const SizedBox(height: 16),
-          SelectableText(
-            // GitHub notes are Markdown; bold markers read badly as text.
-            n.body.replaceAll('**', ''),
+          SelectableText.rich(
+            TextSpan(children: [
+              // GitHub notes are Markdown; bold markers read badly as text.
+              for (final line in n.body.replaceAll('**', '').split('\n'))
+                TextSpan(
+                  text: '$line\n',
+                  style: _headings.contains(line)
+                      ? const TextStyle(
+                          color: Default_Theme.accentColor2,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          height: 2)
+                      : null,
+                ),
+            ]),
             style: const TextStyle(
                 color: Default_Theme.primaryColor1, fontSize: 15, height: 1.5),
           ),

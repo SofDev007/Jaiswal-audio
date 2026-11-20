@@ -35,14 +35,18 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
     super.dispose();
   }
 
+  bool _isOpen = false;
+
   void _open() {
+    setState(() => _isOpen = true);
     _portal.show();
     _c.forward(from: 0);
   }
 
   Future<void> _close() async {
+    if (_isOpen) setState(() => _isOpen = false);
     await _c.reverse();
-    if (mounted) _portal.hide();
+    if (mounted && !_isOpen) _portal.hide();
   }
 
   void _pick(VoidCallback? action) {
@@ -52,7 +56,16 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
 
   @override
   Widget build(BuildContext context) {
-    return OverlayPortal(
+    // Another page opened on top: tuck the bubbles away at once.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) && _portal.isShowing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_portal.isShowing) return;
+        _c.value = 0;
+        _portal.hide();
+        setState(() => _isOpen = false);
+      });
+    }
+    final portal = OverlayPortal(
       controller: _portal,
       overlayChildBuilder: (_) => Stack(children: [
         Positioned.fill(
@@ -83,6 +96,17 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
         link: _link,
         child: widget.button(widget.onShuffle == null ? null : _open),
       ),
+    );
+    // While open, Back closes the bubbles (and stays on the page). JARX's
+    // own Back handling pops the page directly, so the bubbles must take
+    // the press first; this listener exists only while they're open.
+    if (!_isOpen) return portal;
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        _close();
+        return true;
+      },
+      child: portal,
     );
   }
 

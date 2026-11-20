@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -82,14 +83,50 @@ class UpdateGate {
 /// Build number from a release tag like `v2.0.0+38` (0 when missing).
 int buildOfTag(String tag) => int.tryParse(tag.split('+').last) ?? 0;
 
-/// The notes of every full release newer than [currentBuild], newest first,
-/// each under its version, e.g. someone on 35 sees 38, 37 and 36.
-/// [releases] is GitHub's release list (newest first).
-String notesSince(List releases, int currentBuild) => [
-      for (final r in releases.cast<Map>())
-        if (r['draft'] != true &&
-            r['prerelease'] != true &&
-            buildOfTag('${r['tag_name']}') > currentBuild)
-          'JARX ${'${r['tag_name']}'.replaceFirst('v', '').replaceFirst('+', ' (build ')})\n'
-              '${('${r['body'] ?? ''}').replaceAll(requiredMarker, '').trim()}'
-    ].join('\n\n');
+/// A release notes' own first line when it only repeats the heading
+/// ("JARX 2.0.0 (build 39)", "Build 37:").
+final _repeatedTitle = RegExp(r'^\s*(JARX .*\(build \d+\)|build \d+\s*:?)\s*$',
+    caseSensitive: false);
+
+String _releaseName(Map r) =>
+    'JARX ${'${r['tag_name']}'.replaceFirst(RegExp('^[vV]'), '').replaceFirst('+', ' (build ')})';
+
+String _releaseDate(Map r) {
+  final d = DateTime.tryParse('${r['published_at']}')?.toLocal();
+  return d == null ? '' : DateFormat('d MMM yyyy').format(d);
+}
+
+/// One release: its name and date, then its notes.
+String _section(Map r) {
+  var lines = '${r['body'] ?? ''}'
+      .replaceAll(requiredMarker, '')
+      .replaceAll('\r', '')
+      .trim()
+      .split('\n');
+  if (_repeatedTitle.hasMatch(lines.first)) lines = lines.sublist(1);
+  final date = _releaseDate(r);
+  final notes = lines.join('\n').trim();
+  return '${_releaseName(r)}${date.isEmpty ? '' : ' · $date'}'
+      '${notes.isEmpty ? '' : '\n$notes'}';
+}
+
+/// The update text: the build you have, the latest build (date and notes),
+/// then any other builds you skipped. Empty when up to date.
+/// [releases] is GitHub's release list; drafts and pre-releases don't count.
+String notesSince(List releases, String currentVersion, int currentBuild) {
+  final newer = [
+    for (final r in releases.cast<Map>())
+      if (r['draft'] != true &&
+          r['prerelease'] != true &&
+          buildOfTag('${r['tag_name']}') > currentBuild)
+        r
+  ]..sort((a, b) =>
+      buildOfTag('${b['tag_name']}') - buildOfTag('${a['tag_name']}'));
+  if (newer.isEmpty) return '';
+  return [
+    'Current build\nJARX $currentVersion (build $currentBuild)',
+    'Latest build\n${_section(newer.first)}',
+    if (newer.length > 1)
+      'Also new since your build\n${newer.skip(1).map(_section).join('\n\n')}',
+  ].join('\n\n');
+}

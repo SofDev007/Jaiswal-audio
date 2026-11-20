@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:Bloomee/blocs/lyrics/lyrics_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/blocs/mini_player/mini_player_cubit.dart';
+import 'package:Bloomee/core/models/lyrics_models.dart' show Lyrics;
 import 'package:Bloomee/screens/screen/player_views/lyrics_search.dart';
 import 'package:Bloomee/screens/widgets/media_metadata_links.dart';
 import 'package:Bloomee/screens/widgets/play_pause_widget.dart';
@@ -32,9 +33,18 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
   Timer? _hideControlsTimer;
   final UpNextPanelController _upNextPanelController = UpNextPanelController();
 
+  /// How far the lyrics are moved: positive = earlier, negative = later.
   Duration _lyricOffset = Duration.zero;
   bool _isSyncMode = false;
   Timer? _holdTimer;
+  late final LyricsCubit _lyricsCubit;
+
+  /// The lyrics being synced and their saved delay, so a change is saved
+  /// on Done, on Back and when the next song starts.
+  Lyrics? _syncLyrics;
+  String? _syncTrackId;
+  int _savedOffsetMs = 0;
+
 
   final ValueNotifier<Duration> _positionNotifier =
       ValueNotifier(Duration.zero);
@@ -48,8 +58,47 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
 
     final playerCubit = context.read<BloomeePlayerCubit>();
     _currentTrackId = playerCubit.bloomeePlayer.currentTrackInfo.id;
+    _lyricsCubit = context.read<LyricsCubit>();
 
     _loadPersistedOffset();
+  }
+
+  void _startSync() {
+    final state = _lyricsCubit.state;
+    if (state is LyricsLoaded && state.lyrics.mediaID == _currentTrackId) {
+      _syncLyrics = state.lyrics;
+      _syncTrackId = _currentTrackId;
+      _savedOffsetMs = state.lyrics.offset ?? 0;
+    }
+    setState(() {
+      _isSyncMode = true;
+      _showControls = true;
+    });
+  }
+
+  /// Saves the delay if it changed.
+  void _saveOffset() {
+    final lyrics = _syncLyrics, id = _syncTrackId;
+    final ms = _lyricOffset.inMilliseconds;
+    if (lyrics == null || id == null || ms == _savedOffsetMs) return;
+    _savedOffsetMs = ms;
+    _lyricsCubit.setLyricsToDB(lyrics, id, offset: ms);
+  }
+
+  void _finishSync() {
+    _saveOffset();
+    _syncLyrics = null;
+    setState(() => _isSyncMode = false);
+    _startHideControlsTimer();
+  }
+
+  /// Sync by tapping a line the moment it's heard: that line's time minus
+  /// when it was heard is the delay, however big.
+  void _syncToLine(Duration lineStart) {
+    final position =
+        context.read<BloomeePlayerCubit>().bloomeePlayer.engine.position;
+    setState(() => _lyricOffset = lyricsSyncOffset(lineStart, position));
+    _onInteraction();
   }
 
   void _loadPersistedOffset() {
@@ -67,6 +116,7 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
 
   @override
   void dispose() {
+    _saveOffset(); // left with Back while syncing
     _holdTimer?.cancel();
     _hideControlsTimer?.cancel();
     _positionNotifier.dispose();
@@ -97,9 +147,11 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
     _startHideControlsTimer();
   }
 
+  /// Earlier (+) or Later (−) by [ms]; held, it keeps going.
   void _startOffsetChange(int ms) {
+    _holdTimer?.cancel();
     setState(() => _lyricOffset += Duration(milliseconds: ms));
-    _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+    _holdTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
       setState(() => _lyricOffset += Duration(milliseconds: ms));
     });
   }
@@ -116,10 +168,7 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
         state: state,
         onSyncTap: () {
           Navigator.pop(context);
-          setState(() {
-            _isSyncMode = true;
-            _showControls = true;
-          });
+          _startSync();
         },
       ),
     ).then((_) => _startHideControlsTimer());
@@ -158,6 +207,7 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
                               state: state,
                               positionNotifier: _positionNotifier,
                               lyricOffset: _lyricOffset,
+                              onSyncTap: _isSyncMode ? _syncToLine : null,
                               onInteraction: _onInteraction,
                               isDesktop: isDesktop,
                             )
@@ -180,6 +230,8 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
                 if (state is LyricsLoading || state is LyricsLoaded) {
                   final newTrackId = state.track.id;
                   if (_currentTrackId != newTrackId) {
+                    _saveOffset(); // the last song's delay, if being synced
+                    _syncLyrics = null;
                     _currentTrackId = newTrackId;
                     if (mounted) {
                       setState(() {
@@ -227,16 +279,21 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
             AnimatedPositioned(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
+              // Off screen entirely when not syncing (the panel is ~200 px
+              // tall; -100 left half of it showing over the controls).
               bottom: _isSyncMode
                   ? (_showControls
                       ? (isDesktop ? 220 : 250)
                       : (isDesktop ? 80 : 100))
-                  : -100,
+                  : -400,
               left: 0,
               right: 0,
-              child: GestureDetector(
-                onTap: () {},
-                child: _buildSyncControls(),
+              child: IgnorePointer(
+                ignoring: !_isSyncMode,
+                child: GestureDetector(
+                  onTap: () {},
+                  child: _buildSyncControls(),
+                ),
               ),
             ),
             UpNextPanel(
@@ -377,104 +434,99 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
     );
   }
 
+  /// Syncing the lyrics: tap a line the moment it's heard (precise, any
+  /// size of delay), or nudge them Earlier / Later 0.1 s at a time (hold to
+  /// keep going). Saved on Done, on Back and when the song changes.
   Widget _buildSyncControls() {
-    final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(40),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                spreadRadius: 5,
-                offset: const Offset(0, 10))
-          ],
+    Widget nudge(String label, IconData icon, int ms, {bool iconFirst = true}) {
+      final children = [
+        Icon(icon, color: Colors.white, size: 20),
+        const SizedBox(width: 4),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600)),
+      ];
+      return GestureDetector(
+        onTapDown: (_) => _startOffsetChange(ms),
+        onTapUp: (_) => _stopOffsetChange(),
+        onTapCancel: _stopOffsetChange,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: iconFirst ? children : children.reversed.toList()),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(40),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTapDown: (_) => _startOffsetChange(-50),
-                    onTapUp: (_) => _stopOffsetChange(),
-                    onTapCancel: () => _stopOffsetChange(),
-                    child: const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(MingCute.minus_circle_fill,
-                            color: Colors.white, size: 28)),
-                  ),
-                  InkWell(
-                    onTap: () => setState(() => _lyricOffset = Duration.zero),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "${_lyricOffset.inMilliseconds > 0 ? '+' : ''}${_lyricOffset.inMilliseconds}ms",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16),
-                          ),
-                          Text(l10n.lyricsSyncTapToReset.toUpperCase(),
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.6),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5)),
-                        ],
+      );
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            // Solid, no backdrop blur: a blur over the moving, faded lyric
+            // list smeared it into copies on the realme 5 Pro (Adreno 616).
+            child: RepaintBoundary(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xF0161216),
+                  borderRadius: BorderRadius.circular(24),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(lyricsDelayLabel(_lyricOffset),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('Tap a line the moment you hear it start',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 13)),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      nudge('Earlier', Icons.arrow_back_rounded, 100),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _lyricOffset = Duration.zero),
+                        child: Text('Reset',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontWeight: FontWeight.w600)),
                       ),
+                      nudge('Later', Icons.arrow_forward_rounded, -100,
+                          iconFirst: false),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: Default_Theme.accentColor2,
+                          shape: const StadiumBorder()),
+                      onPressed: _finishSync,
+                      child: const Text('Done',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  GestureDetector(
-                    onTapDown: (_) => _startOffsetChange(50),
-                    onTapUp: (_) => _stopOffsetChange(),
-                    onTapCancel: () => _stopOffsetChange(),
-                    child: const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(MingCute.add_circle_fill,
-                            color: Colors.white, size: 28)),
-                  ),
-                  Container(
-                      width: 1,
-                      height: 28,
-                      color: Colors.white.withValues(alpha: 0.2),
-                      margin: const EdgeInsets.symmetric(horizontal: 12)),
-                  IconButton(
-                    icon: const Icon(MingCute.close_fill,
-                        color: Colors.white, size: 24),
-                    onPressed: () {
-                      if (_currentTrackId != null) {
-                        final lyricsCubit = context.read<LyricsCubit>();
-                        final state = lyricsCubit.state;
-                        if (state is LyricsLoaded &&
-                            state.lyrics.mediaID == _currentTrackId) {
-                          lyricsCubit.setLyricsToDB(
-                            state.lyrics,
-                            _currentTrackId!,
-                            offset: _lyricOffset.inMilliseconds,
-                          );
-                        }
-                      }
-                      setState(() => _isSyncMode = false);
-                      _startHideControlsTimer();
-                    },
-                  ),
-                ],
+                ]),
               ),
             ),
           ),
@@ -606,10 +658,33 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
   }
 }
 
+/// People tap a little after they hear a line begin; this much is taken off
+/// a tap. ponytail: a fixed guess; tune it if taps land late or early.
+const lyricsTapReaction = Duration(milliseconds: 150);
+
+/// The delay that puts [lineStart] (the line's time in the lyrics) where
+/// it was heard: tapped at [position] in the song. Positive = lyrics
+/// earlier, negative = later. Rounded to 0.01 s.
+Duration lyricsSyncOffset(Duration lineStart, Duration position) {
+  final ms = (lineStart - (position - lyricsTapReaction)).inMilliseconds;
+  return Duration(milliseconds: (ms / 10).round() * 10);
+}
+
+/// "Lyrics in time", "Lyrics 1.2 s earlier", "Lyrics 0.8 s later".
+String lyricsDelayLabel(Duration offset) {
+  final ms = offset.inMilliseconds;
+  if (ms.abs() < 50) return 'Lyrics in time';
+  final s = (ms.abs() / 1000).toStringAsFixed(ms.abs() < 10000 ? 1 : 0);
+  return ms > 0 ? 'Lyrics $s s earlier' : 'Lyrics $s s later';
+}
+
 class FullscreenSyncedLyrics extends StatefulWidget {
   final LyricsState state;
   final ValueNotifier<Duration> positionNotifier;
   final Duration lyricOffset;
+
+  /// Syncing: a tapped line's start time (instead of seeking to it).
+  final void Function(Duration lineStart)? onSyncTap;
   final VoidCallback? onInteraction;
   final bool isDesktop;
 
@@ -617,6 +692,7 @@ class FullscreenSyncedLyrics extends StatefulWidget {
     required this.state,
     required this.positionNotifier,
     required this.lyricOffset,
+    this.onSyncTap,
     this.onInteraction,
     this.isDesktop = false,
     super.key,
@@ -773,6 +849,8 @@ class _FullscreenSyncedLyricsState extends State<FullscreenSyncedLyrics> {
             return GestureDetector(
               onTap: () {
                 widget.onInteraction?.call();
+                final sync = widget.onSyncTap;
+                if (sync != null) return sync(lyric.start);
                 context
                     .read<BloomeePlayerCubit>()
                     .bloomeePlayer

@@ -693,16 +693,6 @@ class _PlaylistViewState extends State<PlaylistView> {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min, // Hug contents tightly
         children: [
-          ShuffleBubbles(
-            button: (onTap) => _buildActionIcon(
-                MingCute.shuffle_line, l10n.playlistShuffle, onTap),
-            onShuffle: isEmpty
-                ? null
-                : () => _playFromPlaylist(context, state, shuffle: true),
-            onSmartShuffle: isEmpty ? null : () => _smartShuffle(context),
-          ),
-          const SizedBox(width: 12),
-
           Builder(builder: (ctx) {
             final downloaded = ctx.watch<DownloaderCubit>().state.downloaded;
             // Only once the whole playlist is loaded: a long one is loaded a
@@ -738,6 +728,18 @@ class _PlaylistViewState extends State<PlaylistView> {
                 isEmpty ? null : () => _handleDownload(context, state, l10n));
           }),
 
+          const SizedBox(width: 12),
+
+          // Shuffle second, not at the edge: its two bubbles ("Shuffle",
+          // "Smart shuffle") open centred above it and need the room.
+          ShuffleBubbles(
+            button: (onTap) => _buildActionIcon(
+                MingCute.shuffle_line, l10n.playlistShuffle, onTap),
+            onShuffle: isEmpty
+                ? null
+                : () => _playFromPlaylist(context, state, shuffle: true),
+            onSmartShuffle: isEmpty ? null : () => _smartShuffle(context),
+          ),
           const SizedBox(width: 12),
 
           // Big Center Play Button
