@@ -12,6 +12,15 @@ class SettingKeys {
 
   // ── Playback ────────────────────────────────────────────────────────────────
   static const String strmQuality = "streamQuality";
+
+  /// Video mode's quality, chosen on the video: a height, or 0 for Auto.
+  static const String videoQuality = "videoQuality";
+
+  /// Full-screen captions: a language (e.g. "en"), "off", or unset.
+  static const String videoCaptions = "videoCaptions";
+
+  /// Full-screen caption size: "small", "medium" or "large".
+  static const String videoCaptionSize = "videoCaptionSize";
   static const String autoPlay = "autoPlaySimilarItems";
   static const String autoResolveUnavailableTracks =
       "autoResolveUnavailableTracks";

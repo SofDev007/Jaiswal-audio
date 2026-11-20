@@ -538,7 +538,9 @@ class LyricsCubit extends Cubit<LyricsState> {
       {int? offset}) async {
     final updated = lyrics.copyWith(mediaID: mediaID, offset: offset);
     await _lyricsDao.putLyrics(updated, offset: offset);
-    if (!isClosed) {
+    // Only while it's still this song's lyrics on screen (a delay can be
+    // saved just as the next song starts).
+    if (!isClosed && state.track.id == mediaID) {
       emit(LyricsLoaded(updated, state.track));
     }
     log('Lyrics updated for ID: ${updated.mediaID} (offset: $offset)',

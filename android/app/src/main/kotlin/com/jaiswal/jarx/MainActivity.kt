@@ -33,6 +33,13 @@ class MainActivity : AudioServiceActivity() {
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
                     return@setMethodCallHandler result.success(true)
                 }
+                // Video mode: the screen stays on while a music video plays.
+                if (call.method == "keepScreenOn") {
+                    val flag = android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                    if (call.argument<Boolean>("on") == true) window.addFlags(flag)
+                    else window.clearFlags(flag)
+                    return@setMethodCallHandler result.success(null)
+                }
                 if (call.method != "restart") return@setMethodCallHandler result.notImplemented()
                 result.success(null)
                 packageManager.getLaunchIntentForPackage(packageName)?.let {
