@@ -27,9 +27,9 @@ void main() {
     expect(got.last.headers, {'User-Agent': 'x'});
   });
 
-  test('YouTube songs have videos, others don\'t', () {
+  test('only YouTube Video songs offer the video', () {
     bool from(String plugin) => hasVideo(tr('abc', 'Song', 'A', plugin: plugin));
-    expect(from('content-resolver.bloomfactory.ytmusic'), isTrue);
+    expect(from('content-resolver.bloomfactory.ytmusic'), isFalse);
     expect(from('content-resolver.bloomfactory.ytvideo'), isTrue);
     expect(from('content-resolver.bloomfactory.jiosaavn'), isFalse);
     expect(from('local'), isFalse);

@@ -193,7 +193,7 @@ Future<Map<String, dynamic>> githubUpdate(
       return {
         'source': 'github',
         // The release notes: shown in full in the update notice.
-        'notes': notesSince(releases,
+        'notes': notesSince(releases, packageInfo.version,
             (int.tryParse(packageInfo.buildNumber) ?? 0) % 1000),
         'requiredBuild': requiredBuildIn(
             releases, (int.tryParse(packageInfo.buildNumber) ?? 0) % 1000),

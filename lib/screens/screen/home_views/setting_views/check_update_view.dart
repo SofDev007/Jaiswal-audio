@@ -1,3 +1,5 @@
+import 'package:Bloomee/core/models/app_notification.dart';
+import 'package:Bloomee/screens/screen/home_views/notification_views/notification_tile.dart';
 import 'package:Bloomee/services/bloomee_updater_tools.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
@@ -44,8 +46,9 @@ class CheckUpdateView extends StatelessWidget {
                       padding: const EdgeInsets.all(5.0),
                       child: FilledButton(
                         onPressed: () {
+                          // JARX's own releases (this was Bloomee's page).
                           launch_Url(Uri.parse(
-                              "https://github.com/HemantKArya/BloomeeTunes/releases"));
+                              "https://github.com/SofDev007/Jaiswal-audio/releases"));
                         },
                         child: SizedBox(
                           // width: 150,
@@ -114,17 +117,24 @@ class CheckUpdateView extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: FilledButton(
-                        onPressed: () {
-                          launch_Url(
-                              Uri.parse("https://bloomee.sourceforge.io/"));
-                        },
+                        // The in-app updater: download with progress, then
+                        // Android's install screen. (This opened Bloomee's
+                        // website in the browser.)
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => UpdateNotesView(
+                                    notification: AppNotification(
+                                        title: 'JARX ${snapshot.data?["newVer"]} '
+                                            '(build ${snapshot.data?["newBuild"]}) is available',
+                                        body: snapshot.data?["notes"] ?? '',
+                                        type: 'app_update',
+                                        url: snapshot.data?["download_url"])))),
                         child: SizedBox(
                           width: 150,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.open_in_browser_rounded,
-                                  size: 25),
+                              const Icon(Icons.download_rounded, size: 25),
                               Text(
                                 l10n.updateDownloadNow,
                                 style: const TextStyle(fontSize: 17).merge(

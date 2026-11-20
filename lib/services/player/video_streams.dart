@@ -1,6 +1,5 @@
-// Music videos for YouTube songs, from the YouTube Video plugin. YouTube
-// Music and YouTube Video songs share YouTube's video id, so any song from
-// either plugin can show its video.
+// Music videos for songs from the YouTube Video plugin (only those; songs
+// from YouTube Music or other sources don't offer the video).
 
 import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/core/models/exported.dart';
@@ -19,11 +18,10 @@ class VideoStream {
   String get label => '${height}p';
 }
 
-/// Whether [track] comes from YouTube (so it has a video).
-bool hasVideo(Track track) {
-  final plugin = tryParseMediaId(track.id)?.pluginId ?? '';
-  return plugin.contains('ytmusic') || plugin.contains('ytvideo');
-}
+/// Whether [track] offers "Play video": only songs found with the YouTube
+/// Video plugin (the user's rule), not YouTube Music or any other source.
+bool hasVideo(Track track) =>
+    tryParseMediaId(track.id)?.pluginId == ytVideoPlugin;
 
 /// YouTube's format codes (itag) with a picture, by height.
 const _itagHeight = {
