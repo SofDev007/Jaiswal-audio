@@ -15,6 +15,7 @@ import 'package:Bloomee/screens/screen/player_views/segments_sheet.dart';
 import 'package:Bloomee/services/bloomee_player.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:Bloomee/screens/widgets/player_video.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
@@ -250,13 +251,19 @@ class _PlayerUI extends StatelessWidget {
               const Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: CoverImageVolSlider(),
+                  // YouTube songs in video mode: the music video instead.
+                  child: CoverOrVideo(cover: CoverImageVolSlider()),
                 ),
               ),
               // The line being sung (none without synced lyrics).
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24),
                 child: PlayerLyricLine(),
+              ),
+              // "Play video", just above the song's name.
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: PlayVideoButton(),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
