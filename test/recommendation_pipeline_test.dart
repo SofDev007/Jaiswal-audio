@@ -360,6 +360,16 @@ void main() {
       expect(added, 0);
     });
 
+    test('smart shuffle: picks are new songs, each with a reason', () async {
+      final m = _manager(_ScriptedGatherer(pool));
+      final playlist = [_seed, _syt, _shape];
+      final picks = await m.smartPicks(playlist, 4);
+      expect(picks, hasLength(4));
+      expect(picks.map((t) => t.id).toSet(), hasLength(4));
+      expect(picks.any((t) => playlist.any((p) => p.id == t.id)), isFalse);
+      expect(m.reasons.value.keys.toSet(), {for (final t in picks) t.id});
+    });
+
     test('clearing forgets reasons and the seed', () async {
       final g = _ScriptedGatherer(pool);
       final m = _manager(g);

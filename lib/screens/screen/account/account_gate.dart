@@ -161,7 +161,9 @@ class _LockedScreenState extends State<_LockedScreen> {
                                       ? null
                                       : 'Could not reach JARX. Connect and try again.';
                                 }
-                              : Account.instance.signIn),
+                              : () => Account.instance.signIn(
+                                  isThisYours: (a, b, c) =>
+                                      isThisYoursDialog(context, a, b, c))),
                       icon: _busy
                           ? const SizedBox(
                               width: 18,
@@ -204,4 +206,32 @@ class _LockedScreenState extends State<_LockedScreen> {
       ),
     );
   }
+}
+
+/// Asked when signing in on a phone whose music isn't linked to an account:
+/// true = add it to the account, false = keep it apart, null = cancel.
+Future<bool?> isThisYoursDialog(
+    BuildContext context, int playlists, int liked, int plays) {
+  final has = [
+    if (playlists > 0) '$playlists playlist${playlists == 1 ? '' : 's'}',
+    if (liked > 0) '$liked Liked song${liked == 1 ? '' : 's'}',
+    if (plays > 0) 'recent plays',
+  ].join(', ');
+  return showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('Is this music yours?'),
+      content: Text('JARX on this phone already has $has that belong to no '
+          'account.\n\nIf it\'s someone else\'s, keep it apart: your own '
+          'music opens here and theirs stays as it is.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Keep apart')),
+        TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text("It's mine, add it")),
+      ],
+    ),
+  );
 }

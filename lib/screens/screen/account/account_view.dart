@@ -1,5 +1,6 @@
 // Settings › Account: who is signed in, Sign out, Delete my account.
 
+import 'package:Bloomee/services/account/spaces.dart';
 import 'package:Bloomee/services/account/sync.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/services/account/account.dart';
@@ -49,6 +50,7 @@ class AccountView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(color: fg.withValues(alpha: 0.7))),
           const SizedBox(height: 32),
+          const _Accounts(),
           ValueListenableBuilder<bool>(
             valueListenable: Sync.instance.busy,
             builder: (context, busy, _) => ValueListenableBuilder<DateTime?>(
@@ -141,6 +143,108 @@ class AccountView extends StatelessWidget {
       ),
     );
     return ok ?? false;
+  }
+}
+
+/// Every account on this phone has its own music; tapping one restarts JARX
+/// into it.
+class _Accounts extends StatefulWidget {
+  const _Accounts();
+
+  @override
+  State<_Accounts> createState() => _AccountsState();
+}
+
+class _AccountsState extends State<_Accounts> {
+  @override
+  Widget build(BuildContext context) {
+    const fg = Default_Theme.primaryColor1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text('Accounts on this phone',
+              style: TextStyle(
+                  color: fg.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w600)),
+        ),
+        for (final (space, u) in Spaces.accounts)
+          Card(
+            color: Colors.white.withValues(alpha: 0.04),
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              leading: CircleAvatar(
+                backgroundColor:
+                    Default_Theme.accentColor2.withValues(alpha: 0.3),
+                backgroundImage: u.photo.isNotEmpty
+                    ? CachedNetworkImageProvider(u.photo)
+                    : null,
+                child: u.photo.isNotEmpty
+                    ? null
+                    : const Icon(Icons.person, color: fg),
+              ),
+              title: Text(u.name,
+                  style:
+                      const TextStyle(color: fg, fontWeight: FontWeight.w600)),
+              subtitle: Text(u.email,
+                  style: TextStyle(color: fg.withValues(alpha: 0.6))),
+              trailing: space == Spaces.active
+                  ? const Icon(Icons.check_circle_rounded,
+                      color: Default_Theme.accentColor2)
+                  : IconButton(
+                      tooltip: 'Remove from this phone',
+                      icon: Icon(Icons.close_rounded,
+                          color: fg.withValues(alpha: 0.6)),
+                      onPressed: () => _remove(space, u),
+                    ),
+              onTap: space == Spaces.active
+                  ? null
+                  : () async {
+                      if (await AccountView._confirm(
+                          context,
+                          'Switch to ${u.name}?',
+                          'JARX restarts with ${u.email}\'s music.',
+                          'Switch')) {
+                        await Spaces.switchTo(space);
+                      }
+                    },
+            ),
+          ),
+        _Tile(
+          icon: Icons.person_add_alt_1_rounded,
+          title: 'Add another account',
+          subtitle: 'Each account keeps its own playlists, Liked and '
+              'downloads on this phone.',
+          onTap: () async {
+            final error = await Account.instance.signIn();
+            if (error != null && context.mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(error)));
+            }
+          },
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Future<void> _remove(String space, JarxUser u) async {
+    if (!await AccountView._confirm(
+        context,
+        'Remove ${u.name} from this phone?',
+        'Their music is removed from this phone. Their account keeps it, and '
+            'it comes back if they sign in here again.',
+        'Remove')) {
+      return;
+    }
+    await Account.removeSpace(space);
+    if (mounted) setState(() {});
   }
 }
 

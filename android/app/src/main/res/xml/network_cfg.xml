@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- No plain http anywhere (V2.0 security). Last.fm, the only service that
-     needed it, was removed. -->
+     needed it, was removed. The one exception is this phone itself: the
+     song cache's server on 127.0.0.1, which never leaves the phone. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
 </network-security-config>

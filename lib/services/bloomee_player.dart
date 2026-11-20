@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'dart:developer';
 import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'dart:async';
@@ -14,6 +15,7 @@ import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/services/app_updater.dart';
+import 'package:Bloomee/services/player/song_cache.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/core/models/track_signal.dart';
 import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
@@ -691,6 +693,19 @@ class BloomeeMusicPlayer extends BaseAudioHandler
           httpHeaders: resolved.$2.headers,
           autoPlay: doPlay,
         );
+        // The player never reached the song cache's server on this phone:
+        // play the stream directly, and stop using the cache this run.
+        final direct = resolved.$2.direct;
+        if (result is EngineFailure &&
+            direct != null &&
+            alive() &&
+            !(await SongCache.instance).wasAsked(resolved.$2.uri)) {
+          log('Song cache unreachable; playing directly',
+              name: 'BloomeeMusicPlayer');
+          SongCache.disabled = true;
+          result = await engine.openDirect(direct.uri,
+              httpHeaders: direct.headers, autoPlay: doPlay);
+        }
       }
 
       if (!alive()) return;
@@ -1134,6 +1149,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     try {
       fromPlaylist.add(true);
       _relatedSongsManager.clearRelatedSongs();
+      smartPicks.value = {};
       _clearPreloadedMarker();
 
       final trackToPlay = (idx >= 0 && idx < playlist.tracks.length)
@@ -1167,6 +1183,32 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     } finally {
       _isAdvancing = false;
     }
+  }
+
+  /// Smart shuffle's suggestions in the queue (Up Next offers + for them)
+  /// and the playlist + adds them to.
+  final smartPicks = ValueNotifier<Set<String>>({});
+  String smartShuffleFrom = '';
+
+  /// Smart shuffle: the playlist shuffled, playing at once; suggestions
+  /// arrive in the background, one after every 3 songs. The playlist itself
+  /// doesn't change.
+  Future<void> smartShuffle(Playlist playlist) async {
+    final shuffled = List.of(playlist.tracks)..shuffle();
+    await loadPlaylist(Playlist(tracks: shuffled, title: playlist.title),
+        doPlay: true);
+    final first = _queueManager.tracks.firstOrNull?.id;
+    smartShuffleFrom = playlist.title;
+    smartPicks.value = {};
+    final picks = await _relatedSongsManager.smartPicks(
+        playlist.tracks, (shuffled.length ~/ 3).clamp(0, 30));
+    // Another playlist started meanwhile: these aren't for it.
+    if (_isDisposed || _queueManager.tracks.firstOrNull?.id != first) return;
+    _queueManager.insertEvery(3, picks);
+    smartPicks.value = {
+      for (final t in picks)
+        if (_queueManager.tracks.any((q) => q.id == t.id)) t.id
+    };
   }
 
   @override

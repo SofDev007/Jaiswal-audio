@@ -215,6 +215,45 @@ class RelatedSongsManager {
     }
   }
 
+  /// Smart shuffle: up to [count] suggestions for [playlist], found from a
+  /// few of its songs (never songs already in it) and ranked by the user's
+  /// taste. Marked like autoplay picks (reason, never-suggest).
+  Future<List<Track>> smartPicks(List<Track> playlist, int count) async {
+    if (count <= 0 || playlist.isEmpty) return [];
+    UserTaste taste;
+    try {
+      taste = await _loadTaste(_ranker);
+    } catch (e) {
+      taste = UserTaste.empty;
+    }
+    final seeds = (List.of(playlist)..shuffle()).take(3).toList();
+    final found = await Future.wait(seeds.map((s) => _gatherer
+        .gather(s)
+        .catchError((Object e) => GatherResult.empty)));
+    final keys = {for (final t in playlist) _ranker.songKey(t)};
+    final picks = <Recommendation>[];
+    for (var i = 0; i < seeds.length; i++) {
+      final got = _ranker.rank(
+        seed: seeds[i],
+        candidates: found[i].candidates,
+        taste: taste,
+        excludeSongKeys: keys,
+        take: (count / seeds.length).ceil(),
+      );
+      keys.addAll(got.map((r) => _ranker.songKey(r.track)));
+      picks.addAll(got);
+    }
+    picks.shuffle();
+    final out = picks.take(count).toList();
+    _autoAdded.addAll(out.map((r) => r.track.id));
+    reasons.add({...reasons.value, for (final r in out) r.track.id: r.reason});
+    for (final r in out) {
+      TasteModel.remember(r.track.id, r.features);
+    }
+    log('Smart shuffle: ${out.length} suggestions', name: 'RelatedSongs');
+    return [for (final r in out) r.track];
+  }
+
   /// The last track at or before [index] the user chose (not auto-queued),
   /// so a run of recommendations doesn't drift away from it.
   Track? _seedFor(List<Track> queue, int index) {

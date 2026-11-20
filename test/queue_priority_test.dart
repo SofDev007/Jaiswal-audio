@@ -64,4 +64,28 @@ void main() {
     m.addTrack(_q2);
     expect(_order(m), ['q1', 'q2', 'p1', 'p2']);
   });
+
+  group('smart shuffle', () {
+    final list = [for (var i = 0; i < 7; i++) tr('s$i', 'Song $i', 'S$i')];
+    final picks = [for (var i = 0; i < 3; i++) tr('x$i', 'Pick $i', 'X$i')];
+
+    test('one pick after every 3 songs', () {
+      final m = QueueManager()..loadTracks(list);
+      m.insertEvery(3, picks);
+      expect(_order(m),
+          ['s0', 's1', 's2', 'x0', 's3', 's4', 's5', 'x1', 's6']);
+    });
+
+    test('never behind the song playing now', () {
+      final m = QueueManager()..loadTracks(list, idx: 4);
+      m.insertEvery(3, picks);
+      expect(_order(m), ['s4', 's5', 'x0', 's6']);
+    });
+
+    test('skipped while shuffle is on', () {
+      final m = QueueManager()..loadTracks(list, shuffling: true);
+      m.insertEvery(3, picks);
+      expect(_order(m), hasLength(7));
+    });
+  });
 }
