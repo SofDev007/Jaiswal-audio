@@ -130,7 +130,11 @@ class RelatedSongsManager {
     // calls can take many seconds on mobile data); queue at the last one.
     final shouldGather =
         queue.isNotEmpty && left <= 4 && loopMode != LoopMode.all;
-    final shouldQueueMore = shouldGather && left < 2;
+    // A song the user chose: queue at the last song. Already in a run of
+    // recommendations: queue at the second-to-last, so the next batch is
+    // there (and preloaded) before the run ends.
+    final playingRec = _autoAdded.contains(currentMedia.id);
+    final shouldQueueMore = shouldGather && left <= (playingRec ? 2 : 1);
     if (_busy || !shouldGather || !await _autoPlayEnabled()) return;
 
     _busy = true;

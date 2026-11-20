@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:Bloomee/services/app_updater.dart' show notesSince;
+import 'package:Bloomee/services/app_updater.dart' show notesSince, requiredBuildIn;
 import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -195,6 +195,8 @@ Future<Map<String, dynamic>> githubUpdate(
         // The release notes: shown in full in the update notice.
         'notes': notesSince(releases,
             (int.tryParse(packageInfo.buildNumber) ?? 0) % 1000),
+        'requiredBuild': requiredBuildIn(
+            releases, (int.tryParse(packageInfo.buildNumber) ?? 0) % 1000),
         'newVer': versionPart,
         'newBuild': buildPart,
         'download_url': download,

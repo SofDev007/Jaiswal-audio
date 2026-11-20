@@ -1,3 +1,4 @@
+import 'package:Bloomee/screens/widgets/update_tour.dart';
 import 'package:Bloomee/services/app_updater.dart';
 import 'dart:developer';
 
@@ -15,7 +16,7 @@ class NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final tile = Padding(
       padding: const EdgeInsets.only(top: 5),
       child: ListTile(
         // splashColor: Default_Theme.accentColor2.withValues(alpha: 0.1),
@@ -57,6 +58,9 @@ class NotificationTile extends StatelessWidget {
         ),
       ),
     );
+    return notification.type == "app_update"
+        ? UpdateGlow(hint: 'Tap the update', radius: 4, child: tile)
+        : tile;
   }
 }
 
@@ -117,6 +121,15 @@ class _UpdateNotesViewState extends State<UpdateNotesView> {
                   color: Default_Theme.accentColor2,
                   fontSize: 20,
                   fontWeight: FontWeight.bold)),
+          if (UpdateGate.blocked) ...[
+            const SizedBox(height: 8),
+            const Text(
+                "This update is required: songs won't play until you install it.",
+                style: TextStyle(
+                    color: Default_Theme.primaryColor1,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold)),
+          ],
           const SizedBox(height: 16),
           SelectableText(
             // GitHub notes are Markdown; bold markers read badly as text.
@@ -137,7 +150,9 @@ class _UpdateNotesViewState extends State<UpdateNotesView> {
                     : 'Downloading... ${(_progress! * 100).round()}%',
                 style: const TextStyle(color: Default_Theme.primaryColor2)),
           ] else if (url.isNotEmpty)
-            FilledButton.icon(
+            UpdateGlow(
+              hint: _apk != null ? 'Now tap Install update' : 'Tap Download update',
+              child: FilledButton.icon(
               style: FilledButton.styleFrom(
                   backgroundColor: Default_Theme.accentColor2,
                   minimumSize: const Size.fromHeight(50)),
@@ -148,7 +163,7 @@ class _UpdateNotesViewState extends State<UpdateNotesView> {
                   ? Icons.install_mobile_rounded
                   : Icons.download_rounded),
               label: Text(_apk != null ? 'Install update' : 'Download update'),
-            ),
+            )),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!, style: const TextStyle(color: Colors.redAccent)),

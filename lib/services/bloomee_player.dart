@@ -13,6 +13,7 @@ import 'package:Bloomee/plugins/utils/media_id.dart';
 import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:Bloomee/plugins/errors/plugin_exceptions.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
+import 'package:Bloomee/services/app_updater.dart';
 import 'package:Bloomee/services/db/db_provider.dart';
 import 'package:Bloomee/core/models/track_signal.dart';
 import 'package:Bloomee/services/db/dao/track_signal_dao.dart';
@@ -143,6 +144,12 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     _restoreEngineSettings();
     // Session restore runs after engine settings but does NOT auto-play.
     _restoreLastSession();
+    UpdateGate.requiredBuild.addListener(_onUpdateGate);
+  }
+
+  /// A compulsory update arrived: stop the music (play is blocked from now).
+  void _onUpdateGate() {
+    if (UpdateGate.blocked && playbackState.value.playing) pause();
   }
 
   /// Restores the last queue from SettingsDAO so the user sees it on relaunch.
@@ -257,7 +264,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   /// Called fire-and-forget from the synchronous handler.
   void _resumePlaybackAfterInterruption() {
     _activateAudioSession().then((granted) {
-      if (granted && !_isDisposed) engine.play();
+      if (granted && !_isDisposed && !UpdateGate.blocked) engine.play();
     }).catchError((Object e) {
       log('Resume after interruption failed: $e', name: 'BloomeeMusicPlayer');
     });
@@ -339,6 +346,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
       _playCompleter = null;
       _currentResolveOp?.cancel();
       _preResolveOp?.cancel();
+      _preloadAimId = null;
       playbackState.add(playbackState.value.copyWith(
         processingState: AudioProcessingState.error,
         playing: false,
@@ -408,6 +416,14 @@ class BloomeeMusicPlayer extends BaseAudioHandler
 
     _queueSyncSub = _queueManager.tracksStream.listen((tracks) {
       queue.add(tracks.map(trackToMediaItem).toList());
+      // A song queued mid-song, or recommendations added at the last song,
+      // change what plays next: preload that one instead.
+      final aim = _preloadAimId;
+      if (aim != null &&
+          (_queueManager.peekNext(loopMode: loopMode.value)?.id ?? '') !=
+              aim) {
+        _preResolveNextTrack();
+      }
       // Don't persist during restore — we'd just write back what we read.
       if (_queueManager.isRestoring) return;
       // Throttle persistence writes — queue mutations can fire in rapid bursts
@@ -486,6 +502,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   @override
   Future<void> play() async {
     if (_isDisposed) return;
+    if (UpdateGate.blocked) return UpdateGate.showTour();
     _errorHandler.resetCircuitBreaker();
     _shouldResumeAfterInterruption = false;
     final granted = await _activateAudioSession();
@@ -538,6 +555,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     _playCompleter?.operation.cancel();
     _playCompleter = null;
     _preResolveOp?.cancel();
+    _preloadAimId = null;
     _currentResolveOp?.cancel();
     playbackState.add(playbackState.value
         .copyWith(processingState: AudioProcessingState.idle));
@@ -587,6 +605,10 @@ class BloomeeMusicPlayer extends BaseAudioHandler
     Duration? initialPosition,
   }) {
     if (_isDisposed) return Future.value();
+    if (doPlay && UpdateGate.blocked) {
+      UpdateGate.showTour();
+      return Future.value();
+    }
 
     // Cancel any in-flight play operation — user changed track.
     final prev = _playCompleter;
@@ -779,9 +801,14 @@ class BloomeeMusicPlayer extends BaseAudioHandler
 
   // ─── Preload ───────────────────────────────────────────────────────────────
 
+  /// The track the last [_preResolveNextTrack] aimed at ('' for none);
+  /// null before anything has played or after a stop.
+  String? _preloadAimId;
+
   void _preResolveNextTrack() {
     _pendingPreload = null;
     final next = _queueManager.peekNext(loopMode: loopMode.value);
+    _preloadAimId = next?.id ?? '';
     if (next == null) {
       _clearPreloadedMarker();
       engine.clearPreload(); // ignore: discarded_futures
@@ -1241,6 +1268,7 @@ class BloomeeMusicPlayer extends BaseAudioHandler
   Future<void> _cleanup() async {
     if (_isDisposed) return;
     _isDisposed = true;
+    UpdateGate.requiredBuild.removeListener(_onUpdateGate);
 
     _playCompleter?.operation.cancel();
     _playCompleter = null;

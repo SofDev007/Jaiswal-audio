@@ -8,6 +8,8 @@ import 'package:Bloomee/l10n/app_localizations.dart';
 import 'package:Bloomee/screens/screen/common_views/changelog_reader.dart';
 import 'package:Bloomee/screens/widgets/bloomee_ui_kit/bloomee_dialog.dart';
 import 'package:Bloomee/screens/widgets/snackbar.dart';
+import 'package:Bloomee/screens/widgets/update_tour.dart';
+import 'package:Bloomee/services/app_updater.dart';
 import 'package:Bloomee/services/plugin/plugin_event_bus.dart';
 import 'package:Bloomee/src/rust/api/plugin/events.dart';
 import 'package:flutter/material.dart';
@@ -190,7 +192,16 @@ class _GlobalEventListenerState extends State<GlobalEventListener> {
             break;
         }
       },
-      child: widget.child,
+      child: Stack(fit: StackFit.expand, children: [
+        widget.child,
+        // Compulsory update: the guided tour, above every screen.
+        ValueListenableBuilder<bool>(
+          valueListenable: UpdateGate.showingTour,
+          builder: (_, on, __) => on
+              ? UpdateTour(navigatorKey: widget.navigatorKey)
+              : const SizedBox.shrink(),
+        ),
+      ]),
     );
   }
 }

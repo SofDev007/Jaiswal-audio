@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -40,6 +41,44 @@ class AppUpdater {
       _channel.invokeMethod('installApk', {'path': path});
 }
 
+/// A compulsory update. Put this line in a GitHub release's notes (GitHub
+/// hides HTML comments) and every phone on JARX 37+ that is older than that
+/// release stops playing songs until it updates.
+const requiredMarker = '<!-- jarx:required -->';
+
+/// The newest full release newer than [currentBuild] whose notes carry
+/// [requiredMarker], or 0 when no update is compulsory.
+int requiredBuildIn(List releases, int currentBuild) {
+  var req = 0;
+  for (final r in releases.cast<Map>()) {
+    final b = buildOfTag('${r['tag_name']}');
+    if (r['draft'] != true &&
+        r['prerelease'] != true &&
+        b > currentBuild &&
+        b > req &&
+        '${r['body'] ?? ''}'.contains(requiredMarker)) {
+      req = b;
+    }
+  }
+  return req;
+}
+
+/// A compulsory update is waiting: songs don't play, and the guided tour
+/// (bell -> update -> Download/Install) shows on any play attempt.
+class UpdateGate {
+  /// The build the user must install, 0 for none.
+  static final requiredBuild = ValueNotifier<int>(0);
+
+  /// The Home tour (spotlight on the bell) is showing. The update in the
+  /// bell list and the Download/Install button glow whenever [blocked].
+  static final showingTour = ValueNotifier<bool>(false);
+
+  static bool get blocked => requiredBuild.value > 0;
+
+  /// Called when something tries to play while [blocked].
+  static void showTour() => showingTour.value = true;
+}
+
 /// Build number from a release tag like `v2.0.0+38` (0 when missing).
 int buildOfTag(String tag) => int.tryParse(tag.split('+').last) ?? 0;
 
@@ -52,5 +91,5 @@ String notesSince(List releases, int currentBuild) => [
             r['prerelease'] != true &&
             buildOfTag('${r['tag_name']}') > currentBuild)
           'JARX ${'${r['tag_name']}'.replaceFirst('v', '').replaceFirst('+', ' (build ')})\n'
-              '${('${r['body'] ?? ''}').trim()}'
+              '${('${r['body'] ?? ''}').replaceAll(requiredMarker, '').trim()}'
     ].join('\n\n');
