@@ -192,6 +192,7 @@ class QueueManager {
       remappedIdx = pos != -1 ? pos : 0;
     }
 
+    _userQueued.clear();
     _queue.add(deduped);
     queueTitle.add(playlistName);
 
@@ -231,15 +232,38 @@ class QueueManager {
     }
   }
 
-  /// Add a track to the end of the queue. Skips duplicates (by id).
+  /// IDs added with "Add to queue". They play before the rest of the
+  /// playlist and before recommendations, in the order they were added.
+  /// ponytail: not persisted; after an app restart new adds go right after
+  /// the current song instead of after the earlier queued ones.
+  final Set<String> _userQueued = {};
+
+  /// "Add to queue": right after the current song and any queued songs
+  /// already waiting behind it (first in, first out). Skips duplicates.
   void addTrack(Track track) {
-    if (_queue.value.any((t) => t.id == track.id)) return;
+    final q = _queue.value;
+    if (q.any((t) => t.id == track.id)) return;
     queueTitle.add('Queue');
-    final newQueue = List<Track>.from(_queue.value)..add(track);
-    final newIdx = newQueue.length - 1;
+    _userQueued.add(track.id);
+
+    var at = (_currentIndex + 1).clamp(0, q.length);
+    while (at < q.length && _userQueued.contains(q[at].id)) {
+      at++;
+    }
+    final newQueue = List<Track>.from(q)..insert(at, track);
     _queue.add(newQueue);
+
     if (shuffleMode.value && _shuffleList.isNotEmpty) {
-      _shuffleList.add(newIdx);
+      for (var i = 0; i < _shuffleList.length; i++) {
+        if (_shuffleList[i] >= at) _shuffleList[i]++;
+      }
+      var pos = (_shuffleIndex + 1).clamp(0, _shuffleList.length);
+      while (pos < _shuffleList.length &&
+          _shuffleList[pos] < newQueue.length &&
+          _userQueued.contains(newQueue[_shuffleList[pos]].id)) {
+        pos++;
+      }
+      _shuffleList.insert(pos, at);
     }
   }
 
@@ -319,6 +343,7 @@ class QueueManager {
   /// Remove a track by queue index.
   void removeTrackAt(int index) {
     if (index >= _queue.value.length) return;
+    _userQueued.remove(_queue.value[index].id);
 
     final newQueue = List<Track>.from(_queue.value)..removeAt(index);
     _queue.add(newQueue);
@@ -391,6 +416,7 @@ class QueueManager {
   /// Clear all tracks from the queue, keeping only the currently playing
   /// track so playback does not stop abruptly.
   void clearQueue() {
+    _userQueued.clear();
     final current = currentTrack;
     if (current == null) {
       _queue.add([]);
@@ -408,6 +434,7 @@ class QueueManager {
     final seenIds = <String>{};
     final deduped =
         tracks.where((t) => seenIds.add(t.id)).toList(growable: false);
+    _userQueued.clear();
     _queue.add(deduped);
     _currentIndex =
         startIndex.clamp(0, deduped.isEmpty ? 0 : deduped.length - 1);

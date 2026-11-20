@@ -326,6 +326,40 @@ void main() {
       expect(ids.toSet(), hasLength(ids.length), reason: '$ids');
     });
 
+    test('playing a recommendation: next batch at the second-to-last song',
+        () async {
+      final m = _manager(_ScriptedGatherer(pool));
+      final queue = [_seed, ...await refill(m, [_seed])];
+      var added = 0;
+      m.onAddQueueItems = (items, {bool atLast = false}) => added++;
+      // Third of five recommendations: nothing yet.
+      await m.checkForRelatedSongs(
+          currentMedia: queue[3],
+          queue: queue,
+          currentPlayingIdx: 3,
+          loopMode: LoopMode.off);
+      expect(added, 0);
+      // Fourth (second-to-last): the next batch is queued now.
+      await m.checkForRelatedSongs(
+          currentMedia: queue[4],
+          queue: queue,
+          currentPlayingIdx: 4,
+          loopMode: LoopMode.off);
+      expect(added, 1);
+    });
+
+    test('a user-chosen song still waits for the last one', () async {
+      final m = _manager(_ScriptedGatherer(pool));
+      var added = 0;
+      m.onAddQueueItems = (items, {bool atLast = false}) => added++;
+      await m.checkForRelatedSongs(
+          currentMedia: _seed,
+          queue: [_seed, _syt],
+          currentPlayingIdx: 0,
+          loopMode: LoopMode.off);
+      expect(added, 0);
+    });
+
     test('clearing forgets reasons and the seed', () async {
       final g = _ScriptedGatherer(pool);
       final m = _manager(g);

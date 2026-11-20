@@ -28,6 +28,7 @@ import 'package:icons_plus/icons_plus.dart';
 import '../widgets/horizontal_card_view.dart';
 import '../widgets/tab_list_widget.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:Bloomee/screens/widgets/update_tour.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -375,7 +376,10 @@ class NotificationIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<NotificationCubit, NotificationState>(
+    // Keyed so the compulsory-update tour can put its spotlight here.
+    return KeyedSubtree(
+        key: updateBellKey,
+        child: BlocBuilder<NotificationCubit, NotificationState>(
       builder: (context, state) {
         if (state is NotificationInitial || state.notifications.isEmpty) {
           return IconButton(
@@ -434,7 +438,7 @@ class NotificationIcon extends StatelessWidget {
           ),
         );
       },
-    );
+    ));
   }
 }
 

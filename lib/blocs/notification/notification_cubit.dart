@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:Bloomee/core/models/app_notification.dart';
+import 'package:Bloomee/services/app_updater.dart';
 import 'package:Bloomee/services/bloomee_updater_tools.dart';
 import 'package:Bloomee/services/db/dao/notification_dao.dart';
 import 'package:equatable/equatable.dart';
@@ -20,7 +21,9 @@ class NotificationCubit extends Cubit<NotificationState> {
       if (value["results"]) {
         if (int.parse(value["currBuild"]) < int.parse(value["newBuild"])) {
           _notificationDao.putNotification(
-            title: "JARX ${value["newVer"]} (${value["newBuild"]}) is available",
+            title: (value["requiredBuild"] as int? ?? 0) > 0
+                ? "JARX ${value["newVer"]} (${value["newBuild"]}) is required"
+                : "JARX ${value["newVer"]} (${value["newBuild"]}) is available",
             body: (value["notes"] as String?)?.isNotEmpty == true
                 ? value["notes"]
                 : "A new version of JARX is ready to download.",
@@ -50,6 +53,9 @@ class NotificationCubit extends Cubit<NotificationState> {
   }
 
   void clearNotification() {
+    // ponytail: keeps every notice, not just the update, while one is
+    // compulsory; the tour needs the update in the bell.
+    if (UpdateGate.blocked) return;
     _notificationDao.clearNotifications();
     log("Notification Cleared");
     getNotification();
