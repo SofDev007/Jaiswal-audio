@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:Bloomee/services/account/account.dart';
 import 'package:Bloomee/screens/screen/account/account_view.dart';
@@ -121,13 +122,16 @@ class SettingsView extends StatelessWidget {
               // ── Group 3: Preferences & Integrations ──
               _SettingsSection(
                 children: [
-                  _SettingsTile(
-                    title: AppLocalizations.of(context)!.homeLayoutSetting,
-                    subtitle:
-                        AppLocalizations.of(context)!.homeLayoutChooseHint,
-                    icon: MingCute.layout_4_fill,
-                    iconColor: Default_Theme.accentColor2,
-                    onTap: () => showHomeLayoutPicker(context),
+                  TipAnchor(
+                    id: 'T17',
+                    child: _SettingsTile(
+                      title: AppLocalizations.of(context)!.homeLayoutSetting,
+                      subtitle:
+                          AppLocalizations.of(context)!.homeLayoutChooseHint,
+                      icon: MingCute.layout_4_fill,
+                      iconColor: Default_Theme.accentColor2,
+                      onTap: () => showHomeLayoutPicker(context),
+                    ),
                   ),
                   _SettingsTile(
                     title: AppLocalizations.of(context)!.settingsUIElements,
@@ -283,25 +287,25 @@ class _SettingsTile extends StatelessWidget {
                 ),
               )
             else
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: isHighlightIcon
-                    ? iconColor.withValues(alpha: 0.12)
-                    : Default_Theme.primaryColor1.withValues(
-                        alpha:
-                            0.06), // Muted background for non-highlight icons
-                borderRadius: BorderRadius.circular(10),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isHighlightIcon
+                      ? iconColor.withValues(alpha: 0.12)
+                      : Default_Theme.primaryColor1.withValues(
+                          alpha:
+                              0.06), // Muted background for non-highlight icons
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isHighlightIcon
+                      ? iconColor
+                      : iconColor.withValues(alpha: 0.85),
+                ),
               ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: isHighlightIcon
-                    ? iconColor
-                    : iconColor.withValues(alpha: 0.85),
-              ),
-            ),
             const SizedBox(width: 14),
             // Main text content
             Expanded(

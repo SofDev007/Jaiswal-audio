@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:Bloomee/blocs/library/cubit/library_items_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/core/adapters/track_adapter.dart';
@@ -708,8 +709,7 @@ class _QueueItem extends StatelessWidget {
                                 }
                                 final player = playerCubit.bloomeePlayer;
                                 return IconButton(
-                                  tooltip:
-                                      'Add to ${player.smartShuffleFrom}',
+                                  tooltip: 'Add to ${player.smartShuffleFrom}',
                                   iconSize: 22,
                                   padding: const EdgeInsets.all(6),
                                   constraints: const BoxConstraints(
@@ -720,8 +720,8 @@ class _QueueItem extends StatelessWidget {
                                   onPressed: () {
                                     context
                                         .read<LibraryItemsCubit>()
-                                        .addToPlaylist(songModel,
-                                            player.smartShuffleFrom);
+                                        .addToPlaylist(
+                                            songModel, player.smartShuffleFrom);
                                     player.smartPicks.value = {...picks}
                                       ..remove(mediaItem.id);
                                   },
@@ -730,11 +730,13 @@ class _QueueItem extends StatelessWidget {
                             ),
                           // Suggested: the minus button blocks it for good.
                           if (reason != null)
-                            NeverSuggestButton(
-                              track: songModel,
-                              onBlocked: () => playerCubit.bloomeePlayer
-                                  .removeQueueItemAt(index),
-                            ),
+                            TipAnchor(
+                                id: 'T8',
+                                child: NeverSuggestButton(
+                                  track: songModel,
+                                  onBlocked: () => playerCubit.bloomeePlayer
+                                      .removeQueueItemAt(index),
+                                )),
                           IconButton(
                             tooltip: 'More options',
                             iconSize: 20,
@@ -801,5 +803,4 @@ String recReasonText(AppLocalizations l10n, RecReason r) => switch (r.kind) {
       RecReasonKind.timeOfDay => l10n.recReasonTimeOfDay(r.subject),
     };
 
-String _cap(String s) =>
-    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

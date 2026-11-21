@@ -474,10 +474,16 @@ abstract class AppLocalizations {
   /// **'Delete Playlist'**
   String get playlistDelete;
 
+  /// No description provided for @likedEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No liked songs yet. Your heart button is getting lonely.'**
+  String get likedEmptyState;
+
   /// No description provided for @playlistEmptyState.
   ///
   /// In en, this message translates to:
-  /// **'No Songs Yet!'**
+  /// **'It\'s quiet. Too quiet. Add a song before the crickets file a complaint.'**
   String get playlistEmptyState;
 
   /// No description provided for @playlistAvailableOffline.
@@ -513,7 +519,7 @@ abstract class AppLocalizations {
   /// No description provided for @playlistCreateFirstOne.
   ///
   /// In en, this message translates to:
-  /// **'No playlists yet. Create one to get started!'**
+  /// **'No playlists yet. Make one, nobody\'s judging. Yet.'**
   String get playlistCreateFirstOne;
 
   /// No description provided for @addToPlaylistNoSongSelected.
@@ -1065,7 +1071,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchStartTyping.
   ///
   /// In en, this message translates to:
-  /// **'Start typing to search...'**
+  /// **'Type something. We won\'t judge your taste. Much.'**
   String get searchStartTyping;
 
   /// No description provided for @searchNoSuggestions.
@@ -1077,7 +1083,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:
-  /// **'No results found!\nTry another keyword or source.'**
+  /// **'We searched everywhere. Even under the sofa. Nothing.\nTry another keyword or source.'**
   String get searchNoResults;
 
   /// No description provided for @searchFailed.
@@ -1161,7 +1167,7 @@ abstract class AppLocalizations {
   /// No description provided for @libraryEmptyState.
   ///
   /// In en, this message translates to:
-  /// **'Your library is feeling lonely. Add some tunes to brighten it up!'**
+  /// **'Your library is emptier than a fridge at 3 a.m. Add some tunes!'**
   String get libraryEmptyState;
 
   /// No description provided for @libraryIn.
@@ -2247,7 +2253,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No Notifications yet!'**
+  /// **'No notifications. Enjoy the peace while it lasts.'**
   String get notificationsEmpty;
 
   /// No description provided for @recentsTitle.
@@ -2255,6 +2261,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get recentsTitle;
+
+  /// No description provided for @historyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No history yet. Play something and we\'ll remember it forever. No pressure.'**
+  String get historyEmpty;
 
   /// No description provided for @playlistByCreator.
   ///
@@ -2643,7 +2655,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineNoDownloads.
   ///
   /// In en, this message translates to:
-  /// **'No Downloads'**
+  /// **'Nothing downloaded. Living dangerously on mobile data, I see.'**
   String get offlineNoDownloads;
 
   /// No description provided for @offlineTitle.

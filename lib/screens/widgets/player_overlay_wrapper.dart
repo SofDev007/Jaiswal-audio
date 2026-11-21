@@ -1,3 +1,5 @@
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
+import 'package:Bloomee/services/tips.dart';
 import 'package:Bloomee/blocs/player_overlay/player_overlay_cubit.dart';
 import 'package:Bloomee/screens/screen/player_screen.dart';
 import 'package:flutter/material.dart';
@@ -113,7 +115,8 @@ class _PlayerOverlayWrapperState extends State<PlayerOverlayWrapper>
   void _onDragCancel() {
     if (_drag.value == 0) return;
     _drag.animateBack(0,
-        duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic);
   }
 
   Future<void> _onDragEnd(DragEndDetails d) async {
@@ -142,6 +145,12 @@ class _PlayerOverlayWrapperState extends State<PlayerOverlayWrapper>
     return BlocListener<PlayerOverlayCubit, bool>(
       listener: (context, isVisible) {
         _onPlayerVisibilityChanged(isVisible);
+        if (isVisible) {
+          TipStore.bump('player').then((_) {
+            Tips.offer('A4');
+            Tips.offer('T2');
+          });
+        }
       },
       child: Stack(
         children: [

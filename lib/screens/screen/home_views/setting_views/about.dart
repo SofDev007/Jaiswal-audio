@@ -85,6 +85,15 @@ class About extends StatelessWidget {
                     _buildInfoCard(context, l10n),
                     if (aboutPhotos.isNotEmpty) ...[
                       const SizedBox(height: 28),
+                      const Text(
+                        'More about the Developer:',
+                        style: TextStyle(
+                            color: kPrimaryTextColor,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Gilroy'),
+                      ),
+                      const SizedBox(height: 14),
                       const RoundCarousel(photos: aboutPhotos),
                     ],
                     const SizedBox(height: 24),

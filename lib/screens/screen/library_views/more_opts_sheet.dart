@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -177,6 +178,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
                                       if (list != null && list.isNotEmpty) {
                                         playerCubit.bloomeePlayer
                                             .addQueueTracks(list);
+                                        Tips.offer('T7');
                                         SnackbarService.showMessage(
                                             l10n.snackbarPlaylistAddedToQueue(
                                                 title));

@@ -202,6 +202,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playlistDelete => '删除歌单';
 
   @override
+  String get likedEmptyState =>
+      'No liked songs yet. Your heart button is getting lonely.';
+
+  @override
   String get playlistEmptyState => '暂无歌曲';
 
   @override
@@ -1140,6 +1144,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recentsTitle => '历史记录';
+
+  @override
+  String get historyEmpty =>
+      'No history yet. Play something and we\'ll remember it forever. No pressure.';
 
   @override
   String playlistByCreator(String creator) {

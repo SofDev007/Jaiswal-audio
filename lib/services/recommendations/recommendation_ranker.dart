@@ -205,7 +205,9 @@ class RecommendationRanker {
   /// [signals] from TrackSignalDAO, [liked] tracks, [history] newest first,
   /// [blocked] song keys from the never-suggest list, [playlists] the user's
   /// own playlists by name. [languages] is learned from all of these unless
-  /// given (tests).
+  /// given (tests). [startLanguages] / [startArtists]: what a new user picked
+  /// in the first-run flow; the languages count until some are learned, the
+  /// artists count like a liked song.
   UserTaste buildTaste({
     required List<TrackSignal> signals,
     required List<Track> liked,
@@ -213,6 +215,8 @@ class RecommendationRanker {
     Set<String> blocked = const {},
     Set<SongLanguage> languages = const {},
     Map<String, List<Track>> playlists = const {},
+    Set<SongLanguage> startLanguages = const {},
+    List<String> startArtists = const [],
     TasteModel? model,
     DateTime? now,
   }) {
@@ -245,6 +249,10 @@ class RecommendationRanker {
         final k = artistKeyOf(a.name);
         if (k.isNotEmpty) raw[k] = (raw[k] ?? 0) + 3;
       }
+    }
+    for (final name in startArtists) {
+      final k = artistKeyOf(name);
+      if (k.isNotEmpty) raw[k] = (raw[k] ?? 0) + 3;
     }
     // Cold start: the artists the user put in their own playlists, so a new
     // install with imported playlists isn't a blank slate.
@@ -305,10 +313,14 @@ class RecommendationRanker {
     final artistLanguages = learnArtistLanguages(own);
     // "Punjabi Hits": its artists are Punjabi, whatever their titles say.
     final strong = strongArtistLanguages(playlists);
+    final learned =
+        learnUserLanguages(own, artistLanguages, strongArtists: strong);
     return UserTaste(
       languages: languages.isNotEmpty
           ? languages
-          : learnUserLanguages(own, artistLanguages, strongArtists: strong),
+          : learned.isNotEmpty
+              ? learned
+              : startLanguages,
       languageShares:
           languageShares(own, artistLanguages, strongArtists: strong).shares,
       cards: SongCardReader(

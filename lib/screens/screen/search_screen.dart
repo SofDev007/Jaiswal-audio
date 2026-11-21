@@ -1,5 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:ui';
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
+import 'package:Bloomee/core/constants/quips.dart';
 import 'package:Bloomee/plugins/utils/plugin_display_name.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/screens/widgets/skeleton.dart';
@@ -653,32 +655,36 @@ class _PluginsGlassyBoxSliver extends StatelessWidget {
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: resolvers
-                                .map((plugin) => Padding(
-                                      padding: const EdgeInsets.only(right: 10),
-                                      child: _PluginChip(
-                                        plugin: plugin,
-                                        activePluginNotifier:
-                                            activePluginNotifier,
-                                        onTap: () {
-                                          final id = plugin.manifest.id;
-                                          if (activePluginNotifier.value == id)
-                                            return;
-                                          activePluginNotifier.value = id;
-                                          contentBloc.add(
-                                              SetActiveContentPlugin(
-                                                  pluginId: id));
-                                          context
-                                              .read<SettingsCubit>()
-                                              .setSearchPluginId(id);
-                                          if (textEditingController.text
-                                              .isNotEmpty) onPluginChanged();
-                                        },
-                                      ),
-                                    ))
-                                .toList(),
-                          ),
+                          child: TipAnchor(
+                              id: 'T9',
+                              child: Row(
+                                children: resolvers
+                                    .map((plugin) => Padding(
+                                          padding:
+                                              const EdgeInsets.only(right: 10),
+                                          child: _PluginChip(
+                                            plugin: plugin,
+                                            activePluginNotifier:
+                                                activePluginNotifier,
+                                            onTap: () {
+                                              final id = plugin.manifest.id;
+                                              if (activePluginNotifier.value ==
+                                                  id) return;
+                                              activePluginNotifier.value = id;
+                                              contentBloc.add(
+                                                  SetActiveContentPlugin(
+                                                      pluginId: id));
+                                              context
+                                                  .read<SettingsCubit>()
+                                                  .setSearchPluginId(id);
+                                              if (textEditingController
+                                                  .text.isNotEmpty)
+                                                onPluginChanged();
+                                            },
+                                          ),
+                                        ))
+                                    .toList(),
+                              )),
                         ),
                     ],
                   ),
@@ -1171,8 +1177,7 @@ class _ContentSliver extends StatelessWidget {
           return SliverFillRemaining(
               hasScrollBody: false,
               child: SignBoardWidget(
-                  icon: MingCute.wifi_off_line,
-                  message: AppLocalizations.of(context)!.emptyNoInternet));
+                  icon: MingCute.wifi_off_line, message: noInternetQuip));
         }
 
         return BlocBuilder<ContentBloc, ContentState>(
@@ -1297,7 +1302,7 @@ class _SliverSearchResults extends StatelessWidget {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final track = tracks[index];
-                  return Padding(
+                  final row = Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                     child: SongCardWidget(
@@ -1310,6 +1315,11 @@ class _SliverSearchResults extends StatelessWidget {
                           showSinglePlay: true),
                     ),
                   );
+                  // The first result: "swipe to queue" (A3), then "⋮" (T6).
+                  return index == 0
+                      ? TipAnchor(
+                          id: 'A3', child: TipAnchor(id: 'T6', child: row))
+                      : row;
                 },
                 childCount: tracks.length,
               ),

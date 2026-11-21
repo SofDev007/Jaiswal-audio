@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -325,6 +326,7 @@ class _SwipeToQueueState extends State<_SwipeToQueue>
           .read<BloomeePlayerCubit>()
           .bloomeePlayer
           .addQueueTracks([widget.song]);
+      Tips.offer('T7');
       SnackbarService.showMessage(
           AppLocalizations.of(context)!.snackbarAddedToQueue);
     }

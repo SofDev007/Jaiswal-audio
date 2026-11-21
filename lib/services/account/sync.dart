@@ -1,7 +1,9 @@
 // Keeps the user's music the same on every phone they sign in on:
 // playlists + Liked, the 50 latest plays, what JARX learned (taste), and each
 // phone's listening time. Runs after sign-in, 5 s after a change, and every
-// 30 min while JARX is open. The rules for combining copies are in
+// 30 min while JARX is open. While JARX is on screen it also asks the server
+// every 60 s (and on coming back to JARX) whether another phone changed
+// something; that check is a few bytes, the full sync runs only if so. The rules for combining copies are in
 // sync_merge.dart; downloads and local music files never sync.
 
 import 'dart:async';
@@ -26,9 +28,10 @@ import 'package:Bloomee/services/plugin_cache_codec.dart';
 import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:isar_community/isar.dart';
 
-class Sync {
+class Sync with WidgetsBindingObserver {
   Sync._();
   static final instance = Sync._();
 
@@ -39,7 +42,7 @@ class Sync {
   static const _lastKey = 'syncLast1';
 
   bool _started = false, _again = false;
-  Timer? _debounce, _timer;
+  Timer? _debounce, _timer, _quick;
   final _subs = <StreamSubscription>[];
 
   /// Per kind: the server's time of the copy this phone has merged, and a
@@ -68,7 +71,44 @@ class Sync {
       _subs.add(changes.listen((_) => schedule()));
     }
     _timer = Timer.periodic(const Duration(minutes: 30), (_) => syncNow());
+    WidgetsBinding.instance.addObserver(this);
+    _startQuick();
     unawaited(syncNow());
+  }
+
+  void _startQuick() {
+    _quick?.cancel();
+    _quick = Timer.periodic(
+        const Duration(seconds: 60), (_) => unawaited(checkForChanges()));
+  }
+
+  /// Quick checks only while JARX is on screen: none in the background.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_started) return;
+    if (state == AppLifecycleState.resumed) {
+      unawaited(checkForChanges());
+      _startQuick();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _quick?.cancel();
+      _quick = null;
+    }
+  }
+
+  /// Asks the server whether another phone changed anything since this
+  /// phone last merged (the server then sends only timestamps); runs the
+  /// full sync only if so. This phone's own changes go up by [schedule].
+  Future<void> checkForChanges() async {
+    if (busy.value || !Account.instance.signedIn) return;
+    try {
+      final res = await Account.instance.api('GET', '/sync',
+          query: {for (final e in _seen.entries) e.key: '${e.value}'});
+      if (res == null || res.statusCode != 200) return;
+      if (hasRemoteChanges(jsonDecode(res.body))) await syncNow();
+    } catch (e) {
+      log('Sync check failed: $e', name: 'Sync');
+    }
   }
 
   /// Signed out: stop, and forget which copies were seen (the next account
@@ -77,6 +117,9 @@ class Sync {
     _started = false;
     _debounce?.cancel();
     _timer?.cancel();
+    _quick?.cancel();
+    _quick = null;
+    WidgetsBinding.instance.removeObserver(this);
     for (final s in _subs) {
       await s.cancel();
     }
@@ -369,3 +412,8 @@ List<Track> keepLocalFiles(List<Track> synced, List<Track> current) {
   }
   return result;
 }
+
+/// The server's GET /sync answer holds data for at least one kind, i.e.
+/// another phone changed something this phone hasn't merged yet.
+bool hasRemoteChanges(Object? body) =>
+    body is Map && body.values.any((r) => r is Map && r.containsKey('data'));

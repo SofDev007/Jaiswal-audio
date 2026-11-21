@@ -212,6 +212,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get playlistDelete => 'Playlist löschen';
 
   @override
+  String get likedEmptyState =>
+      'No liked songs yet. Your heart button is getting lonely.';
+
+  @override
   String get playlistEmptyState => 'Noch keine Songs vorhanden!';
 
   @override
@@ -1233,6 +1237,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get recentsTitle => 'Verlauf';
+
+  @override
+  String get historyEmpty =>
+      'No history yet. Play something and we\'ll remember it forever. No pressure.';
 
   @override
   String playlistByCreator(String creator) {

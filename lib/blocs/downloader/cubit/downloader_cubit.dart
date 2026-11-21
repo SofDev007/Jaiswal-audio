@@ -408,6 +408,15 @@ class DownloaderCubit extends Cubit<DownloaderState> {
       }
       _emitUpdatedState();
     }
+    // Songs still waiting their turn when JARX closed come back "Queued",
+    // but the engine never starts them again, so they sat there for good.
+    // Start them; the Wi-Fi rule still holds them back on mobile data
+    // (resume emits "queued", which _handleDownloadEvent checks).
+    for (final s in snapshots) {
+      if (s.state == DownloadTaskState.queued) {
+        unawaited(_downloadService.resume(s.taskId));
+      }
+    }
   }
 
   void _handleDownloadEvent(DownloadManagerEvent event) {
@@ -498,7 +507,7 @@ class DownloaderCubit extends Cubit<DownloaderState> {
           return;
         }
         _fallbackFor[other.id] = original;
-        await cancelDownload(failed.taskId);
+        await cancelDownload(failed.taskId, dropFromPlaylist: false);
         if (_batchOf(original.id) == null) {
           SnackbarService.showMessage(
               'Downloading ${original.title} from another source');
@@ -807,10 +816,47 @@ class DownloaderCubit extends Cubit<DownloaderState> {
     }
   }
 
-  Future<void> cancelDownload(String taskId) async {
+  /// Stops [taskId]. Cancelled by the user ([dropFromPlaylist]), the song
+  /// also leaves its playlist download, so that playlist can still finish
+  /// (its "downloaded" message and notification don't wait for it forever).
+  Future<void> cancelDownload(String taskId,
+      {bool dropFromPlaylist = true}) async {
+    if (dropFromPlaylist) {
+      final d = _activeDownloads
+          .where((d) => d.task.taskId == taskId)
+          .firstOrNull;
+      final id = d == null ? null : originalIdOf(d.task.mediaId);
+      final batch = id == null ? null : _batchOf(id);
+      if (batch != null) {
+        batch.ids.remove(id);
+        if (batch.ids.isEmpty) {
+          _batches.remove(batch.title);
+        } else if (batch.finished) {
+          unawaited(_finishBatch(batch));
+        }
+        onDownloadsChanged?.call();
+      }
+    }
     await _ensureDownloadServiceReady();
     await _downloadService.cancel(taskId);
   }
+
+  /// Offline's "Cancel all": stops every download that hasn't finished,
+  /// failed ones included. Songs already downloaded stay.
+  Future<void> cancelAll() async {
+    _batches.clear();
+    _pausedForWifi.clear();
+    for (final d in List.of(_activeDownloads)) {
+      if (d.status.state != DownloadState.completed) {
+        await cancelDownload(d.task.taskId, dropFromPlaylist: false);
+      }
+    }
+    onDownloadsChanged?.call();
+  }
+
+  /// The song that was asked for, when [mediaId] is a copy from another
+  /// source downloaded in its place (else [mediaId] itself).
+  String originalIdOf(String mediaId) => _fallbackFor[mediaId]?.id ?? mediaId;
 
   @override
   Future<void> close() async {

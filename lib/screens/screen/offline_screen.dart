@@ -118,14 +118,13 @@ class _OfflineScreenState extends State<OfflineScreen> {
                   SliverList(
                     delegate: SliverChildListDelegate(
                       [
-                        if (state.downloads.any((d) =>
-                            d.status.state != DownloadState.failed))
-                          _PauseAllRow(
-                              running: context
-                                  .read<DownloaderCubit>()
-                                  .anyRunning),
-                        ...state.downloads.map((download) =>
-                            DownloadingCardWidget(downloadProgress: download)),
+                        if (state.downloads.isNotEmpty)
+                          _DownloadsHeader(
+                              showPause: state.downloads.any((d) =>
+                                  d.status.state != DownloadState.failed),
+                              running:
+                                  context.read<DownloaderCubit>().anyRunning),
+                        ..._activeDownloads(context, state),
                         for (final p in grouped?.playlists ?? const [])
                           _DownloadedPlaylistTile(
                             title: p.title,
@@ -196,6 +195,26 @@ class _OfflineScreenState extends State<OfflineScreen> {
         ),
       ),
     );
+  }
+
+  /// Downloads in progress: one card per "Download all" playlist (its
+  /// songs inside), then songs downloaded one by one.
+  List<Widget> _activeDownloads(BuildContext context, DownloaderState state) {
+    final cubit = context.read<DownloaderCubit>();
+    final groups = groupActiveDownloads<DownloadProgress>(state.downloads,
+        (d) => cubit.originalIdOf(d.task.mediaId), _savedPlaylists);
+    final have = {for (final t in state.downloaded) t.id};
+    return [
+      for (final p in groups.playlists)
+        _DownloadingPlaylistCard(
+          key: ValueKey('dl-${p.title}'),
+          title: p.title,
+          total: p.ids.length,
+          done: p.ids.where(have.contains).length,
+          rows: p.rows,
+        ),
+      ...groups.singles.map((d) => DownloadingCardWidget(downloadProgress: d)),
+    ];
   }
 
   SliverAppBar customDiscoverSliverBar(
@@ -363,34 +382,242 @@ class _DownloadedPlaylistView extends StatelessWidget {
       );
 }
 
-/// "Pause all" while songs download; "Resume all" once they are paused.
-class _PauseAllRow extends StatelessWidget {
-  const _PauseAllRow({required this.running});
-  final bool running;
+/// Splits [rows] (active downloads) into the "Download all" playlists in
+/// [saved] they belong to, in [saved] order, and the songs downloaded one by
+/// one. [idOf] gives a row's song id; playlists with nothing downloading
+/// are left out, and a song is shown once, in the first playlist it is in.
+({
+  List<({String title, List<String> ids, List<T> rows})> playlists,
+  List<T> singles,
+}) groupActiveDownloads<T>(List<T> rows, String Function(T) idOf,
+    List<({String title, List<String> ids})> saved) {
+  final left = List.of(rows);
+  final playlists = <({String title, List<String> ids, List<T> rows})>[];
+  for (final p in saved) {
+    final ids = p.ids.toSet();
+    final mine = left.where((r) => ids.contains(idOf(r))).toList();
+    if (mine.isEmpty) continue;
+    left.removeWhere(mine.contains);
+    playlists.add((title: p.title, ids: p.ids, rows: mine));
+  }
+  return (playlists: playlists, singles: left);
+}
+
+/// Above the downloads: "Pause all" / "Resume all" and "Cancel all".
+class _DownloadsHeader extends StatelessWidget {
+  const _DownloadsHeader({required this.showPause, required this.running});
+  final bool showPause, running;
+
+  Future<void> _confirmCancelAll(BuildContext context) async {
+    final cubit = context.read<DownloaderCubit>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Default_Theme.themeColor,
+        title: const Text('Cancel all downloads?',
+            style: TextStyle(color: Colors.white, fontSize: 18)),
+        content: Text('Songs already downloaded stay on your phone.',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep downloading',
+                  style: TextStyle(color: Default_Theme.primaryColor1))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Cancel all',
+                  style: TextStyle(
+                      color: Default_Theme.accentColor2,
+                      fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+    if (ok == true) await cubit.cancelAll();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final cubit = context.read<DownloaderCubit>();
+    ButtonStyle style(Color c) => TextButton.styleFrom(
+          foregroundColor: c,
+          backgroundColor: c.withValues(alpha: 0.12),
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        );
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 12, 0),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: running ? cubit.pauseAll : cubit.resumeAll,
-          style: TextButton.styleFrom(
-            foregroundColor: Default_Theme.accentColor2,
-            backgroundColor: Default_Theme.accentColor2.withValues(alpha: 0.12),
-            shape: const StadiumBorder(),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: Row(
+        children: [
+          const Text('Downloading',
+              style: TextStyle(
+                  color: Default_Theme.primaryColor1,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700)),
+          const Spacer(),
+          if (showPause)
+            TextButton.icon(
+              onPressed: running ? cubit.pauseAll : cubit.resumeAll,
+              style: style(Default_Theme.accentColor2),
+              icon: Icon(
+                  running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  size: 18),
+              label: Text(
+                  running ? l10n.offlinePauseAll : l10n.offlineResumeAll,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: () => _confirmCancelAll(context),
+            style: style(Default_Theme.primaryColor1),
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text('Cancel all',
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
-          icon: Icon(
-              running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: 18),
-          label: Text(running ? l10n.offlinePauseAll : l10n.offlineResumeAll,
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-        ),
+        ],
       ),
+    );
+  }
+}
+
+/// A playlist being downloaded with "Download all", as one card: how many
+/// of its songs are downloaded and what the rest are doing. Tap to see its
+/// songs (each with its own pause / cancel / retry).
+class _DownloadingPlaylistCard extends StatefulWidget {
+  const _DownloadingPlaylistCard({
+    super.key,
+    required this.title,
+    required this.total,
+    required this.done,
+    required this.rows,
+  });
+  final String title;
+  final int total, done;
+  final List<DownloadProgress> rows;
+
+  @override
+  State<_DownloadingPlaylistCard> createState() =>
+      _DownloadingPlaylistCardState();
+}
+
+class _DownloadingPlaylistCardState extends State<_DownloadingPlaylistCard> {
+  bool _open = false;
+
+  String _summary(DownloaderCubit cubit) {
+    var downloading = 0, waiting = 0, wifi = 0, paused = 0, failed = 0;
+    for (final d in widget.rows) {
+      if (cubit.isWaitingForWifi(d.task.taskId)) {
+        wifi++;
+        continue;
+      }
+      switch (d.status.state) {
+        case DownloadState.queued:
+          waiting++;
+        case DownloadState.paused:
+          paused++;
+        case DownloadState.failed:
+          failed++;
+        case DownloadState.completed:
+        case DownloadState.cancelled:
+          break;
+        default:
+          downloading++;
+      }
+    }
+    return [
+      if (downloading > 0) '$downloading downloading',
+      if (waiting > 0) '$waiting waiting',
+      if (wifi > 0) '$wifi waiting for Wi-Fi',
+      if (paused > 0) '$paused paused',
+      if (failed > 0) '$failed failed',
+    ].join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<DownloaderCubit>();
+    final song = widget.rows.first.task.song;
+    final share = widget.total == 0 ? 0.0 : widget.done / widget.total;
+    final dim = Default_Theme.primaryColor2.withValues(alpha: 0.7);
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LoadImageCached(
+                    imageUrl: song.thumbnail.urlLow ?? song.thumbnail.url,
+                    width: 55,
+                    height: 55,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Default_Theme.primaryColor1,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text('${widget.done} of ${widget.total} downloaded',
+                          style: TextStyle(color: dim, fontSize: 12.5)),
+                      Text(_summary(cubit),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: dim, fontSize: 12)),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(end: share),
+                          duration: const Duration(milliseconds: 400),
+                          builder: (_, v, __) => LinearProgressIndicator(
+                            value: v,
+                            minHeight: 4,
+                            backgroundColor: Default_Theme.primaryColor2
+                                .withValues(alpha: 0.15),
+                            color: Default_Theme.accentColor2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _open ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: const Icon(Icons.expand_more_rounded,
+                      color: Default_Theme.primaryColor2),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: _open
+              ? Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: Column(children: [
+                    for (final d in widget.rows)
+                      DownloadingCardWidget(downloadProgress: d),
+                  ]),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
     );
   }
 }

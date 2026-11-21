@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:Bloomee/blocs/lyrics/lyrics_cubit.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/blocs/mini_player/mini_player_cubit.dart';
@@ -44,7 +45,6 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
   Lyrics? _syncLyrics;
   String? _syncTrackId;
   int _savedOffsetMs = 0;
-
 
   final ValueNotifier<Duration> _positionNotifier =
       ValueNotifier(Duration.zero);
@@ -419,12 +419,14 @@ class _FullscreenLyricsViewState extends State<FullscreenLyricsView> {
               const SizedBox(width: 16),
               BlocBuilder<LyricsCubit, LyricsState>(
                 builder: (context, state) {
-                  return IconButton(
-                    onPressed: () =>
-                        _openSettingsMenu(state, bloomeePlayerCubit),
-                    icon: const Icon(MingCute.more_2_fill,
-                        color: Colors.white, size: 28),
-                  );
+                  return TipAnchor(
+                      id: 'T4',
+                      child: IconButton(
+                        onPressed: () =>
+                            _openSettingsMenu(state, bloomeePlayerCubit),
+                        icon: const Icon(MingCute.more_2_fill,
+                            color: Colors.white, size: 28),
+                      ));
                 },
               ),
             ],

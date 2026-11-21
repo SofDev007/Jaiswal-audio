@@ -1,3 +1,5 @@
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
+import 'package:Bloomee/core/constants/quips.dart';
 import 'package:Bloomee/blocs/internet_connectivity/cubit/connectivity_cubit.dart';
 import 'package:Bloomee/blocs/notification/notification_cubit.dart';
 import 'package:Bloomee/blocs/settings_cubit/cubit/settings_cubit.dart';
@@ -15,7 +17,7 @@ import 'package:Bloomee/screens/screen/home_views/home_layout_picker.dart';
 import 'package:Bloomee/screens/screen/home_views/home_rows.dart';
 import 'package:Bloomee/screens/screen/home_views/notification_view.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_view.dart';
-import 'package:Bloomee/screens/screen/home_views/timer_view.dart';
+import 'package:Bloomee/screens/screen/home_views/your_corner_view.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -234,10 +236,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               builder: (context, connState) {
                                 if (connState ==
                                     ConnectivityState.disconnected) {
-                                  return const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
                                     child: SignBoardWidget(
-                                      message: 'No Internet Connection!',
+                                      message: noInternetQuip,
                                       icon: MingCute.wifi_off_line,
                                     ),
                                   );
@@ -355,7 +358,7 @@ class CustomDiscoverBar extends StatelessWidget {
                     ? const HomeGreeting()
                     : const HomeTitle()),
             const NotificationIcon(),
-            const TimerIcon(),
+            const ProfileButton(),
             const SettingsIcon(),
           ],
         ),
@@ -373,86 +376,86 @@ class NotificationIcon extends StatelessWidget {
     return KeyedSubtree(
         key: updateBellKey,
         child: BlocBuilder<NotificationCubit, NotificationState>(
-      builder: (context, state) {
-        if (state is NotificationInitial || state.notifications.isEmpty) {
-          return IconButton(
-            padding: const EdgeInsets.all(5),
-            constraints: const BoxConstraints(),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationView(),
+          builder: (context, state) {
+            if (state is NotificationInitial || state.notifications.isEmpty) {
+              return IconButton(
+                padding: const EdgeInsets.all(5),
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationView(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  MingCute.notification_line,
+                  color: Default_Theme.primaryColor1,
+                  size: 30.0,
                 ),
               );
-            },
-            icon: const Icon(
-              MingCute.notification_line,
-              color: Default_Theme.primaryColor1,
-              size: 30.0,
-            ),
-          );
-        }
-        return badges.Badge(
-          badgeContent: Padding(
-            padding: const EdgeInsets.all(1.5),
-            child: Text(
-              state.notifications.length.toString(),
-              style: Default_Theme.primaryTextStyle.merge(
-                const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Default_Theme.primaryColor2,
-                ),
-              ),
-            ),
-          ),
-          badgeStyle: const badges.BadgeStyle(
-            badgeColor: Default_Theme.accentColor2,
-            shape: badges.BadgeShape.circle,
-          ),
-          position: badges.BadgePosition.topEnd(top: -10, end: -5),
-          child: IconButton(
-            padding: const EdgeInsets.all(5),
-            constraints: const BoxConstraints(),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationView(),
-                ),
-              );
-            },
-            icon: const Icon(
-              MingCute.notification_line,
-              color: Default_Theme.primaryColor1,
-              size: 30.0,
-            ),
-          ),
-        );
-      },
-    ));
+            }
+            return TipAnchor(
+                id: 'T16',
+                child: badges.Badge(
+                  badgeContent: Padding(
+                    padding: const EdgeInsets.all(1.5),
+                    child: Text(
+                      state.notifications.length.toString(),
+                      style: Default_Theme.primaryTextStyle.merge(
+                        const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Default_Theme.primaryColor2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  badgeStyle: const badges.BadgeStyle(
+                    badgeColor: Default_Theme.accentColor2,
+                    shape: badges.BadgeShape.circle,
+                  ),
+                  position: badges.BadgePosition.topEnd(top: -10, end: -5),
+                  child: IconButton(
+                    padding: const EdgeInsets.all(5),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationView(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      MingCute.notification_line,
+                      color: Default_Theme.primaryColor1,
+                      size: 30.0,
+                    ),
+                  ),
+                ));
+          },
+        ));
   }
 }
 
-class TimerIcon extends StatelessWidget {
-  const TimerIcon({super.key});
+/// The user's Google photo (or initial): opens Your corner. It took the
+/// sleep timer's place; the timer lives in the player.
+class ProfileButton extends StatelessWidget {
+  const ProfileButton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      padding: const EdgeInsets.all(5),
-      constraints: const BoxConstraints(),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const TimerView()),
-        );
-      },
-      icon: const Icon(
-        MingCute.stopwatch_line,
-        color: Default_Theme.primaryColor1,
-        size: 30.0,
+    return TipAnchor(
+      id: 'T14',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: GestureDetector(
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const YourCornerView())),
+          child: const UserAvatar(size: 30),
+        ),
       ),
     );
   }

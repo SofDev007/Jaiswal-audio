@@ -24,6 +24,12 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
     with SingleTickerProviderStateMixin {
   final _link = LayerLink();
   final _portal = OverlayPortalController();
+
+  /// Opening wraps the portal in a BackButtonListener. Without a GlobalKey
+  /// Flutter would build a fresh OverlayPortal there, lose the "showing"
+  /// state, and the old one's dispose would detach the controller: the
+  /// bubbles never appeared (build 41 bug). The key moves it instead.
+  final _portalKey = GlobalKey();
   late final _c = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
@@ -66,6 +72,7 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
       });
     }
     final portal = OverlayPortal(
+      key: _portalKey,
       controller: _portal,
       overlayChildBuilder: (_) => Stack(children: [
         Positioned.fill(
@@ -83,8 +90,7 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
             mainAxisSize: MainAxisSize.min,
             children: [
               _bubble(1, 'Smart shuffle', Icons.auto_awesome_rounded,
-                  highlight: true,
-                  onTap: () => _pick(widget.onSmartShuffle)),
+                  highlight: true, onTap: () => _pick(widget.onSmartShuffle)),
               const SizedBox(height: 10),
               _bubble(0, 'Shuffle', Icons.shuffle_rounded,
                   onTap: () => _pick(widget.onShuffle)),
@@ -133,9 +139,7 @@ class _ShuffleBubblesState extends State<ShuffleBubbles>
         ),
       ),
       child: Material(
-        color: highlight
-            ? Default_Theme.accentColor2
-            : const Color(0xFF2A2230),
+        color: highlight ? Default_Theme.accentColor2 : const Color(0xFF2A2230),
         elevation: 8,
         shadowColor: highlight
             ? Default_Theme.accentColor2.withValues(alpha: 0.6)

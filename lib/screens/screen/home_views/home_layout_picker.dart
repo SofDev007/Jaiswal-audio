@@ -1,3 +1,6 @@
+import 'package:Bloomee/core/constants/route_paths.dart';
+import 'package:Bloomee/services/tips.dart';
+import 'package:go_router/go_router.dart';
 import 'package:Bloomee/blocs/settings_cubit/cubit/settings_cubit.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
 import 'package:Bloomee/l10n/app_localizations.dart';
@@ -22,21 +25,64 @@ Future<void> showHomeLayoutPicker(BuildContext context,
         borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
     builder: (_) => PopScope(
       canPop: !firstRun,
-      child: _LayoutPicker(initial: homeLayoutOf(cubit.state.homeLayout)),
+      child: _LayoutPicker(
+          initial: homeLayoutOf(cubit.state.homeLayout), firstRun: firstRun),
     ),
   );
   if (picked == null) return;
   cubit.setHomeLayout(picked.name);
   if (!firstRun || !context.mounted) return;
+  await _bringYourMusicThenAllSet(context);
+}
 
+/// The end of the first-run flow, on Home: offer to import playlists, then
+/// "All set", and from now on the first-time tips can show.
+Future<void> _bringYourMusicThenAllSet(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
+  final import = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF17171B),
+      icon: const Icon(Icons.library_music_rounded,
+          color: Default_Theme.accentColor2, size: 36),
+      title: const Text('Bring your music',
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Default_Theme.primaryColor1)),
+      content: Text(
+        "Bring your playlists from Spotify. They'll never know you left.",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            fontSize: 14,
+            color: Default_Theme.primaryColor1.withValues(alpha: 0.8)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text('Later',
+              style: TextStyle(
+                  color: Default_Theme.primaryColor1.withValues(alpha: 0.7))),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Import playlists',
+              style: TextStyle(
+                  color: Default_Theme.accentColor2,
+                  fontWeight: FontWeight.bold)),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted) return;
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xFF17171B),
       icon: const Icon(Icons.check_circle_rounded,
           color: Default_Theme.accentColor2, size: 36),
-      title: Text(l10n.homeLayoutDoneTitle,
+      title: Text('All set. Volume up, worries down.',
+          textAlign: TextAlign.center,
           style: Default_Theme.secondoryTextStyleMedium.merge(const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -57,11 +103,16 @@ Future<void> showHomeLayoutPicker(BuildContext context,
       ],
     ),
   );
+  await TipStore.startOver();
+  if (import == true && context.mounted) {
+    context.pushNamed(RoutePaths.importMediaFromPlatforms);
+  }
 }
 
 class _LayoutPicker extends StatefulWidget {
-  const _LayoutPicker({required this.initial});
+  const _LayoutPicker({required this.initial, this.firstRun = false});
   final HomeLayout initial;
+  final bool firstRun;
 
   @override
   State<_LayoutPicker> createState() => _LayoutPickerState();
@@ -100,7 +151,11 @@ class _LayoutPickerState extends State<_LayoutPicker> {
                         fontWeight: FontWeight.bold,
                         color: Default_Theme.primaryColor1))),
             const SizedBox(height: 4),
-            Text(l10n.homeLayoutChooseHint,
+            Text(
+                widget.firstRun
+                    ? 'Pick a look. You can change it later, unlike that '
+                        'haircut in 2019.'
+                    : l10n.homeLayoutChooseHint,
                 style: Default_Theme.secondoryTextStyle
                     .merge(TextStyle(fontSize: 13, color: muted))),
             const SizedBox(height: 16),
