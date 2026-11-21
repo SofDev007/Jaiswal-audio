@@ -1,3 +1,5 @@
+import 'package:Bloomee/services/tips.dart';
+import 'package:Bloomee/screens/widgets/snackbar.dart';
 import 'package:Bloomee/core/di/service_locator.dart';
 import 'package:Bloomee/services/player/listening_time.dart';
 import 'package:Bloomee/services/recommendations/taste_model.dart';
@@ -155,6 +157,18 @@ class _RecommendationHealthViewState extends State<RecommendationHealthView> {
                 await _load();
               },
               child: const Text('Reset counters',
+                  style: TextStyle(color: Default_Theme.accentColor2)),
+            ),
+          ),
+          // First-time tips are for new users only; this replays them.
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () async {
+                await TipStore.startOver();
+                SnackbarService.showMessage('Tips will show again');
+              },
+              child: const Text('Show tips again',
                   style: TextStyle(color: Default_Theme.accentColor2)),
             ),
           ),

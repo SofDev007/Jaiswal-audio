@@ -217,7 +217,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistDelete => 'Delete Playlist';
 
   @override
-  String get playlistEmptyState => 'No Songs Yet!';
+  String get likedEmptyState =>
+      'No liked songs yet. Your heart button is getting lonely.';
+
+  @override
+  String get playlistEmptyState =>
+      'It\'s quiet. Too quiet. Add a song before the crickets file a complaint.';
 
   @override
   String get playlistAvailableOffline => 'Available Offline';
@@ -236,7 +241,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playlistCreateFirstOne =>
-      'No playlists yet. Create one to get started!';
+      'No playlists yet. Make one, nobody\'s judging. Yet.';
 
   @override
   String get addToPlaylistNoSongSelected => 'No song selected';
@@ -567,14 +572,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHintPlaylists => 'Search playlists...';
 
   @override
-  String get searchStartTyping => 'Start typing to search...';
+  String get searchStartTyping =>
+      'Type something. We won\'t judge your taste. Much.';
 
   @override
   String get searchNoSuggestions => 'No Suggestions found!';
 
   @override
   String get searchNoResults =>
-      'No results found!\nTry another keyword or source.';
+      'We searched everywhere. Even under the sofa. Nothing.\nTry another keyword or source.';
 
   @override
   String get searchFailed => 'Search failed!';
@@ -617,7 +623,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryEmptyState =>
-      'Your library is feeling lonely. Add some tunes to brighten it up!';
+      'Your library is emptier than a fridge at 3 a.m. Add some tunes!';
 
   @override
   String libraryIn(String playlistName) {
@@ -1227,10 +1233,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsTitle => 'Notifications';
 
   @override
-  String get notificationsEmpty => 'No Notifications yet!';
+  String get notificationsEmpty =>
+      'No notifications. Enjoy the peace while it lasts.';
 
   @override
   String get recentsTitle => 'History';
+
+  @override
+  String get historyEmpty =>
+      'No history yet. Play something and we\'ll remember it forever. No pressure.';
 
   @override
   String playlistByCreator(String creator) {
@@ -1449,7 +1460,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get offlineNoDownloads => 'No Downloads';
+  String get offlineNoDownloads =>
+      'Nothing downloaded. Living dangerously on mobile data, I see.';
 
   @override
   String get offlineTitle => 'Offline';

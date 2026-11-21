@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/screens/widgets/shuffle_bubbles.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -105,6 +106,7 @@ class _PlaylistViewState extends State<PlaylistView> {
       ),
     );
   }
+
   String? _targetPlaylistName;
 
   @override
@@ -451,8 +453,8 @@ class _PlaylistViewState extends State<PlaylistView> {
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
-                      child: _FailedDownloadsBanner(
-                          title: state.playlist.title)),
+                      child:
+                          _FailedDownloadsBanner(title: state.playlist.title)),
                   if (_searching)
                     SliverToBoxAdapter(child: _buildSearchField()),
                   if (state.playlist.tracks.isEmpty && !state.isLoadingMore)
@@ -460,7 +462,9 @@ class _PlaylistViewState extends State<PlaylistView> {
                       hasScrollBody: false,
                       child: Center(
                           child: SignBoardWidget(
-                              message: l10n.playlistEmptyState,
+                              message: state.playlist.title == 'Liked'
+                                  ? l10n.likedEmptyState
+                                  : l10n.playlistEmptyState,
                               icon: MingCute.playlist_line)),
                     )
                   else
@@ -532,7 +536,9 @@ class _PlaylistViewState extends State<PlaylistView> {
             hasScrollBody: false,
             child: Center(
                 child: SignBoardWidget(
-                    message: l10n.playlistEmptyState,
+                    message: state.playlist.title == 'Liked'
+                        ? l10n.likedEmptyState
+                        : l10n.playlistEmptyState,
                     icon: MingCute.playlist_line)),
           )
         else
@@ -627,7 +633,8 @@ class _PlaylistViewState extends State<PlaylistView> {
       _loadingAll = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          unawaited(context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded());
+          unawaited(
+              context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded());
         }
       });
     }
@@ -722,24 +729,30 @@ class _PlaylistViewState extends State<PlaylistView> {
                 ),
               );
             }
-            return _buildActionIcon(
-                MingCute.download_2_fill,
-                l10n.buttonDownload,
-                isEmpty ? null : () => _handleDownload(context, state, l10n));
+            return TipAnchor(
+                id: 'T10',
+                child: _buildActionIcon(
+                    MingCute.download_2_fill,
+                    l10n.buttonDownload,
+                    isEmpty
+                        ? null
+                        : () => _handleDownload(context, state, l10n)));
           }),
 
           const SizedBox(width: 12),
 
           // Shuffle second, not at the edge: its two bubbles ("Shuffle",
           // "Smart shuffle") open centred above it and need the room.
-          ShuffleBubbles(
-            button: (onTap) => _buildActionIcon(
-                MingCute.shuffle_line, l10n.playlistShuffle, onTap),
-            onShuffle: isEmpty
-                ? null
-                : () => _playFromPlaylist(context, state, shuffle: true),
-            onSmartShuffle: isEmpty ? null : () => _smartShuffle(context),
-          ),
+          TipAnchor(
+              id: 'A2',
+              child: ShuffleBubbles(
+                button: (onTap) => _buildActionIcon(
+                    MingCute.shuffle_line, l10n.playlistShuffle, onTap),
+                onShuffle: isEmpty
+                    ? null
+                    : () => _playFromPlaylist(context, state, shuffle: true),
+                onSmartShuffle: isEmpty ? null : () => _smartShuffle(context),
+              )),
           const SizedBox(width: 12),
 
           // Big Center Play Button
@@ -886,6 +899,7 @@ class _PlaylistViewState extends State<PlaylistView> {
         (await context.read<CurrentPlaylistCubit>().ensureAllTracksLoaded())
             .tracks;
     if (items.isEmpty || !context.mounted) return;
+    Tips.offer('T11');
 
     // Only the songs not downloaded (or downloading) yet are asked about and
     // queued; the playlist is recorded either way, so Offline groups it.
@@ -976,7 +990,8 @@ class _FailedDownloadsBannerState extends State<_FailedDownloadsBanner> {
   }
 
   Future<void> _load() async {
-    final n = (await DownloadedPlaylists.loadFailed())[widget.title]?.length ?? 0;
+    final n =
+        (await DownloadedPlaylists.loadFailed())[widget.title]?.length ?? 0;
     if (mounted) setState(() => _failed = n);
   }
 

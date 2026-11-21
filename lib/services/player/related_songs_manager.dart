@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:Bloomee/services/first_run.dart';
 import 'package:Bloomee/services/recommendations/taste_model.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
 import 'package:Bloomee/core/models/exported.dart';
@@ -81,13 +82,17 @@ class RelatedSongsManager {
       HistoryDAO(DBProvider.db, trackDao).getHistory(limit: 200),
       SuggestionBlocklist.load(),
       _userPlaylists(trackDao),
+      FirstRunPicks.load(),
     ]);
+    final picks = results[5] as FirstRunPicks;
     return ranker.buildTaste(
       signals: results[0] as List<TrackSignal>,
       liked: results[1] as List<Track>,
       history: results[2] as List<Track>,
       blocked: results[3] as Set<String>,
       playlists: results[4] as Map<String, List<Track>>,
+      startLanguages: picks.languages,
+      startArtists: picks.artists,
       model: await TasteModel.load(),
     );
   }

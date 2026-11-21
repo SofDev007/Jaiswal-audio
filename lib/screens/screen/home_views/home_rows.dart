@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:Bloomee/blocs/explore/cubit/explore_cubits.dart';
 import 'package:Bloomee/blocs/library/cubit/library_items_cubit.dart';
 
@@ -304,7 +305,9 @@ class _TrackRow extends StatelessWidget {
                                     shape: BoxShape.circle,
                                     color: Colors.black.withValues(alpha: 0.45),
                                   ),
-                                  child: NeverSuggestButton(track: t),
+                                  child: TipAnchor(
+                                      id: 'A1',
+                                      child: NeverSuggestButton(track: t)),
                                 ),
                               ),
                           ],
@@ -1000,8 +1003,8 @@ class _UpNextRowState extends State<_UpNextRow>
                         Text(track.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Default_Theme.secondoryTextStyleMedium
-                                .merge(TextStyle(
+                            style: Default_Theme.secondoryTextStyleMedium.merge(
+                                TextStyle(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.bold,
                                     color: playing
@@ -1064,10 +1067,7 @@ class _PlayingBarsState extends State<_PlayingBars>
               width: 3.5,
               margin: const EdgeInsets.symmetric(horizontal: 1.5),
               height: 6 +
-                  12 *
-                      (0.5 +
-                          0.5 *
-                              math.sin(2 * math.pi * _c.value + b * 2.1)),
+                  12 * (0.5 + 0.5 * math.sin(2 * math.pi * _c.value + b * 2.1)),
               decoration: BoxDecoration(
                 color: Default_Theme.accentColor2,
                 borderRadius: BorderRadius.circular(2),

@@ -24,8 +24,8 @@ class AccountGate extends StatelessWidget {
           ? child
           : MaterialApp(
               debugShowCheckedModeBanner: false,
-              theme: ThemeData.dark(useMaterial3: true).copyWith(
-                  scaffoldBackgroundColor: Default_Theme.themeColor),
+              theme: ThemeData.dark(useMaterial3: true)
+                  .copyWith(scaffoldBackgroundColor: Default_Theme.themeColor),
               home: _LockedScreen(state: s),
             ),
     );
@@ -47,17 +47,31 @@ class _LockedScreenState extends State<_LockedScreen> {
   /// While waiting for approval, ask again every 20 s.
   Timer? _poll;
 
+  /// Rotates a joke under the button while sign-in is busy.
+  Timer? _quipTimer;
+  int _quip = 0;
+  static const _quips = [
+    'Asking Google nicely…',
+    'Bribing the servers with chai…',
+    'Untangling earphones…',
+    'Asking Mom for the Wi-Fi password…',
+    "Convincing the cloud you're not a robot…",
+  ];
+
   @override
   void initState() {
     super.initState();
     _poll = Timer.periodic(const Duration(seconds: 20), (_) {
-      if (widget.state.status == AccountStatus.pending) Account.instance.check();
+      if (widget.state.status == AccountStatus.pending) {
+        Account.instance.check();
+      }
     });
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _quipTimer?.cancel();
     super.dispose();
   }
 
@@ -65,8 +79,12 @@ class _LockedScreenState extends State<_LockedScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _quip = 0;
     });
+    _quipTimer = Timer.periodic(const Duration(milliseconds: 1600),
+        (_) => setState(() => _quip = (_quip + 1) % _quips.length));
     final error = await action();
+    _quipTimer?.cancel();
     if (mounted) {
       setState(() {
         _busy = false;
@@ -89,7 +107,8 @@ class _LockedScreenState extends State<_LockedScreen> {
       AccountStatus.pending => (
           'Waiting for approval',
           'The owner of JARX needs to approve ${s.user?.email ?? 'your account'}. '
-              'JARX opens by itself as soon as they do.',
+              'Boss is vibing right now. '
+              'JARX opens by itself as soon as he approves.',
           'Check again',
         ),
       AccountStatus.needsOnline => (
@@ -176,6 +195,15 @@ class _LockedScreenState extends State<_LockedScreen> {
                               fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
+                  if (_busy) ...[
+                    const SizedBox(height: 12),
+                    Text(_quips[_quip],
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Default_Theme.primaryColor1
+                                .withValues(alpha: 0.6))),
+                  ],
                   if (isRetry) ...[
                     const SizedBox(height: 8),
                     TextButton(

@@ -25,7 +25,8 @@ class NotificationTile extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => UpdateNotesView(notification: notification),
+                builder: (context) =>
+                    UpdateNotesView(notification: notification),
               ),
             );
           } else {
@@ -106,7 +107,8 @@ class _UpdateNotesViewState extends State<UpdateNotesView> {
       await AppUpdater.install(path);
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'The download failed. Check your internet and try again.');
+        setState(() =>
+            _error = 'The download failed. Check your internet and try again.');
       }
     } finally {
       if (mounted) setState(() => _downloading = false);
@@ -169,25 +171,27 @@ class _UpdateNotesViewState extends State<UpdateNotesView> {
                 backgroundColor: Colors.white12),
             const SizedBox(height: 8),
             Text(
-                _progress == null
-                    ? 'Downloading...'
-                    : 'Downloading... ${(_progress! * 100).round()}%',
+                "Downloading the update… faster than your relatives' WhatsApp "
+                'forwards.'
+                '${_progress == null ? '' : ' ${(_progress! * 100).round()}%'}',
                 style: const TextStyle(color: Default_Theme.primaryColor2)),
           ] else if (url.isNotEmpty)
             UpdateGlow(
-              hint: _apk != null ? 'Now tap Install update' : 'Tap Download update',
-              child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                  backgroundColor: Default_Theme.accentColor2,
-                  minimumSize: const Size.fromHeight(50)),
-              onPressed: () => _apk != null
-                  ? AppUpdater.install(_apk!)
-                  : _download(url),
-              icon: Icon(_apk != null
-                  ? Icons.install_mobile_rounded
-                  : Icons.download_rounded),
-              label: Text(_apk != null ? 'Install update' : 'Download update'),
-            )),
+                hint: _apk != null
+                    ? 'Now tap Install update'
+                    : 'Tap Download update',
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: Default_Theme.accentColor2,
+                      minimumSize: const Size.fromHeight(50)),
+                  onPressed: () =>
+                      _apk != null ? AppUpdater.install(_apk!) : _download(url),
+                  icon: Icon(_apk != null
+                      ? Icons.install_mobile_rounded
+                      : Icons.download_rounded),
+                  label:
+                      Text(_apk != null ? 'Install update' : 'Download update'),
+                )),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!, style: const TextStyle(color: Colors.redAccent)),

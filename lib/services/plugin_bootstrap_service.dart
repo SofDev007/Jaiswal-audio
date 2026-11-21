@@ -98,7 +98,30 @@ class PluginBootstrapService {
     }
   }
 
+  static Future<PluginBootstrapResult>? _running;
+  static void Function(PluginBootstrapProgress)? _listener;
+
+  /// Installs the plugins. The first-run flow starts this in the background;
+  /// a second caller (the setup screen, if it's still going) gets the same
+  /// run and takes over its progress updates.
   static Future<PluginBootstrapResult> run({
+    required PluginService pluginService,
+    required PluginRepositoryService repositoryService,
+    required SettingsDAO settingsDao,
+    required void Function(PluginBootstrapProgress progress) onProgress,
+  }) {
+    _listener = onProgress;
+    final running = _running;
+    if (running != null) return running;
+    return _running = _run(
+      pluginService: pluginService,
+      repositoryService: repositoryService,
+      settingsDao: settingsDao,
+      onProgress: (p) => _listener?.call(p),
+    ).whenComplete(() => _running = null);
+  }
+
+  static Future<PluginBootstrapResult> _run({
     required PluginService pluginService,
     required PluginRepositoryService repositoryService,
     required SettingsDAO settingsDao,

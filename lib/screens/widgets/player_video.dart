@@ -7,6 +7,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:Bloomee/blocs/media_player/bloomee_player_cubit.dart';
 import 'package:Bloomee/blocs/player_overlay/player_overlay_cubit.dart';
 import 'package:Bloomee/core/constants/setting_keys.dart';
@@ -36,11 +37,11 @@ class PlayerVideo {
   /// The chosen quality: a picture height, or 0 for Auto. Remembered.
   static int? _height;
 
-  static Future<int> chosenHeight() async => _height ??= int.tryParse(
-          await SettingsDAO(DBProvider.db)
+  static Future<int> chosenHeight() async =>
+      _height ??= int.tryParse(await SettingsDAO(DBProvider.db)
                   .getSettingStr(SettingKeys.videoQuality) ??
               '') ??
-      0;
+          0;
 
   static Future<void> choose(int height) async {
     _height = height;
@@ -171,8 +172,7 @@ class CoverOrVideo extends StatelessWidget {
             transitionBuilder: (child, a) => FadeTransition(
               opacity: a,
               child: ScaleTransition(
-                  scale: Tween(begin: 0.85, end: 1.0).animate(a),
-                  child: child),
+                  scale: Tween(begin: 0.85, end: 1.0).animate(a), child: child),
             ),
             child: show
                 ? MiniVideo(key: ValueKey('video-${track.id}'), track: track)
@@ -317,7 +317,8 @@ class _MiniVideoState extends State<MiniVideo> {
             'Install the YouTube Video plugin (Settings › Plugins) to watch videos.');
       }
     } catch (_) {
-      if (mounted) setState(() => _error = "Couldn't load the video right now.");
+      if (mounted)
+        setState(() => _error = "Couldn't load the video right now.");
     }
   }
 
@@ -332,9 +333,7 @@ class _MiniVideoState extends State<MiniVideo> {
     final play = engine.playing && _shown;
     if (play != c.value.isPlaying) play ? c.play() : c.pause();
     _keepScreenOn(play);
-    if (!play ||
-        c.value.isBuffering ||
-        DateTime.now().isBefore(_settleUntil)) {
+    if (!play || c.value.isBuffering || DateTime.now().isBefore(_settleUntil)) {
       return;
     }
     final songAt = engine.position;
@@ -344,8 +343,11 @@ class _MiniVideoState extends State<MiniVideo> {
       _setSpeed(c, 1.0);
       _settleUntil = DateTime.now().add(const Duration(seconds: 3));
     } else {
-      _setSpeed(c,
-          ahead.abs() < 80 ? 1.0 : (1 - ahead / 2000).clamp(0.9, 1.1).toDouble());
+      _setSpeed(
+          c,
+          ahead.abs() < 80
+              ? 1.0
+              : (1 - ahead / 2000).clamp(0.9, 1.1).toDouble());
     }
   }
 
@@ -357,8 +359,7 @@ class _MiniVideoState extends State<MiniVideo> {
   void _keepScreenOn(bool on) {
     if (on == _screenOn) return;
     _screenOn = on;
-    _app.invokeMethod('keepScreenOn', {'on': on}).then((_) {},
-        onError: (_) {});
+    _app.invokeMethod('keepScreenOn', {'on': on}).then((_) {}, onError: (_) {});
   }
 
   void _chooseQuality() {
@@ -401,8 +402,8 @@ class _MiniVideoState extends State<MiniVideo> {
               top: 4,
               right: 4,
               child: Row(children: [
-                _VideoButton(Icons.settings_rounded, 'Video quality',
-                    _chooseQuality),
+                _VideoButton(
+                    Icons.settings_rounded, 'Video quality', _chooseQuality),
                 _VideoButton(
                     Icons.fullscreen_rounded, 'Full screen', _fullScreen),
               ]),
@@ -453,7 +454,11 @@ class _VideoSettings extends StatelessWidget {
   final VideoNow now;
   final bool fullScreen;
 
-  static const _sizes = {'small': 'Small', 'medium': 'Medium', 'large': 'Large'};
+  static const _sizes = {
+    'small': 'Small',
+    'medium': 'Medium',
+    'large': 'Large'
+  };
 
   Widget _heading(String text) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
@@ -793,15 +798,17 @@ class _FullScreenVideoState extends State<_FullScreenVideo> {
                               ? const SizedBox.shrink()
                               : ValueListenableBuilder<String>(
                                   valueListenable: PlayerVideo.captions,
-                                  builder: (context, pref, _) => _VideoButton(
-                                    pref == captionsOff
-                                        ? Icons.closed_caption_off_outlined
-                                        : Icons.closed_caption_rounded,
-                                    pref == captionsOff
-                                        ? 'Turn captions on'
-                                        : 'Turn captions off',
-                                    _toggleCaptions,
-                                  ),
+                                  builder: (context, pref, _) => TipAnchor(
+                                      id: 'T5',
+                                      child: _VideoButton(
+                                        pref == captionsOff
+                                            ? Icons.closed_caption_off_outlined
+                                            : Icons.closed_caption_rounded,
+                                        pref == captionsOff
+                                            ? 'Turn captions on'
+                                            : 'Turn captions off',
+                                        _toggleCaptions,
+                                      )),
                                 ),
                     ),
                     const SizedBox(width: 8),

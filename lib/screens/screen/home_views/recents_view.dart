@@ -5,6 +5,7 @@ import 'package:Bloomee/core/models/media_playlist_model.dart';
 import 'package:Bloomee/screens/screen/home_views/setting_views/storage_setting.dart';
 import 'package:Bloomee/screens/widgets/more_bottom_sheet.dart';
 import 'package:Bloomee/screens/widgets/song_tile.dart';
+import 'package:Bloomee/screens/widgets/sign_board_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:Bloomee/screens/widgets/skeleton.dart';
 import 'package:Bloomee/core/theme/app_theme.dart';
@@ -54,28 +55,32 @@ class HistoryView extends StatelessWidget {
                     physics: NeverScrollableScrollPhysics(),
                     child: SkeletonSongList(count: 10),
                   )
-                : ListView.builder(
-                    itemCount: state.tracks.length,
-                    shrinkWrap: true,
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      return SongCardWidget(
-                        song: state.tracks[index],
-                        onTap: () {
-                          context
-                              .read<BloomeePlayerCubit>()
-                              .bloomeePlayer
-                              .loadPlaylist(
-                                  Playlist(
-                                      tracks: state.tracks, title: 'History'),
-                                  idx: index,
-                                  doPlay: true);
+                : state.tracks.isEmpty
+                    ? SignBoardWidget(
+                        message: l10n.historyEmpty, icon: MingCute.history_line)
+                    : ListView.builder(
+                        itemCount: state.tracks.length,
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          return SongCardWidget(
+                            song: state.tracks[index],
+                            onTap: () {
+                              context
+                                  .read<BloomeePlayerCubit>()
+                                  .bloomeePlayer
+                                  .loadPlaylist(
+                                      Playlist(
+                                          tracks: state.tracks,
+                                          title: 'History'),
+                                      idx: index,
+                                      doPlay: true);
+                            },
+                            onOptionsTap: () => showMoreBottomSheet(
+                                context, state.tracks[index]),
+                          );
                         },
-                        onOptionsTap: () =>
-                            showMoreBottomSheet(context, state.tracks[index]),
                       );
-                    },
-                  );
           },
         ),
       ),

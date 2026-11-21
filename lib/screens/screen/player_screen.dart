@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:Bloomee/screens/widgets/tip_overlay.dart';
 import 'package:Bloomee/blocs/downloader/cubit/downloader_cubit.dart';
 import 'package:Bloomee/blocs/library/cubit/library_items_cubit.dart';
 import 'package:Bloomee/blocs/player_overlay/player_overlay_cubit.dart';
@@ -53,13 +54,13 @@ class _AudioPlayerViewState extends State<AudioPlayerView>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<PlayerOverlayCubit>().registerUpNextPanelCollapse(
-              () => _upNextPanelController.collapse(),
-              open: () {
-                if (!_upNextPanelController.isExpanded) {
-                  _upNextPanelController.toggle();
-                }
-              },
-            );
+          () => _upNextPanelController.collapse(),
+          open: () {
+            if (!_upNextPanelController.isExpanded) {
+              _upNextPanelController.toggle();
+            }
+          },
+        );
       }
     });
   }
@@ -263,7 +264,7 @@ class _PlayerUI extends StatelessWidget {
               // "Play video", just above the song's name.
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24),
-                child: PlayVideoButton(),
+                child: TipAnchor(id: 'A4', child: PlayVideoButton()),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -812,7 +813,7 @@ class _PlayerControlsRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildControlColumn(
-          top: const SleepTimerButton(),
+          top: const TipAnchor(id: 'T2', child: SleepTimerButton()),
           bottom: const LoopButton(),
         ),
         _buildControlColumn(

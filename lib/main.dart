@@ -63,7 +63,7 @@ import 'package:Bloomee/services/discord_service.dart';
 import 'package:Bloomee/services/db/legacy/legacy_migration_service.dart'
     as legacy_migration;
 import 'package:Bloomee/screens/widgets/legacy_migration_overlay.dart';
-import 'package:Bloomee/screens/widgets/onboarding_overlay.dart';
+import 'package:Bloomee/screens/widgets/first_run_flow.dart';
 import 'package:Bloomee/screens/widgets/plugin_bootstrap_overlay.dart';
 import 'package:Bloomee/services/onboarding_service.dart';
 import 'package:Bloomee/services/plugin_bootstrap_service.dart';
@@ -345,7 +345,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     if (_onboardingPending) {
-      return OnboardingOverlay(
+      return FirstRunFlow(
         onComplete: () {
           if (!mounted) return;
           setState(() {
